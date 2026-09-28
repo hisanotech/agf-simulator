@@ -1,8 +1,9 @@
 import {warehouseLocations} from '../map/warehouse-layout.mjs';
+import syntheticTopology from '../../examples/synthetic-operational-topology.json' with {type:'json'};
 
 /** All inventory, input streams and timing here are explicit, reproducible sample assumptions. */
 export function createDemoScenario(preset='standard') {
-  if(!['standard','charge','manual'].includes(preset))throw new Error('Unknown sample scenario');
+  if(!['standard','charge','manual','physical'].includes(preset))throw new Error('Unknown sample scenario');
   const warehouse=warehouseLocations();
   // Exercise all status styles with declared sample state, never a claim about actual inventory.
   warehouse.at(-1).permission=false;
@@ -15,12 +16,12 @@ export function createDemoScenario(preset='standard') {
     evidence:{structure:'user-confirmed',coordinates:'unreviewed',inventory:'synthetic',
       production:'synthetic-intervals',timing:'scenario-assumption',battery:'scenario-assumption',
       batteryConsumption:'supplier-assumption-user-relayed',batteryScope:'user-confirmed-driving-and-handling'},
-    lineIntervalsMin:Array.from({length:8},(_,i)=>preset==='manual'?0:preset==='charge'?(i<4?60:0):41),
+    lineIntervalsMin:Array.from({length:8},(_,i)=>preset==='manual'?0:preset==='charge'?(i<4?60:0):preset==='physical'?(i<2?45:0):41),
     lineStartOffsetsMin:Array.from({length:8},(_,i)=>preset==='standard'?Number((i*41/8).toFixed(3)):0),
     generatedDestinationIds,
     wrapper:{inputCapacity:1,outputCapacity:2},
     agfs:Array.from({length:4},(_,i)=>({id:'AGF'+(i+1),area:i<2?'PZ':'WH',
-      batteryPct:preset==='charge'?41:100,status:'idle'})),
+      batteryPct:preset==='charge'?41:100,status:'idle',...(preset==='physical'?{currentNodeId:i<2?'PZ-HOME':'WH-HOME'}:{})})),
     chargerIds:['CHARGER1','CHARGER2'],
     battery:{consumptionModel:'active_time',activeReferenceMin:360,activeReferenceConsumptionPct:70,
       reservePct:40,chargeStartPct:40,chargeTargetPct:80,consumptionPct:1.5,chargeMinPerPct:2.4},
@@ -30,6 +31,8 @@ export function createDemoScenario(preset='standard') {
     aligners:Array.from({length:5},(_,i)=>({id:'AL'+(i+1),ready:false})),
     temporaryPallets:[1,2,3].map(i=>({palletId:'SIM-TEMP-'+i,locationId:'OT'+i,
       destinationLocationId:generatedDestinationIds.at(-i)})),
-    manualRequests:[],magazineUses:[],alignerReadyEvents:[]
+    manualRequests:[],magazineUses:[],alignerReadyEvents:[],
+    ...(preset==='physical'?{motionModel:'synthetic_graph',operationalTopology:structuredClone(syntheticTopology),
+      shutterEvents:[]}:{})
   };
 }

@@ -8,11 +8,15 @@ A development harness for a deterministic, event-driven AGF logistics simulator 
 
 - **[全体進捗ボード（Issue #2）](https://github.com/zony21/agf-simulator/issues/2)**：M0～M8の状態、完了済み／未完了チェック、次に着手する項目。進捗更新はこちらを正本とする。
 - **[全体実装計画](docs/implementation-plan.md)**：各工程の依存関係、受入条件、検証方法。
-- **[実装PR #1](https://github.com/zony21/agf-simulator/pull/1)**：作業ブランチ `feat/event-simulator-ui`。コード実装・合成CIの完了と、実図面での経路承認・mainへのマージは別に扱う。
+- **[実装PR #1](https://github.com/zony21/agf-simulator/pull/1)**：2026-09-25にmainへマージ済み。M0の合成シミュレーター実装済みを示すもので、実図面での経路承認やM1～M8の完了を意味しない。
 
 ### M2 区間レビューの実装
 
 非公開CADの下書きとは別に、区間ごとの通行可否・方向・車線数・同時通過・ゲートを**端末内で明示登録**する画面と、変更時に失効する非公開JSON台帳を追加しました。未確認・禁止・未割当ガイドは位相グラフから除外します。出力は距離・ETA・交通制御・実機の走行許可を含まない**レビュー済み位相候補**です。詳細は[区間レビュー契約](docs/reviewed-topology-contract.md)を参照してください。
+
+### M3～M7 公開合成モデル
+
+`motionModel: synthetic_graph`を明示した公開合成シナリオでは、架空距離・速度・座標による区間走行、方向別レーン・交差点予約、シャッター待ち、充電移動、イベント由来の位置投影・交通待ち分析・区間CSVを実行できます。既存固定時間シナリオは従来どおりです。これは実CAD経路・実測距離・確定ETA・安全認証ではありません。詳細は[合成運行グラフ・交通制御契約](docs/operational-topology-contract.md)を参照してください。
 
 ## Current scope
 
@@ -46,7 +50,7 @@ The [DXF map pipeline guide](docs/map-dxf-pipeline.md) describes exporting the s
 
 ## DXF-free logical map
 
-The [public-safe abstract map JSON](data/reference-logical-map.json), [schematic 2D SVG](assets/logical-map.svg), [logical map guide](docs/logical-map.md), and [conceptual path validator](src/map/logical-map.mjs) are now available. They use confirmed corridor relationships but **not measured coordinates, detailed stop/turn points or travel times**. Run `npm run check:map`. Inter-area geometry and individual warehouse slot links remain unresolved, so a physical 01–05 route engine is not yet implemented.
+The [public-safe abstract map JSON](data/reference-logical-map.json), [schematic 2D SVG](assets/logical-map.svg), [logical map guide](docs/logical-map.md), and [conceptual path validator](src/map/logical-map.mjs) are now available. They use confirmed corridor relationships but **not measured coordinates, detailed stop/turn points or travel times**. Run `npm run check:map`. Inter-area geometry and individual warehouse slot links remain unresolved. A synthetic 01–05 route engine is available for software verification, but no physical CAD route has been approved.
 
 
 ## Experimental interactive simulator (feature branch)
@@ -82,7 +86,7 @@ On an AGF-excluded private preview, users can click to record explicitly named p
 
 ### Not implemented or approved
 
-Approved CAD-to-equipment registration and verified physical node/edge graph, route-dependent times, collision/traffic/shutter/interlock model, real production stream import UI, full exception recovery, runtime WCS/PLC/RCS integration, and physical charge-route timing. The map import pipeline and private inspector are intentionally separate. Only public-safe synthetic fixtures belong in this repository.
+Approved CAD-to-equipment registration and verified physical node/edge graph, verified route-dependent times, real traffic/shutter/interlock conditions, automatic deadlock recovery, real production stream import UI, full exception recovery, runtime WCS/PLC/RCS integration, and physical charge-route timing. Synthetic traffic and shutter behavior exists only for deterministic software tests. The map import pipeline and private inspector are intentionally separate. Only public-safe synthetic fixtures belong in this repository.
 
 
 ## Planned implementation

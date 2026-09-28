@@ -58,12 +58,33 @@ test('cross-area connector cannot be marked confirmed without reviewed gate data
   assert.throws(() => validateLogicalMap(changed), /inter-area link/);
 });
 
-test('west warehouse gate is forbidden even if a route is fabricated', () => {
+test('west warehouse gate is excluded from normal routing even if a route is fabricated', () => {
   const changed = copy();
   changed.links.push({
     id: 'IMPROPER', from: 'WH-W-GATE', to: 'WH-W-V', direction: 'both', status: 'confirmed', reviewState: 'user-confirmed-abstract'
   });
   assert.throws(() => validateLogicalMap(changed), /unapproved corridor/);
+});
+
+test('fire shutter group confirmation does not invent individual lane directions',()=>{
+  for(const id of ['WH-X-U','WH-X-L']){
+    const crossing=map.corridors.find(item=>item.id===id);
+    assert.deepEqual(crossing.groupOperation,
+      {direction:'both',laneCount:2,simultaneousPassing:'yes',evidence:'user-confirmed'});
+    assert.ok(crossing.lanes.every(lane=>lane.direction==='unresolved'));
+  }
+  const changed=copy();
+  changed.corridors.find(item=>item.id==='WH-X-U').lanes[0].direction='east-to-west';
+  assert.throws(()=>validateLogicalMap(changed),/individual lane directions/);
+});
+
+test('west shutter detour stays conditional and non-routable until its procedure is confirmed',()=>{
+  assert.equal(map.accessRules.warehouseGates.normal.west,'not-used');
+  assert.equal(map.accessRules.warehouseGates.eastFailureDetour.west,'conditional');
+  assert.equal(findConceptualPath(map,'WH-W-GATE','WH-W-V'),null);
+  const changed=copy();
+  changed.accessRules.warehouseGates.eastFailureDetour.routingReady=true;
+  assert.throws(()=>validateLogicalMap(changed),/normal east access/);
 });
 
 test('task 02 holds for existing same-row placement and reserves on issue', () => {

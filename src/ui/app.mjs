@@ -1,5 +1,6 @@
 import {simulate} from '../core/simulate.mjs';
 import {projectBatteryPct,batteryModel} from '../core/battery-model.mjs';
+import {projectAgfPosition} from '../core/motion-projection.mjs';
 import {createDemoScenario} from './scenario.mjs';
 import {snapshotIndexAt,replayTime,analyzeRun,compareRuns,effectiveStatus} from './replay-model.mjs';
 import {initMap,renderWarehouseBlock,describeSlot} from './map-view.mjs';
@@ -54,7 +55,9 @@ function scenarioFromSettings() {
     scenario.battery.activeReferenceMin===360&&scenario.battery.activeReferenceConsumptionPct===70?
     'supplier-assumption-user-relayed':'scenario-assumption';
   scenario.evidence.batteryScope=scenario.battery.consumptionModel==='active_time'?'user-confirmed-driving-and-handling':'legacy-per-task';
-  scenario.agfs=scenario.agfs.map((a,i)=>({...a,batteryPct:numeric('initial-battery-'+i),area:$('initial-area-'+i).value}));
+  scenario.agfs=scenario.agfs.map((a,i)=>{const area=$('initial-area-'+i).value;return {...a,
+    batteryPct:numeric('initial-battery-'+i),area,
+    ...(scenario.motionModel==='synthetic_graph'?{currentNodeId:area==='PZ'?'PZ-HOME':'WH-HOME'}:{})};});
   return scenario;
 }
 function markDirty(value=true) {dirty=value;$('dirty-state').hidden=!value;}
@@ -105,12 +108,16 @@ function setTime(ms,force=false){if(!result)return;timeMs=Math.max(0,Math.min(an
   $('seek').value=String(timeMs);$('clock').textContent=clock(timeMs);
   const index=snapshotIndexAt(result.events,timeMs);
   if(force||index!==currentIndex){currentIndex=index;renderSnapshot();}
-  else if(Math.floor(timeMs/1000)!==batterySecond)renderBattery();
+  else {
+    if(result.scenario.motionModel==='synthetic_graph')map.updatePositions(snapshot().agfs);
+    if(Math.floor(timeMs/1000)!==batterySecond)renderBattery();
+  }
   batterySecond=Math.floor(timeMs/1000);
 }
 const snapshot=()=>{if(!result)return null;const index=Math.max(0,currentIndex),saved=result.snapshots[index];
   return {...saved,agfs:saved.agfs.map(a=>({...a,batteryPct:projectBatteryPct(a,saved.tasks.find(t=>t.id===a.taskId),
-    result.scenario.battery,timeMs-result.events[index].timeMs)}))};
+    result.scenario.battery,timeMs-result.events[index].timeMs),
+    displayPosition:projectAgfPosition(a,result.scenario.operationalTopology,timeMs)}))};
 };
 function renderBattery(){for(const a of snapshot().agfs){
   document.querySelectorAll(`[data-battery-text="${a.id}"]`).forEach(el=>{el.textContent=a.batteryPct.toFixed(1)+'%';});
@@ -123,17 +130,18 @@ function renderSnapshot(){if(!result)return;const snap=snapshot();
   const working=snap.agfs.filter(a=>['moving_empty','moving_loaded'].includes(effectiveStatus(a,snap))).length;
   $('metrics').innerHTML=metric('搬送要求',snap.tasks.length,'件','表示時点の累計','','↗')+metric('搬送完了',completed,'件','表示時点の累計','success','✓')+
     metric('保留タスク',held,'件',`未完了 ${snap.tasks.length-completed}件`,'warning','◷')+metric('作業中AGF',working,'/ 4台','空走・荷受け / 積載・荷下ろし','accent','▥');
-  map.render(snap,selectedAgf);
+  map.render(snap,selectedAgf,{timeMs,topology:result.scenario.operationalTopology??null});
   $('agf-list').innerHTML=snap.agfs.map((a,i)=>{
     const task=snap.tasks.find(t=>t.id===a.taskId),status=effectiveStatus(a,snap);
     return `<button class="agf-card${a.id===selectedAgf?' selected':''}" data-select-agf="${esc(a.id)}" aria-pressed="${a.id===selectedAgf}">
       <div class="agf-card-head"><span class="agf-id"><span class="vehicle-number">${i+1}</span>${esc(a.id)}</span>${badge(status)}</div>
       <div class="battery-line"><span>電池</span><span class="battery-track"><i data-battery-bar="${a.id}" class="${a.batteryPct<=result.scenario.battery.chargeStartPct?'low':''}" style="width:${a.batteryPct}%"></i></span><b data-battery-text="${a.id}">${a.batteryPct.toFixed(1)}%</b></div>
       <dl class="agf-details"><dt>タスク</dt><dd>${task?esc(task.id)+' / '+task.kind:'—'}</dd><dt>搬送元 → 先</dt><dd>${task?esc(locationName(task.originId))+' → '+esc(locationName(task.destinationId)):'—'}</dd>
-      <dt>積載</dt><dd>${esc(a.carriedPalletId??'なし')}</dd><dt>現在位置</dt><dd>${areaName(a.area)}（エリア）</dd></dl></button>`;
+      <dt>積載</dt><dd>${esc(a.carriedPalletId??'なし')}</dd><dt>現在位置</dt><dd>${esc(a.currentNodeId??areaName(a.area)+'（概念エリア）')}</dd><dt>方向</dt><dd>${esc(a.heading??'未確定')}</dd></dl></button>`;
   }).join('');
   const selected=snap.agfs.find(a=>a.id===selectedAgf),task=snap.tasks.find(t=>t.id===selected?.taskId);
-  $('route-detail').innerHTML=`<b>${esc(selectedAgf)}</b> ${task?`${esc(task.id)} · ${task.kind} ｜ ${esc(locationName(task.originId))} → ${esc(locationName(task.destinationId))}<br>`:'｜ 実行中タスクなし · '}<span class="muted">${task?'搬送元・先を強調。':''}実経路・進行方向は未確定</span>`;
+  const movement=selected?.movement,current=movement?.current;
+  $('route-detail').innerHTML=`<b>${esc(selectedAgf)}</b> ${task?`${esc(task.id)} · ${task.kind} ｜ ${esc(locationName(task.originId))} → ${esc(locationName(task.destinationId))}<br>`:'｜ 実行中タスクなし · '}<span class="muted">${current?`合成区間 ${esc(current.edgeId)} / ${esc(current.fromNodeId)} → ${esc(current.toNodeId)} / ${esc(selected.heading??'方向未定')}`:'実CAD経路・確定ETAは未承認'}</span>`;
   $('charger-list').innerHTML=Object.entries(snap.chargers).map(([id,agf],i)=>`<div class="charger-row"><span>ϟ 充電器 ${i+1}</span><b>${agf?esc(agf)+' · 充電中':'○ 空き'}</b></div>`).join('');
   const chip=(label,ready=false)=>`<span class="equipment-chip${ready?' ready':''}">${esc(label)}</span>`;
   $('equipment-list').innerHTML=[

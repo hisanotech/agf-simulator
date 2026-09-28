@@ -48,6 +48,7 @@ export function analyzeRun(run) {
     preRequestHeld:(run.final.pallets??[]).filter(p=>p.stage==='exit_ready'&&p.waitReason).length,
     utilizationPct:agfs.length?agfs.reduce((n,a)=>n+a.utilizationPct,0)/agfs.length:0,
     idleMs:sum('idle'),dropWaitMs:sum('wait_drop'),chargeMs:sum('charging'),
+    trafficWaitMs:sum('waiting_traffic'),
     chargeWaitMs:sum('waiting_charge'),chargeTravelMs:sum('moving_to_charge'),
     requestWaitMs:tasks.reduce((n,t)=>n+Math.max(0,(t.assignedAt??durationMs)-t.requestedAt),0)};
 }

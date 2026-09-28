@@ -39,7 +39,7 @@ export function validateLogicalMap(map) {
   const groups = uniqueIdMap(map.corridorGroups, 'corridorGroups');
   const interfaces = uniqueIdMap(map.interfaces, 'interfaces');
   const required = ['PZ-A1', 'PZ-A2', 'PZ-CON-W', 'PZ-CON-E', 'PZ-DEV', 'PZ-OT',
-    'WH-E-V', 'WH-W-V', 'WH-X-U', 'WH-X-L', 'WH-ROW', 'WH-W-GATE'];
+    'PZ-W-IN', 'PZ-S-OUT', 'WH-E-GATE', 'WH-E-V', 'WH-W-V', 'WH-X-U', 'WH-X-L', 'WH-ROW', 'WH-W-GATE'];
   for (const id of required) requireThat(corridors.has(id), 'Missing agreed corridor ' + id);
   for (const corridor of corridors.values()) {
     requireThat(areas.has(corridor.area), 'Unknown corridor area: ' + corridor.id);
@@ -91,8 +91,32 @@ export function validateLogicalMap(map) {
       usedInterfaces.add(id);
     }
   }
-  requireThat(map.accessRules?.warehouseWestGate === 'forbidden-for-agf',
-    'Warehouse west gate must remain excluded');
+  const warehouseGates=map.accessRules?.warehouseGates;
+  requireThat(warehouseGates?.normal?.east==='entry-exit'&&warehouseGates?.normal?.west==='not-used'&&
+    warehouseGates?.eastFailureDetour?.west==='conditional'&&
+    warehouseGates?.eastFailureDetour?.palletizingGateReversal==='required-existing-rule'&&
+    warehouseGates?.eastFailureDetour?.activationCondition==='unresolved'&&
+    warehouseGates?.eastFailureDetour?.operationProcedure==='unresolved'&&
+    warehouseGates?.eastFailureDetour?.routingReady===false&&corridors.get('WH-W-GATE').access==='unresolved',
+    'Warehouse gates must separate normal east access from the unresolved west detour');
+  for(const id of ['WH-X-U','WH-X-L']){
+    const crossing=corridors.get(id);
+    requireThat(crossing.kind==='fire-shutter-corridor-group'&&crossing.direction==='both'&&
+      crossing.laneCount===2&&crossing.simultaneousPassing==='yes'&&
+      JSON.stringify(crossing.groupOperation)===JSON.stringify({direction:'both',laneCount:2,simultaneousPassing:'yes',evidence:'user-confirmed'})&&
+      crossing.lanes?.length===2&&crossing.lanes.every(lane=>lane.direction==='unresolved'&&lane.evidence==='unresolved'),
+      'Fire shutter group operation is confirmed while individual lane directions remain unresolved: '+id);
+  }
+  const acceptance=map.layoutAcceptance;
+  requireThat(acceptance?.coordinateBasis==='schematic-relative-only'&&acceptance.physicalCoordinatesConfirmed===false&&
+    JSON.stringify(acceptance.verticalBands)===JSON.stringify(['PZ','INTER','WH'])&&
+    acceptance.palletizing?.northFaceAgfGate===false&&acceptance.palletizing?.obsoleteEastGateDisplay==='removed'&&
+    JSON.stringify(acceptance.symbolicGroups?.['WH-E-MAIN-GROUP']?.members)===
+      JSON.stringify(['WH-E-MAIN-1','WH-E-MAIN-2'])&&
+    !corridors.has('PZ-E-OUT')&&acceptance.criteria?.length===17&&
+    acceptance.criteria.every((item,index)=>item.id===`G${String(index+1).padStart(2,'0')}`&&
+      item.scope==='schematic-relative'&&item.physicalCoordinateCheck===false),
+    'G01-G17 must remain schematic-relative acceptance criteria without invented coordinates');
   const pair = groups.get('PZ-PAIR');
   requireThat(pair && pair.aggregateLaneCount === 2 &&
     pair.members.every(id => corridors.get(id).laneCount === 1),
@@ -115,6 +139,11 @@ export function validateLogicalMap(map) {
     service.chargePlaces.every(p=>p.chargerId===null)&&service.accessFrom==='east-main-aisles'&&
     service.accessEvidence==='user-confirmed'&&service.branchAssignment==='unresolved',
     'Service waiting and charging places must be separate; east group access is confirmed, branches unresolved');
+  requireThat(service.waitingCandidates?.totalCount===4&&service.waitingCandidates?.groups?.length===2&&
+    service.waitingCandidates.groups.find(group=>group.kind==='south-service')?.count===2&&
+    service.waitingCandidates.groups.find(group=>group.kind==='fire-shutter-pillars')?.count===2&&
+    service.waitingCandidates.wsIdMapping==='unresolved',
+    'Four waiting candidates must retain two south-service and two fire-shutter pillar candidates');
   requireThat(service.emptyPalletStorage?.agfAccess==='forbidden'&&service.emptyPalletStorage.routeNodes?.length===0,
     'Empty pallet storage is forbidden and must not contain route nodes');
   return {

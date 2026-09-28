@@ -25,6 +25,9 @@ test('south service has separate waiting, parking and chargers without a forbidd
   assert.equal(WAREHOUSE_MAIN_AISLES.length,4);
   assert.ok(WAREHOUSE_MAIN_AISLES.every(a=>a.direction==='unresolved'&&a.laneCount===null));
   assert.equal(WAREHOUSE_SERVICE.waitingPlaces.length,2);
+  assert.equal(WAREHOUSE_SERVICE.waitingCandidates.totalCount,4);
+  assert.equal(WAREHOUSE_SERVICE.waitingCandidates.groups.find(group=>group.kind==='fire-shutter-pillars').count,2);
+  assert.equal(WAREHOUSE_SERVICE.waitingCandidates.wsIdMapping,'unresolved');
   assert.equal(WAREHOUSE_SERVICE.chargePlaces.length,2);
   assert.equal(new Set([...WAREHOUSE_SERVICE.waitingPlaces,...WAREHOUSE_SERVICE.chargePlaces].map(p=>p.id)).size,4);
   assert.equal(WAREHOUSE_SERVICE.chargers.length,2);
@@ -62,6 +65,25 @@ test('analysis integrates snapshot durations including the horizon tail and zero
   assert.equal(agf.durations.charging,200);
   assert.equal(agf.utilizationPct,20);
   assert.equal(agf.timeline.reduce((total,segment)=>total+segment.endMs-segment.startMs,0),1000);
+});
+
+test('graph analysis separates handling and traffic wait from segment travel',()=>{
+  const traveling={steps:[{}],stepIndex:0,current:{}},arrived={steps:[{}],stepIndex:1,current:null};
+  const events=[0,100,200,300,400,500,600,700].map(timeMs=>({timeMs}));
+  const snapshots=[['idle',null],['moving_empty',traveling],['waiting_traffic',traveling],
+    ['moving_empty',arrived],['moving_loaded',traveling],['moving_loaded',arrived],
+    ['moving_to_charge',traveling],['idle',null]].map(([status,movement])=>({
+      agfs:[{id:'A1',status,movement,taskId:null}],tasks:[]
+    }));
+  const result={scenario:{durationMin:1000/60000,motionModel:'synthetic_graph'},events,snapshots,final:snapshots.at(-1)};
+  const data=analyzeRun(result),agf=data.agfs[0];
+  assert.equal(agf.durations.moving_empty,100);
+  assert.equal(agf.durations.moving_loaded,100);
+  assert.equal(agf.durations.handling_pickup,100);
+  assert.equal(agf.durations.handling_dropoff,100);
+  assert.equal(data.trafficWaitMs,100);
+  assert.equal(agf.workingMs,400);
+  assert.equal(agf.utilizationPct,40);
 });
 
 test('dashboard scenario uses explicit sample inventory and compares the same production input',()=>{
@@ -119,4 +141,19 @@ test('CSV uses saved conditions and does not backfill future AGF assignments int
   assert.ok(csv.includes('active_time,supplier-assumption-user-relayed,user-confirmed-driving-and-handling'));
   assert.ok(csv.includes('""activeReferenceMin"":360'));
   assert.equal(csv,eventCsv(run,'TEST-RUN'));
+});
+
+test('graph CSV retains shutter identity, permission and synthetic timing evidence',()=>{
+  const scenario=createDemoScenario('physical');
+  scenario.durationMin=1;
+  scenario.shutterEvents=[{timeMs:1000,shutterId:'SH-EAST',passable:false},
+    {timeMs:2000,shutterId:'SH-EAST',passable:true}];
+  const run=simulate(scenario),csv=eventCsv(run,'SYNTHETIC-CSV');
+  const lines=csv.slice(1).split('\r\n'),columns=lines[0].split(',');
+  const events=lines.filter(line=>line.includes(',SHUTTER_STATE_CHANGED,')).map(line=>line.split(','));
+  assert.equal(events.length,2);
+  assert.deepEqual(events.map(values=>values[columns.indexOf('shutterId')]),['SH-EAST','SH-EAST']);
+  assert.deepEqual(events.map(values=>values[columns.indexOf('passable')]),['false','true']);
+  assert.ok(events.every(values=>values[columns.indexOf('etaStatus')]==='synthetic-assumption'));
+  assert.ok(csv.includes('synthetic-graph-assumption'));
 });

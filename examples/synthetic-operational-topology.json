@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "operational-topology-v1",
+  "datasetKind": "synthetic",
+  "graphId": "SYNTHETIC-GRAPH-01",
+  "revision": 1,
+  "evidence": "synthetic-assumption",
+  "coordinateSystem": "synthetic-display",
+  "readiness": {
+    "topologyReady": true,
+    "trafficReady": true,
+    "operationalRoutingReady": true,
+    "physicalEtaAllowed": false
+  },
+  "nodes": [
+    {"id":"PZ-HOME","type":"home","areaId":"PZ","x":120,"y":230,"approvalState":"synthetic-validated"},
+    {"id":"WH-HOME","type":"home","areaId":"WH","x":760,"y":620,"approvalState":"synthetic-validated"},
+    {"id":"PZ-LINE","type":"pickup","areaId":"PZ","x":180,"y":105,"approvalState":"synthetic-validated"},
+    {"id":"PZ-WRAP-IN","type":"dropoff","areaId":"PZ","x":560,"y":105,"approvalState":"synthetic-validated"},
+    {"id":"PZ-WRAP-OUT","type":"pickup","areaId":"PZ","x":650,"y":105,"approvalState":"synthetic-validated"},
+    {"id":"PZ-OT","type":"pickup","areaId":"PZ","x":760,"y":245,"approvalState":"synthetic-validated"},
+    {"id":"PZ-MAG","type":"dropoff","areaId":"PZ","x":430,"y":105,"approvalState":"synthetic-validated"},
+    {"id":"PZ-ENTRY","type":"shutter-wait","areaId":"PZ","x":250,"y":300,"approvalState":"synthetic-validated"},
+    {"id":"PZ-EXIT","type":"shutter-wait","areaId":"PZ","x":760,"y":300,"approvalState":"synthetic-validated"},
+    {"id":"WH-GATE","type":"shutter-wait","areaId":"WH","x":760,"y":470,"approvalState":"synthetic-validated"},
+    {"id":"WH-DROP","type":"dropoff","areaId":"WH","x":500,"y":650,"approvalState":"synthetic-validated"},
+    {"id":"WH-ALIGN","type":"pickup","areaId":"WH","x":900,"y":780,"approvalState":"synthetic-validated"},
+    {"id":"WH-CHARGE","type":"charge","areaId":"WH","x":820,"y":820,"approvalState":"synthetic-validated"}
+  ],
+  "edges": [
+    {"id":"E01","fromNodeId":"PZ-HOME","toNodeId":"PZ-LINE","distanceMm":6000,"speedMmPerSec":{"empty":1000,"loaded":800,"charge":900},"lanes":[{"id":"E01-L1","direction":"both"}],"lanePolicy":{"laneCount":1,"simultaneousPassing":"no-alternating"},"occupancyResourceIds":[],"shutterId":null,"accessScopes":[{"movement":"empty","taskTypes":["*"]},{"movement":"loaded","taskTypes":["*"]},{"movement":"charge","taskTypes":["CHARGE"]}],"approvalState":"synthetic-validated"},
+    {"id":"E02","fromNodeId":"PZ-LINE","toNodeId":"PZ-WRAP-IN","distanceMm":12000,"speedMmPerSec":{"empty":1000,"loaded":800,"charge":900},"lanes":[{"id":"E02-L1","direction":"both"}],"lanePolicy":{"laneCount":1,"simultaneousPassing":"no-alternating"},"occupancyResourceIds":["PZ-J1"],"shutterId":null,"accessScopes":[{"movement":"empty","taskTypes":["*"]},{"movement":"loaded","taskTypes":["*"]},{"movement":"charge","taskTypes":["CHARGE"]}],"approvalState":"synthetic-validated"},
+    {"id":"E03","fromNodeId":"PZ-WRAP-IN","toNodeId":"PZ-WRAP-OUT","distanceMm":3000,"speedMmPerSec":{"empty":800,"loaded":700,"charge":800},"lanes":[{"id":"E03-L1","direction":"both"}],"lanePolicy":{"laneCount":1,"simultaneousPassing":"no-alternating"},"occupancyResourceIds":[],"shutterId":null,"accessScopes":[{"movement":"empty","taskTypes":["*"]},{"movement":"loaded","taskTypes":["*"]},{"movement":"charge","taskTypes":["CHARGE"]}],"approvalState":"synthetic-validated"},
+    {"id":"E04","fromNodeId":"PZ-WRAP-OUT","toNodeId":"PZ-EXIT","distanceMm":7000,"speedMmPerSec":{"empty":1000,"loaded":800,"charge":900},"lanes":[{"id":"E04-L1","direction":"both"}],"lanePolicy":{"laneCount":1,"simultaneousPassing":"no-alternating"},"occupancyResourceIds":[],"shutterId":null,"accessScopes":[{"movement":"empty","taskTypes":["*"]},{"movement":"loaded","taskTypes":["*"]},{"movement":"charge","taskTypes":["CHARGE"]}],"approvalState":"synthetic-validated"},
+    {"id":"E05","fromNodeId":"PZ-OT","toNodeId":"PZ-WRAP-IN","distanceMm":8000,"speedMmPerSec":{"empty":1000,"loaded":800,"charge":900},"lanes":[{"id":"E05-L1","direction":"both"}],"lanePolicy":{"laneCount":1,"simultaneousPassing":"no-alternating"},"occupancyResourceIds":[],"shutterId":null,"accessScopes":[{"movement":"empty","taskTypes":["*"]},{"movement":"loaded","taskTypes":["*"]},{"movement":"charge","taskTypes":["CHARGE"]}],"approvalState":"synthetic-validated"},
+    {"id":"E06","fromNodeId":"PZ-MAG","toNodeId":"PZ-WRAP-IN","distanceMm":5000,"speedMmPerSec":{"empty":1000,"loaded":800,"charge":900},"lanes":[{"id":"E06-L1","direction":"both"}],"lanePolicy":{"laneCount":1,"simultaneousPassing":"no-alternating"},"occupancyResourceIds":[],"shutterId":null,"accessScopes":[{"movement":"empty","taskTypes":["*"]},{"movement":"loaded","taskTypes":["*"]},{"movement":"charge","taskTypes":["CHARGE"]}],"approvalState":"synthetic-validated"},
+    {"id":"E07","fromNodeId":"PZ-HOME","toNodeId":"PZ-ENTRY","distanceMm":7000,"speedMmPerSec":{"empty":1000,"loaded":800,"charge":900},"lanes":[{"id":"E07-L1","direction":"both"}],"lanePolicy":{"laneCount":1,"simultaneousPassing":"no-alternating"},"occupancyResourceIds":[],"shutterId":null,"accessScopes":[{"movement":"empty","taskTypes":["*"]},{"movement":"loaded","taskTypes":["*"]},{"movement":"charge","taskTypes":["CHARGE"]}],"approvalState":"synthetic-validated"},
+    {"id":"E08","fromNodeId":"PZ-ENTRY","toNodeId":"PZ-EXIT","distanceMm":15000,"speedMmPerSec":{"empty":1200,"loaded":1000,"charge":1000},"lanes":[{"id":"E08-L1","direction":"forward"},{"id":"E08-L2","direction":"reverse"}],"lanePolicy":{"laneCount":2,"simultaneousPassing":"yes"},"occupancyResourceIds":[],"shutterId":null,"accessScopes":[{"movement":"empty","taskTypes":["*"]},{"movement":"loaded","taskTypes":["*"]},{"movement":"charge","taskTypes":["CHARGE"]}],"approvalState":"synthetic-validated"},
+    {"id":"E09","fromNodeId":"PZ-EXIT","toNodeId":"WH-GATE","distanceMm":18000,"speedMmPerSec":{"empty":900,"loaded":700,"charge":800},"lanes":[{"id":"E09-L1","direction":"both"}],"lanePolicy":{"laneCount":1,"simultaneousPassing":"controlled"},"occupancyResourceIds":["OUTDOOR-JUNCTION"],"shutterId":"SH-EAST","accessScopes":[{"movement":"empty","taskTypes":["*"]},{"movement":"loaded","taskTypes":["*"]},{"movement":"charge","taskTypes":["CHARGE"]}],"approvalState":"synthetic-validated"},
+    {"id":"E10","fromNodeId":"WH-GATE","toNodeId":"WH-HOME","distanceMm":10000,"speedMmPerSec":{"empty":1000,"loaded":800,"charge":900},"lanes":[{"id":"E10-L1","direction":"both"}],"lanePolicy":{"laneCount":1,"simultaneousPassing":"no-alternating"},"occupancyResourceIds":["WH-J1"],"shutterId":null,"accessScopes":[{"movement":"empty","taskTypes":["*"]},{"movement":"loaded","taskTypes":["*"]},{"movement":"charge","taskTypes":["CHARGE"]}],"approvalState":"synthetic-validated"},
+    {"id":"E11","fromNodeId":"WH-HOME","toNodeId":"WH-DROP","distanceMm":9000,"speedMmPerSec":{"empty":900,"loaded":700,"charge":800},"lanes":[{"id":"E11-L1","direction":"both"}],"lanePolicy":{"laneCount":1,"simultaneousPassing":"no-alternating"},"occupancyResourceIds":[],"shutterId":null,"accessScopes":[{"movement":"empty","taskTypes":["*"]},{"movement":"loaded","taskTypes":["*"]},{"movement":"charge","taskTypes":["CHARGE"]}],"approvalState":"synthetic-validated"},
+    {"id":"E12","fromNodeId":"WH-HOME","toNodeId":"WH-ALIGN","distanceMm":8000,"speedMmPerSec":{"empty":900,"loaded":700,"charge":800},"lanes":[{"id":"E12-L1","direction":"both"}],"lanePolicy":{"laneCount":1,"simultaneousPassing":"no-alternating"},"occupancyResourceIds":[],"shutterId":null,"accessScopes":[{"movement":"empty","taskTypes":["*"]},{"movement":"loaded","taskTypes":["*"]},{"movement":"charge","taskTypes":["CHARGE"]}],"approvalState":"synthetic-validated"},
+    {"id":"E13","fromNodeId":"WH-HOME","toNodeId":"WH-CHARGE","distanceMm":7000,"speedMmPerSec":{"empty":900,"loaded":700,"charge":800},"lanes":[{"id":"E13-L1","direction":"both"}],"lanePolicy":{"laneCount":1,"simultaneousPassing":"no-alternating"},"occupancyResourceIds":[],"shutterId":null,"accessScopes":[{"movement":"empty","taskTypes":["*"]},{"movement":"loaded","taskTypes":["*"]},{"movement":"charge","taskTypes":["CHARGE"]}],"approvalState":"synthetic-validated"}
+  ],
+  "shutters": [{"id":"SH-EAST","initiallyPassable":true,"permissionSource":"synthetic-scenario"}],
+  "interfaceBindings": [
+    {"pattern":"L*","nodeId":"PZ-LINE"},
+    {"pattern":"WRAP-INPUT","nodeId":"PZ-WRAP-IN"},
+    {"pattern":"WRAP-OUTPUT","nodeId":"PZ-WRAP-OUT"},
+    {"pattern":"OT*","nodeId":"PZ-OT"},
+    {"pattern":"M*","nodeId":"PZ-MAG"},
+    {"pattern":"AL*","nodeId":"WH-ALIGN"},
+    {"pattern":"WB*","nodeId":"WH-DROP"},
+    {"pattern":"EB*","nodeId":"WH-DROP"},
+    {"pattern":"CHARGE-PLACE","nodeId":"WH-CHARGE"}
+  ]
+}

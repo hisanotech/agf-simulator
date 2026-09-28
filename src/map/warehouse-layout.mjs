@@ -24,6 +24,10 @@ const places=(prefix,count)=>Object.freeze(Array.from({length:count},(_,i)=>Obje
 })));
 export const WAREHOUSE_SERVICE=Object.freeze({
   relativeTo:'south-of-EB2',accessFrom:'east-main-aisles',accessEvidence:'user-confirmed',branchAssignment:'unresolved',
+  waitingCandidates:Object.freeze({totalCount:4,groups:Object.freeze([
+    Object.freeze({kind:'south-service',count:2,placeIds:Object.freeze(['HP1','HP2'])}),
+    Object.freeze({kind:'fire-shutter-pillars',count:2,sides:Object.freeze(['west','east']),placeIds:'unresolved'})
+  ]),wsIdMapping:'unresolved'}),
   waitingPlaces:places('HP',2),chargePlaces:places('CHARGE-PLACE',2),chargers:places('CHARGER',2),aligners:places('AL',5),
   arrangement:Object.freeze({left:['waiting-1','waiting-2','charge-1','charge-2'],rightTop:'five-aligners',rightBottom:'empty-pallet-storage'}),
   emptyPalletStorage:Object.freeze({agfAccess:'forbidden',supplyBy:'operator',routeNodes:Object.freeze([]),capacity:null})

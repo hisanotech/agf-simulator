@@ -8,7 +8,7 @@
 <body>
   <header class="topbar">
     <a class="brand" href="#monitor" aria-label="搬送モニター"><span class="brand-mark" aria-hidden="true">A</span><span>AGF <b>SIMULATOR</b><small>搬送シミュレーション</small></span></a>
-    <div class="header-config"><label>シナリオ<select id="scenario-select"><option value="standard">標準搬送 · 合成3時間</option><option value="charge">充電競合 · 合成3時間</option><option value="manual">手動予約 · 合成3時間</option></select></label><label>AGF選定方式<select id="mode"><option value="area_first">エリア優先あり</option><option value="low_battery_first">エリア優先なし</option></select></label></div>
+    <div class="header-config"><label>シナリオ<select id="scenario-select"><option value="standard">標準搬送 · 合成3時間</option><option value="physical">区間走行・交通制御 · 合成3時間</option><option value="charge">充電競合 · 合成3時間</option><option value="manual">手動予約 · 合成3時間</option></select></label><label>AGF選定方式<select id="mode"><option value="area_first">エリア優先あり</option><option value="low_battery_first">エリア優先なし</option></select></label></div>
     <div class="header-actions"><button class="primary" id="run"><span aria-hidden="true">▶</span> 実行</button><button id="reset">↺ リセット</button><button id="compare">▥ 比較実行</button><button id="csv">↓ CSV出力</button></div>
   </header>
   <div class="app-layout">
@@ -21,18 +21,18 @@
     </nav><div class="sidebar-bottom"><span class="badge sample">◇ 合成シナリオ</span><p>設備制御なし<br>ローカル分析用</p><button id="open-cad">▧ CAD・経路レビュー</button><small>図面は端末内で読み込み</small></div></aside>
     <main>
       <div id="error" role="alert" hidden></div><div id="notification" role="status" hidden></div>
-      <div class="run-strip"><span><i class="status-dot"></i><b id="run-state">実行結果を準備中</b> <span id="run-context"></span></span><span id="dirty-state" class="badge" hidden>設定変更あり · 再実行で反映</span><span class="strip-note">概念配置 / 移動・荷役時間は仮定値</span></div>
+      <div class="run-strip"><span><i class="status-dot"></i><b id="run-state">実行結果を準備中</b> <span id="run-context"></span></span><span id="dirty-state" class="badge" hidden>設定変更あり · 再実行で反映</span><span class="strip-note">概念配置 / 合成グラフ時間は仮定値</span></div>
 
       <section id="view-monitor" class="view" aria-labelledby="monitor-title">
         <div class="page-heading"><div><p class="eyebrow">OPERATIONS OVERVIEW</p><h1 id="monitor-title">搬送モニター</h1></div><span class="muted">表示時刻の設備・車両状態</span></div>
         <div class="monitor-metrics" id="metrics"></div>
-        <div class="monitor-layout"><section class="map-panel panel"><div class="panel-heading"><div><h2>フロアマップ</h2><span class="muted">概念図 · 座標・向き・実走行経路は未確定</span></div><div class="map-actions"><button id="open-cad-map">CADレビュー</button><button id="map-warehouse">製品倉庫</button><button id="map-out" aria-label="マップ縮小">−</button><button id="map-in" aria-label="マップ拡大">＋</button><button id="map-fit">全体表示</button></div></div>
+        <div class="monitor-layout"><section class="map-panel panel"><div class="panel-heading"><div><h2>フロアマップ</h2><span class="muted">G01～G17概念図 · 合成グラフ位置または概念エリア表示</span></div><div class="map-actions"><button id="open-cad-map">CADレビュー</button><button id="map-warehouse">製品倉庫</button><button id="map-out" aria-label="マップ縮小">−</button><button id="map-in" aria-label="マップ拡大">＋</button><button id="map-fit">全体表示</button></div></div>
           <div class="map-canvas"><svg id="map" viewBox="0 0 1100 970" role="group" aria-label="搬送エリアの概念図。ドラッグで移動、ホイールで拡大縮小、設備を選択"></svg><div class="map-stamp">SCHEMATIC <span>実寸ではありません</span></div></div>
-          <div class="map-legend"><span><i class="line-key dashed"></i>概念通路・仮経路</span><span><i class="line-key"></i>承認済み実経路：未登録</span><span>AGF：所属エリアの仮位置</span><span>□ 空車 / ▣ 積載</span></div>
+          <div class="map-legend"><span><i class="line-key dashed"></i>概念通路</span><span><i class="line-key"></i>選択AGFの合成経路</span><span>実CAD承認経路：未登録</span><span>□ 空車 / ▣ 積載</span></div>
           <div id="route-detail" class="route-detail"></div>
           <div class="playback"><div class="play-buttons"><button id="play" class="primary" aria-label="再生">▶</button><button id="pause" aria-label="一時停止">Ⅱ</button><button id="stop" aria-label="停止して先頭へ">■</button></div><b id="clock">00:00:00</b><input id="seek" type="range" min="0" max="10800000" step="1000" value="0" aria-label="シミュレーション時刻"><span id="end-clock">03:00:00</span><select id="speed" aria-label="再生速度"><option value="1">1倍</option><option value="2">2倍</option><option value="4">4倍</option></select></div>
           <div class="playback-footer"><span>保存済みイベントと同期 · 実時間倍率</span><button id="next-event" class="text-button">次のイベントへ →</button></div>
-        </section><aside class="fleet-panel"><div class="panel-heading"><h2>AGF ステータス</h2><span class="muted">4台</span></div><div id="agf-list"></div><section class="panel charger-panel"><div class="panel-heading"><h2>充電ステーション</h2><span class="badge">2口</span></div><div id="charger-list"></div></section><div class="model-note">現在位置は所属エリアを示します。実座標・進行方向・物理的な経路追従は未実装です。</div></aside></div>
+        </section><aside class="fleet-panel"><div class="panel-heading"><h2>AGF ステータス</h2><span class="muted">4台</span></div><div id="agf-list"></div><section class="panel charger-panel"><div class="panel-heading"><h2>充電ステーション</h2><span class="badge">2口</span></div><div id="charger-list"></div></section><div class="model-note">区間走行シナリオは架空座標・仮定速度です。実CAD位置・確定ETAではありません。</div></aside></div>
         <section class="panel event-panel"><div class="panel-heading"><div><h2>イベントログ <span id="log-count" class="count"></span></h2><span class="muted">表示時刻までの履歴</span></div><div class="inline-filters"><select id="log-agf" aria-label="ログのAGF絞り込み"><option value="">すべてのAGF</option></select><input id="log-task" type="search" placeholder="タスクIDで検索" aria-label="ログのタスクID絞り込み"></div></div><div class="table-scroll event-scroll"><table><thead><tr><th>時刻</th><th>イベント</th><th>AGF</th><th>タスクID</th><th>搬送元</th><th>搬送先</th><th>状態・理由</th></tr></thead><tbody id="log"></tbody></table></div></section>
         <section class="panel equipment-panel"><div class="panel-heading"><h2>設備の状態</h2><span class="muted">表示時刻の在荷・準備状態</span></div><div id="equipment-list" class="equipment-grid"></div></section>
       </section>
@@ -53,7 +53,7 @@
 
       <section id="view-analysis" class="view" hidden aria-labelledby="analysis-title"><div class="page-heading"><div><p class="eyebrow">SIMULATION INSIGHTS</p><h1 id="analysis-title">結果分析</h1></div><span id="analysis-run" class="badge sample"></span></div><div id="analysis-body"></div></section>
       <section id="view-comparison" class="view" hidden aria-labelledby="comparison-title"><div class="page-heading"><div><p class="eyebrow">STRATEGY COMPARISON</p><h1 id="comparison-title">比較分析</h1></div><button id="compare-page" class="primary">▥ 同一条件で比較実行</button></div><div class="notice">同一の搬出入力・初期状態・時間条件を使用し、選定方式だけを変更します。結果は合成モデル内の比較です。</div><div id="comparison-body"><div class="empty-state"><span>⇄</span><h2>2つの選定方式を比較</h2><p>「比較実行」で現在の設定を使い、エリア優先あり／なしの結果を並べて表示します。</p></div></div></section>
-      <footer class="app-footer"><span>AGF SIMULATOR · ローカルプレビュー</span><span>実走行・干渉制御・確定ETAは未実装</span></footer>
+      <footer class="app-footer"><span>AGF SIMULATOR · ローカルプレビュー</span><span>合成区間走行・交通制御 / 実CAD経路・確定ETAは未承認</span></footer>
     </main>
   </div>
 

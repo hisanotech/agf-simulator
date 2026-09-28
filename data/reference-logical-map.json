@@ -18,6 +18,126 @@
     "right": "east",
     "kind": "schematic-only"
   },
+  "layoutAcceptance": {
+    "coordinateBasis": "schematic-relative-only",
+    "physicalCoordinatesConfirmed": false,
+    "verticalBands": [
+      "PZ",
+      "INTER",
+      "WH"
+    ],
+    "gates": {
+      "PZ-W-IN": {
+        "face": "south",
+        "role": "entry",
+        "position": "west"
+      },
+      "PZ-S-OUT": {
+        "face": "south",
+        "role": "exit",
+        "position": "east-return-axis"
+      },
+      "WH-E-GATE": {
+        "face": "north",
+        "role": "entry-exit",
+        "position": "east-return-axis"
+      },
+      "WH-W-GATE": {
+        "face": "north",
+        "role": "conditional-detour",
+        "position": "west"
+      }
+    },
+    "symbolicGroups": {
+      "WH-E-MAIN-GROUP": {
+        "members": [
+          "WH-E-MAIN-1",
+          "WH-E-MAIN-2"
+        ],
+        "coordinateStatus": "unresolved"
+      }
+    },
+    "alignmentGroups": {
+      "eastReturnAxis": {
+        "members": [
+          "PZ-S-OUT",
+          "WH-E-GATE",
+          "WH-E-MAIN-GROUP"
+        ],
+        "axis": "north-south",
+        "coordinateStatus": "unresolved"
+      }
+    },
+    "normalFlows": {
+      "returnToWarehouse": {
+        "from": "PZ-S-OUT",
+        "to": "WH-E-GATE",
+        "via": "INTER",
+        "relation": "straight-south"
+      },
+      "enterPalletizing": {
+        "from": "WH-E-GATE",
+        "to": "PZ-W-IN",
+        "via": "INTER",
+        "relation": "westbound"
+      }
+    },
+    "palletizing": {
+      "northFaceAgfGate": false,
+      "obsoleteEastGateDisplay": "removed",
+      "equipmentWestToEast": [
+        "PGW8",
+        "PM1",
+        "PGW7",
+        "PM2",
+        "PGW5",
+        "PM3",
+        "PGW4",
+        "HI",
+        "WRAPPER",
+        "HO",
+        "PGW2",
+        "PM4",
+        "PGW1",
+        "PGW3",
+        "PM5",
+        "PGW6"
+      ],
+      "temporaryPlaces": {
+        "ids": [
+          "OT1",
+          "OT2",
+          "OT3"
+        ],
+        "face": "south",
+        "relativeToExit": "east",
+        "order": "west-to-east"
+      }
+    },
+    "warehouse": {
+      "mainAislePlacement": "between-storage-blocks-and-central-fire-wall",
+      "serviceVehicleOrientation": "east-west"
+    },
+    "criteria": [
+      {"id": "G01", "scope": "schematic-relative", "physicalCoordinateCheck": false},
+      {"id": "G02", "scope": "schematic-relative", "physicalCoordinateCheck": false},
+      {"id": "G03", "scope": "schematic-relative", "physicalCoordinateCheck": false},
+      {"id": "G04", "scope": "schematic-relative", "physicalCoordinateCheck": false},
+      {"id": "G05", "scope": "schematic-relative", "physicalCoordinateCheck": false},
+      {"id": "G06", "scope": "schematic-relative", "physicalCoordinateCheck": false},
+      {"id": "G07", "scope": "schematic-relative", "physicalCoordinateCheck": false},
+      {"id": "G08", "scope": "schematic-relative", "physicalCoordinateCheck": false},
+      {"id": "G09", "scope": "schematic-relative", "physicalCoordinateCheck": false},
+      {"id": "G10", "scope": "schematic-relative", "physicalCoordinateCheck": false},
+      {"id": "G11", "scope": "schematic-relative", "physicalCoordinateCheck": false},
+      {"id": "G12", "scope": "schematic-relative", "physicalCoordinateCheck": false},
+      {"id": "G13", "scope": "schematic-relative", "physicalCoordinateCheck": false},
+      {"id": "G14", "scope": "schematic-relative", "physicalCoordinateCheck": false},
+      {"id": "G15", "scope": "schematic-relative", "physicalCoordinateCheck": false},
+      {"id": "G16", "scope": "schematic-relative", "physicalCoordinateCheck": false},
+      {"id": "G17", "scope": "schematic-relative", "physicalCoordinateCheck": false}
+    ]
+  },
   "areas": [
     {
       "id": "PZ",
@@ -104,14 +224,14 @@
       "notes": "西側からパレタイズエリアに進入。実際の通路への取付けは未確定。"
     },
     {
-      "id": "PZ-E-OUT",
+      "id": "PZ-S-OUT",
       "area": "PZ",
       "direction": "exit-only",
       "laneCount": null,
       "simultaneousPassing": "not-applicable",
       "access": "allowed",
       "geometryStatus": "not-measured",
-      "notes": "東側からパレタイズエリアを退出。実際の通路への取付けは未確定。"
+      "notes": "南面のパレタイズ出口SH。倉庫東SHとの南北軸関係のみ確認済みで、実際の通路への取付けは未確定。"
     },
     {
       "id": "PZ-EXT",
@@ -139,9 +259,9 @@
       "direction": "unresolved",
       "laneCount": null,
       "simultaneousPassing": "not-applicable",
-      "access": "forbidden",
+      "access": "unresolved",
       "geometryStatus": "not-measured",
-      "notes": "倉庫西側シャッターはAGFが使用しない。"
+      "notes": "通常運用では使用しない。東SH故障時の迂回候補として保持するが、切替条件・操作手順・物理経路は未確定。"
     },
     {
       "id": "WH-E-V",
@@ -173,7 +293,18 @@
       "simultaneousPassing": "yes",
       "access": "allowed",
       "geometryStatus": "not-measured",
-      "notes": "上段の防火SHを通る東西接続。"
+      "notes": "上段の防火SHを通る東西接続。通路群は双方向2車線・同時すれ違い可能として確認済み。個別レーン方向は未確認。",
+      "kind": "fire-shutter-corridor-group",
+      "groupOperation": {
+        "direction": "both",
+        "laneCount": 2,
+        "simultaneousPassing": "yes",
+        "evidence": "user-confirmed"
+      },
+      "lanes": [
+        {"id": "WH-X-U-LANE-1", "direction": "unresolved", "evidence": "unresolved"},
+        {"id": "WH-X-U-LANE-2", "direction": "unresolved", "evidence": "unresolved"}
+      ]
     },
     {
       "id": "WH-X-L",
@@ -183,7 +314,18 @@
       "simultaneousPassing": "yes",
       "access": "allowed",
       "geometryStatus": "not-measured",
-      "notes": "下段の防火SHを通る東西接続。"
+      "notes": "下段の防火SHを通る東西接続。通路群は双方向2車線・同時すれ違い可能として確認済み。個別レーン方向は未確認。",
+      "kind": "fire-shutter-corridor-group",
+      "groupOperation": {
+        "direction": "both",
+        "laneCount": 2,
+        "simultaneousPassing": "yes",
+        "evidence": "user-confirmed"
+      },
+      "lanes": [
+        {"id": "WH-X-L-LANE-1", "direction": "unresolved", "evidence": "unresolved"},
+        {"id": "WH-X-L-LANE-2", "direction": "unresolved", "evidence": "unresolved"}
+      ]
     },
     {
       "id": "WH-W-A",
@@ -335,7 +477,7 @@
     {
       "id": "L-PZ-OUT-ATTACH",
       "from": "PZ-A1",
-      "to": "PZ-E-OUT",
+      "to": "PZ-S-OUT",
       "direction": "forward",
       "status": "unresolved",
       "reason": "Exact exit attachment not yet specified",
@@ -343,7 +485,7 @@
     },
     {
       "id": "L-AREA-CONNECT",
-      "from": "PZ-E-OUT",
+      "from": "PZ-S-OUT",
       "to": "PZ-EXT",
       "direction": "forward",
       "status": "unresolved",
@@ -578,7 +720,19 @@
     }
   ],
   "accessRules": {
-    "warehouseWestGate": "forbidden-for-agf",
+    "warehouseGates": {
+      "normal": {
+        "east": "entry-exit",
+        "west": "not-used"
+      },
+      "eastFailureDetour": {
+        "west": "conditional",
+        "palletizingGateReversal": "required-existing-rule",
+        "activationCondition": "unresolved",
+        "operationProcedure": "unresolved",
+        "routingReady": false
+      }
+    },
     "palletizingGate": {
       "entry": "west",
       "exit": "east"
@@ -773,6 +927,29 @@
       "accessFrom": "east-main-aisles",
       "accessEvidence": "user-confirmed",
       "branchAssignment": "unresolved",
+      "waitingCandidates": {
+        "totalCount": 4,
+        "groups": [
+          {
+            "kind": "south-service",
+            "count": 2,
+            "placeIds": [
+              "HP1",
+              "HP2"
+            ]
+          },
+          {
+            "kind": "fire-shutter-pillars",
+            "count": 2,
+            "sides": [
+              "west",
+              "east"
+            ],
+            "placeIds": "unresolved"
+          }
+        ],
+        "wsIdMapping": "unresolved"
+      },
       "waitingPlaces": [
         {
           "id": "HP1",

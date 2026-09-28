@@ -9,7 +9,7 @@
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "check:fixtures": "node scripts/check-fixtures.mjs",
-    "check": "npm test && npm run check:fixtures && npm run check:map && node scripts/check-ui.mjs && node --check src/ui/route-editor.mjs && node --check src/ui/segment-review.mjs && node --check src/map/reviewed-topology.mjs",
+    "check": "npm test && npm run check:fixtures && npm run check:map && node scripts/check-ui.mjs && node --check src/ui/route-editor.mjs && node --check src/ui/segment-review.mjs && node --check src/map/reviewed-topology.mjs && node --check src/map/operational-topology.mjs && node --check src/core/traffic-controller.mjs && node --check src/core/motion-projection.mjs",
     "check:map": "node scripts/check-logical-map.mjs"
   }
 }

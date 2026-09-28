@@ -1,5 +1,7 @@
 import { selectAgf } from './select-agf.mjs';
 import { batteryModel, validateBatteryModel, createBatteryLedger } from './battery-model.mjs';
+import {validateOperationalTopology,findOperationalPath,resolveInterfaceNode} from '../map/operational-topology.mjs';
+import {createTrafficController} from './traffic-controller.mjs';
 
 const minute = value => Math.round(value * 60_000);
 const required = (test, message) => { if (!test) throw new Error(message); };
@@ -35,11 +37,22 @@ export function simulate(rawScenario) {
   required(Number.isInteger(scenario.wrapper?.inputCapacity) && scenario.wrapper.inputCapacity > 0 &&
     Number.isInteger(scenario.wrapper?.outputCapacity) && scenario.wrapper.outputCapacity > 0,
     'wrapper capacities required');
+  const graphMode=scenario.motionModel==='synthetic_graph';
+  required(graphMode||scenario.motionModel===undefined||scenario.motionModel==='fixed_time',
+    'motionModel must be fixed_time or synthetic_graph');
+  const topology=graphMode?scenario.operationalTopology:null;
+  if(graphMode)validateOperationalTopology(topology);
+  const graphNodes=graphMode?new Map(topology.nodes.map(node=>[node.id,node])):null;
+  const graphEdges=graphMode?new Map(topology.edges.map(edge=>[edge.id,edge])):null;
+  const traffic=graphMode?createTrafficController(topology.edges):null;
+  const gates=graphMode?new Map(topology.shutters.map(gate=>[gate.id,{passable:gate.initiallyPassable}])):null;
   const lines = new Map(Array.from({length:8}, (_,i) => ['L' + (i+1), []]));
-  const agfs = (scenario.agfs ?? []).map(a => ({...a, status:a.status ?? 'idle', taskId:null, carriedPalletId:null, chargerId:null}));
+  const agfs = (scenario.agfs ?? []).map(a => ({...a, status:a.status ?? 'idle', taskId:null,
+    carriedPalletId:null,chargerId:null,...(graphMode?{movement:null,heading:null}: {})}));
   required(agfs.length === 4 && new Set(agfs.map(a => a.id)).size === 4, 'four unique AGFs required');
   for (const a of agfs) required(Number.isFinite(a.batteryPct) && a.batteryPct >= 0 && a.batteryPct <= 100 &&
     typeof a.area === 'string' && a.area, 'invalid AGF initial position/battery');
+  if(graphMode)for(const a of agfs)required(graphNodes.has(a.currentNodeId),'graph AGF needs a known currentNodeId');
   const batteryLedger = batteryModel(battery) === 'active_time' ? createBatteryLedger(agfs,battery) : null;
   const chargers = new Map((scenario.chargerIds ?? []).map(id => [id,null]));
   required(chargers.size === 2 && new Set(scenario.chargerIds).size === 2, 'two chargers required');
@@ -70,7 +83,8 @@ export function simulate(rawScenario) {
     aligners:Object.fromEntries([...aligners].map(([k,v]) => [k,clone(v)])),
     temporaryPallets:clone([...temps.values()]),
     warehouse:Object.fromEntries([...slots].map(([k,v]) => [k,clone(v)])),
-    tasks:clone([...tasks.values()]), pallets:clone([...pallets.values()])
+    tasks:clone([...tasks.values()]), pallets:clone([...pallets.values()]),
+    ...(graphMode?{traffic:traffic.snapshot(),gates:Object.fromEntries([...gates].map(([id,state])=>[id,clone(state)]))}:{})
   });
   const record = (type, fields={}) => {
     history.push({timeMs:now,sequence:history.length,type,...fields});
@@ -84,6 +98,36 @@ export function simulate(rawScenario) {
     if (task.waitReason !== reason) {
       task.waitReason=reason;
       record('TASK_WAITING',{taskId:task.id,kind:task.kind,palletId:task.palletId ?? null,reason});
+    }
+  };
+  const heading=(fromNodeId,toNodeId)=>{
+    const from=graphNodes.get(fromNodeId),to=graphNodes.get(toNodeId);
+    const dx=to.x-from.x,dy=to.y-from.y;
+    return Math.abs(dx)>=Math.abs(dy)?(dx>=0?'east':'west'):(dy>=0?'south':'north');
+  };
+  const routeFor=(startNodeId,interfaceId,movement,taskType)=>{
+    const endNodeId=resolveInterfaceNode(topology,interfaceId);
+    return endNodeId?findOperationalPath(topology,startNodeId,endNodeId,{movement,taskType}):null;
+  };
+  const beginRoute=(task,agf,movement,path,nextType,delayMs=0)=>{
+    const taskId=task?.id??null;
+    agf.status=movement==='empty'?'moving_empty':movement==='loaded'?'moving_loaded':'moving_to_charge';
+    agf.movement={movement,taskId,steps:clone(path.steps),stepIndex:0,nextType,delayMs,
+      current:null,waitingReason:null,retryScheduled:false};
+    record('ROUTE_PLANNED',{taskId,kind:task?.kind??'CHARGE',agfId:agf.id,movement,
+      edgeIds:path.steps.map(step=>step.edgeId),modelDistanceMm:path.modelDistanceMm,
+      modelDurationMs:path.modelDurationMs,etaStatus:path.etaStatus});
+    if(path.steps.length)schedule(now,'SEGMENT_REQUEST',{agfId:agf.id});
+    else schedule(now+delayMs,nextType,{taskId,agfId:agf.id});
+  };
+  const wakeTraffic=()=>{
+    if(!graphMode)return;
+    for(const agf of [...agfs].sort(byId)){
+      const movement=agf.movement;
+      if(agf.status!=='waiting_traffic'||!movement||movement.retryScheduled)continue;
+      const step=movement.steps[movement.stepIndex];
+      if(movement.waitingReason==='SHUTTER'&&!gates.get(step.shutterId)?.passable)continue;
+      movement.retryScheduled=true;schedule(now,'SEGMENT_REQUEST',{agfId:agf.id});
     }
   };
   const request = (kind, fields) => {
@@ -149,7 +193,11 @@ export function simulate(rawScenario) {
     if (a.batteryPct <= battery.chargeStartPct) {
       a.status='moving_to_charge';
       record('CHARGE_REQUESTED',{agfId:a.id,batteryPct:a.batteryPct});
-      schedule(now+minute(times.chargeTravelMin),'CHARGE_ARRIVED',{agfId:a.id});
+      if(graphMode){
+        const path=routeFor(a.currentNodeId,'CHARGE-PLACE','charge','CHARGE');
+        if(path)beginRoute(null,a,'charge',path,'CHARGE_ARRIVED');
+        else {a.status='waiting_traffic';record('CHARGE_ROUTE_WAITING',{agfId:a.id,reason:'UNREACHABLE_CHARGE_ROUTE'});}
+      }else schedule(now+minute(times.chargeTravelMin),'CHARGE_ARRIVED',{agfId:a.id});
     }
   };
   const completeDrop = (t,a) => {
@@ -200,12 +248,29 @@ export function simulate(rawScenario) {
       if (t.kind === '03') {
         const source=aligners.get(t.alignerId);
         if (!source?.ready || source.reservedTaskId) {t.alignerId=null;hold(t,'ALIGNER_NOT_READY');continue;}
-        source.reservedTaskId=t.id;
       }
-      t.status='moving_empty'; t.assignedAt=now; t.agfId=a.id; t.waitReason=null;
-      a.status='moving_empty'; a.taskId=t.id;
-      record('TASK_ASSIGNED',{taskId:t.id,kind:t.kind,agfId:a.id,palletId:t.palletId ?? null});
-      schedule(now+minute(times.emptyMin+times.pickupMin),'PICKUP',{taskId:t.id});
+      let selected=a,routePair=null;
+      if(graphMode){
+        const candidates=[];
+        for(const candidate of agfs){
+          if(candidate.status!=='idle'||candidate.batteryPct<battery.reservePct)continue;
+          const empty=routeFor(candidate.currentNodeId,t.originId,'empty',t.kind);
+          const originNodeId=resolveInterfaceNode(topology,t.originId);
+          const loaded=originNodeId?routeFor(originNodeId,t.destinationId,'loaded',t.kind):null;
+          if(empty&&loaded)candidates.push({candidate,empty,loaded});
+        }
+        selected=selectAgf(candidates.map(item=>item.candidate),{destinationArea:t.destinationArea},{
+          mode:scenario.mode,reservePct:battery.reservePct,fallback});
+        routePair=candidates.find(item=>item.candidate===selected)??null;
+        if(!selected||!routePair){hold(t,'UNREACHABLE_ROUTE');continue;}
+      }
+      if(t.kind==='03')aligners.get(t.alignerId).reservedTaskId=t.id;
+      t.status='moving_empty'; t.assignedAt=now; t.agfId=selected.id; t.waitReason=null;
+      t.emptyRoute=graphMode?routePair.empty:null;t.loadedRoute=graphMode?routePair.loaded:null;
+      selected.status='moving_empty'; selected.taskId=t.id;
+      record('TASK_ASSIGNED',{taskId:t.id,kind:t.kind,agfId:selected.id,palletId:t.palletId ?? null});
+      if(graphMode)beginRoute(t,selected,'empty',routePair.empty,'PICKUP',minute(times.pickupMin));
+      else schedule(now+minute(times.emptyMin+times.pickupMin),'PICKUP',{taskId:t.id});
     }
   };
   const chargeQueue = [];
@@ -272,8 +337,14 @@ export function simulate(rawScenario) {
       'invalid manual task');
     schedule(x.timeMs,'MANUAL_REQUEST',x);
   }
+  for(const x of scenario.shutterEvents??[]){
+    required(graphMode&&Number.isInteger(x.timeMs)&&x.timeMs>=0&&gates.has(x.shutterId)&&
+      typeof x.passable==='boolean','invalid shutter event');
+    schedule(x.timeMs,'SHUTTER_STATE_CHANGED',x);
+  }
   record('RUN_STARTED',{inputKind:production.length?'external':'synthetic-interval',mode:scenario.mode,
-    mapStatus:'conceptual-only',timingStatus:'scenario-assumption'});
+    mapStatus:graphMode?'synthetic-operational':'conceptual-only',
+    timingStatus:graphMode?'synthetic-graph-assumption':'scenario-assumption'});
   while(queue.length) {
     queue.sort((a,b)=>a.timeMs-b.timeMs || a.order-b.order);
     const e=queue.shift();
@@ -345,7 +416,8 @@ export function simulate(rawScenario) {
       t.status='moving_loaded';t.pickupAt=now;
       a.status='moving_loaded';a.area=t.originArea;a.carriedPalletId=t.palletId??('EMPTY-STACK-'+t.id);
       record('TASK_PICKED',{taskId:t.id,kind:t.kind,agfId:a.id,palletId:t.palletId??null});
-      schedule(now+minute(times.loadedMin+times.dropoffMin),'DROPOFF',{taskId:t.id});
+      if(graphMode)beginRoute(t,a,'loaded',t.loadedRoute,'DROPOFF',minute(times.dropoffMin));
+      else schedule(now+minute(times.loadedMin+times.dropoffMin),'DROPOFF',{taskId:t.id});
     } else if (e.type === 'DROPOFF') {
       const t=tasks.get(e.taskId),a=agfs.find(a=>a.id===t?.agfId);
       required(t?.status==='moving_loaded' && a?.taskId===t.id,'drop without pickup');
@@ -366,6 +438,59 @@ export function simulate(rawScenario) {
       const p=pallets.get(e.palletId);
       required(p?.stage==='labeled','exit before label');
       p.stage='exit_ready';record('EXIT_READY',{palletId:e.palletId});
+    } else if(e.type==='SHUTTER_STATE_CHANGED'){
+      gates.get(e.shutterId).passable=e.passable;
+      record('SHUTTER_STATE_CHANGED',{shutterId:e.shutterId,passable:e.passable});
+      wakeTraffic();
+    } else if(e.type==='SEGMENT_REQUEST'){
+      const a=agfs.find(agf=>agf.id===e.agfId),movement=a?.movement;
+      required(a&&movement&&movement.stepIndex<movement.steps.length,'segment request without movement');
+      movement.retryScheduled=false;
+      const step=movement.steps[movement.stepIndex],edge=graphEdges.get(step.edgeId);
+      if(step.shutterId&&!gates.get(step.shutterId)?.passable){
+        if(movement.waitingReason!=='SHUTTER'){
+          movement.waitingReason='SHUTTER';a.status='waiting_traffic';
+          record('SHUTTER_WAITING',{taskId:movement.taskId,agfId:a.id,edgeId:step.edgeId,
+            shutterId:step.shutterId,nodeId:a.currentNodeId});
+        }
+      }else{
+        const entered=traffic.tryEnter({agfId:a.id,edgeId:step.edgeId,traversal:step.traversal,requestOrder:e.order});
+        if(!entered.entered){
+          if(movement.waitingReason!=='RESOURCE'){
+            movement.waitingReason='RESOURCE';a.status='waiting_traffic';
+            record('SEGMENT_WAITING',{taskId:movement.taskId,agfId:a.id,edgeId:step.edgeId,
+              blockers:entered.blockers,reason:'OCCUPIED'});
+            const deadlocks=traffic.detectDeadlocks();
+            if(deadlocks.length)record('DEADLOCK_DETECTED',{cycles:deadlocks,recoveryPolicy:'detect-only'});
+          }
+        }else{
+          if(movement.waitingReason)record('TRAFFIC_WAIT_ENDED',{taskId:movement.taskId,agfId:a.id,
+            edgeId:step.edgeId,reason:movement.waitingReason});
+          movement.waitingReason=null;
+          movement.current={edgeId:step.edgeId,laneId:entered.laneId,fromNodeId:step.fromNodeId,
+            toNodeId:step.toNodeId,enteredAt:now,exitAt:now+step.durationMs};
+          a.status=movement.movement==='empty'?'moving_empty':movement.movement==='loaded'?'moving_loaded':'moving_to_charge';
+          a.heading=heading(step.fromNodeId,step.toNodeId);
+          record('SEGMENT_ENTERED',{taskId:movement.taskId,agfId:a.id,edgeId:step.edgeId,
+            laneId:entered.laneId,fromNodeId:step.fromNodeId,toNodeId:step.toNodeId,
+            movement:movement.movement,heading:a.heading,modelDurationMs:step.durationMs});
+          schedule(now+step.durationMs,'SEGMENT_EXITED',{agfId:a.id});
+        }
+      }
+    } else if(e.type==='SEGMENT_EXITED'){
+      const a=agfs.find(agf=>agf.id===e.agfId),movement=a?.movement,current=movement?.current;
+      required(a&&movement&&current,'segment exit without movement');
+      traffic.release(a.id);a.currentNodeId=current.toNodeId;a.area=graphNodes.get(a.currentNodeId).areaId;
+      record('SEGMENT_EXITED',{taskId:movement.taskId,agfId:a.id,edgeId:current.edgeId,
+        laneId:current.laneId,nodeId:a.currentNodeId,movement:movement.movement});
+      movement.current=null;movement.stepIndex++;
+      if(movement.stepIndex<movement.steps.length)schedule(now,'SEGMENT_REQUEST',{agfId:a.id});
+      else{
+        const {nextType,delayMs,taskId}=movement;
+        record('ROUTE_COMPLETED',{taskId,agfId:a.id,movement:movement.movement,nodeId:a.currentNodeId});
+        a.movement=null;schedule(now+delayMs,nextType,{taskId,agfId:a.id});
+      }
+      wakeTraffic();
     } else if (e.type === 'CHARGE_ARRIVED') {
       const a=agfs.find(a=>a.id===e.agfId);
       required(a?.status==='moving_to_charge','charge arrival without travel');
@@ -390,7 +515,7 @@ export function simulate(rawScenario) {
   }
   return {scenario,events:history,snapshots,final:snapshot(),metrics:{
     ...stats,pendingTasks:[...tasks.values()].filter(t=>t.status!=='completed').length,
-    elapsedMin:scenario.durationMin,scenarioTiming:'assumption-not-measured',
+    elapsedMin:scenario.durationMin,scenarioTiming:graphMode?'synthetic-graph-assumption':'assumption-not-measured',
     taskWaitMin:[...tasks.values()].filter(t=>t.assignedAt!==null)
       .map(t=>({taskId:t.id,kind:t.kind,waitMin:(t.assignedAt-t.requestedAt)/60_000}))
   }};
