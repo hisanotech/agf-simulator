@@ -2,13 +2,13 @@ import {simulate} from '../core/simulate.mjs';
 import {projectBatteryPct,batteryModel} from '../core/battery-model.mjs';
 import {projectAgfPosition} from '../core/motion-projection.mjs';
 import {createDemoScenario} from './scenario.mjs';
-import {snapshotIndexAt,replayTime,analyzeRun,compareRuns,effectiveStatus} from './replay-model.mjs';
+import {snapshotIndexAt,replayTime,analyzeRun,compareRuns,effectiveStatus,workingStatuses} from './replay-model.mjs';
 import {initMap,renderWarehouseBlock,describeSlot} from './map-view.mjs';
 import {renderAnalysis,renderComparison,metric} from './analysis-view.mjs';
 import {initCadPanel} from './cad-panel.mjs';
 import {eventCsv} from './export.mjs';
 import {WAREHOUSE_BLOCKS} from '../map/warehouse-layout.mjs';
-import {escapeHtml as esc,clock,states,taskNames,reasons,eventNames,areaName,locationName,badge} from './format.mjs';
+import {escapeHtml as esc,clock,states,stateLabel,taskNames,reasons,eventNames,areaName,locationName,badge} from './format.mjs';
 
 const $=id=>document.getElementById(id);
 const timeFields=[['emptyMin','空走（分）'],['loadedMin','積載走行（分）'],['pickupMin','荷受け（分）'],
@@ -115,9 +115,12 @@ function setTime(ms,force=false){if(!result)return;timeMs=Math.max(0,Math.min(an
   batterySecond=Math.floor(timeMs/1000);
 }
 const snapshot=()=>{if(!result)return null;const index=Math.max(0,currentIndex),saved=result.snapshots[index];
-  return {...saved,agfs:saved.agfs.map(a=>({...a,batteryPct:projectBatteryPct(a,saved.tasks.find(t=>t.id===a.taskId),
-    result.scenario.battery,timeMs-result.events[index].timeMs),
-    displayPosition:projectAgfPosition(a,result.scenario.operationalTopology,timeMs)}))};
+  return {...saved,agfs:saved.agfs.map(a=>{
+    const displayPosition=projectAgfPosition(a,result.scenario.operationalTopology,timeMs);
+    return {...a,batteryPct:projectBatteryPct(a,saved.tasks.find(t=>t.id===a.taskId),
+      result.scenario.battery,timeMs-result.events[index].timeMs),
+      displayPosition,heading:displayPosition?.heading??a.heading};
+  })};
 };
 function renderBattery(){for(const a of snapshot().agfs){
   document.querySelectorAll(`[data-battery-text="${a.id}"]`).forEach(el=>{el.textContent=a.batteryPct.toFixed(1)+'%';});
@@ -127,14 +130,14 @@ function selectAgf(id){selectedAgf=id;renderSnapshot();}
 function renderSnapshot(){if(!result)return;const snap=snapshot();
   const completed=snap.tasks.filter(t=>t.status==='completed').length;
   const held=snap.tasks.filter(t=>t.status!=='completed'&&t.waitReason).length;
-  const working=snap.agfs.filter(a=>['moving_empty','moving_loaded'].includes(effectiveStatus(a,snap))).length;
+  const working=snap.agfs.filter(a=>workingStatuses.includes(effectiveStatus(a,snap))).length;
   $('metrics').innerHTML=metric('搬送要求',snap.tasks.length,'件','表示時点の累計','','↗')+metric('搬送完了',completed,'件','表示時点の累計','success','✓')+
     metric('保留タスク',held,'件',`未完了 ${snap.tasks.length-completed}件`,'warning','◷')+metric('作業中AGF',working,'/ 4台','空走・荷受け / 積載・荷下ろし','accent','▥');
   map.render(snap,selectedAgf,{timeMs,topology:result.scenario.operationalTopology??null});
   $('agf-list').innerHTML=snap.agfs.map((a,i)=>{
     const task=snap.tasks.find(t=>t.id===a.taskId),status=effectiveStatus(a,snap);
     return `<button class="agf-card${a.id===selectedAgf?' selected':''}" data-select-agf="${esc(a.id)}" aria-pressed="${a.id===selectedAgf}">
-      <div class="agf-card-head"><span class="agf-id"><span class="vehicle-number">${i+1}</span>${esc(a.id)}</span>${badge(status)}</div>
+      <div class="agf-card-head"><span class="agf-id"><span class="vehicle-number">${i+1}</span>${esc(a.id)}</span>${badge(status,stateLabel(status,result.scenario.motionModel==='synthetic_graph'))}</div>
       <div class="battery-line"><span>電池</span><span class="battery-track"><i data-battery-bar="${a.id}" class="${a.batteryPct<=result.scenario.battery.chargeStartPct?'low':''}" style="width:${a.batteryPct}%"></i></span><b data-battery-text="${a.id}">${a.batteryPct.toFixed(1)}%</b></div>
       <dl class="agf-details"><dt>タスク</dt><dd>${task?esc(task.id)+' / '+task.kind:'—'}</dd><dt>搬送元 → 先</dt><dd>${task?esc(locationName(task.originId))+' → '+esc(locationName(task.destinationId)):'—'}</dd>
       <dt>積載</dt><dd>${esc(a.carriedPalletId??'なし')}</dd><dt>現在位置</dt><dd>${esc(a.currentNodeId??areaName(a.area)+'（概念エリア）')}</dd><dt>方向</dt><dd>${esc(a.heading??'未確定')}</dd></dl></button>`;

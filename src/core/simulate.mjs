@@ -87,7 +87,8 @@ export function simulate(rawScenario) {
     ...(graphMode?{traffic:traffic.snapshot(),gates:Object.fromEntries([...gates].map(([id,state])=>[id,clone(state)]))}:{})
   });
   const record = (type, fields={}) => {
-    history.push({timeMs:now,sequence:history.length,type,...fields});
+    history.push({timeMs:now,sequence:history.length,type,
+      ...(graphMode?{etaStatus:'synthetic-assumption'}:{}),...fields});
     snapshots.push(snapshot());
   };
   const schedule = (timeMs, type, fields={}) => {
@@ -109,6 +110,13 @@ export function simulate(rawScenario) {
     const endNodeId=resolveInterfaceNode(topology,interfaceId);
     return endNodeId?findOperationalPath(topology,startNodeId,endNodeId,{movement,taskType}):null;
   };
+  const completeRoute=agf=>{
+    const {nextType,delayMs,taskId,movement}=agf.movement;
+    // Keep the arrived route in every snapshot until handling finishes, including
+    // snapshots recorded by unrelated equipment events and zero-distance pickup.
+    record('ROUTE_COMPLETED',{taskId,agfId:agf.id,movement,nodeId:agf.currentNodeId});
+    schedule(now+delayMs,nextType,{taskId,agfId:agf.id});
+  };
   const beginRoute=(task,agf,movement,path,nextType,delayMs=0)=>{
     const taskId=task?.id??null;
     agf.status=movement==='empty'?'moving_empty':movement==='loaded'?'moving_loaded':'moving_to_charge';
@@ -118,7 +126,7 @@ export function simulate(rawScenario) {
       edgeIds:path.steps.map(step=>step.edgeId),modelDistanceMm:path.modelDistanceMm,
       modelDurationMs:path.modelDurationMs,etaStatus:path.etaStatus});
     if(path.steps.length)schedule(now,'SEGMENT_REQUEST',{agfId:agf.id});
-    else schedule(now+delayMs,nextType,{taskId,agfId:agf.id});
+    else completeRoute(agf);
   };
   const wakeTraffic=()=>{
     if(!graphMode)return;
@@ -185,7 +193,8 @@ export function simulate(rawScenario) {
     maybeStartWrap();
   };
   const finishTask = (t,a) => {
-    t.status='completed'; t.completedAt=now; a.status='idle'; a.taskId=null; a.carriedPalletId=null;
+    t.status='completed'; t.completedAt=now; t.waitReason=null; a.status='idle'; a.taskId=null; a.carriedPalletId=null;
+    if(graphMode)a.movement=null;
     a.area=t.destinationArea;
     if (!batteryLedger) a.batteryPct=Math.max(0,Math.round((a.batteryPct-battery.consumptionPct)*1000)/1000);
     stats.completed++; stats.byKind[t.kind]=(stats.byKind[t.kind]??0)+1;
@@ -208,8 +217,9 @@ export function simulate(rawScenario) {
       wrapper.input.push(t.palletId); pallets.get(t.palletId).stage='wrapper_input';
     } else if (t.kind === '02' || t.kind === '05') {
       const s=slots.get(t.destinationId);
-      required(s && s.reserved.includes(t.palletId) && s.permission !== false &&
+      required(s && s.reserved.includes(t.palletId) &&
         s.palletIds.length < s.capacity, 'unavailable reserved warehouse location');
+      if(s.permission===false){t.status='wait_drop';hold(t,'LOCATION_PERMISSION');return false;}
       s.reserved.splice(s.reserved.indexOf(t.palletId),1); s.palletIds.push(t.palletId);
       rowBusy.delete(s.rowId); pallets.get(t.palletId).stage='stored'; stats.stored++;
       record('STORE_COMPLETED',{taskId:t.id,palletId:t.palletId,locationId:s.id});
@@ -276,6 +286,7 @@ export function simulate(rawScenario) {
   const chargeQueue = [];
   const startCharge = agfId => {
     const a=agfs.find(a => a.id===agfId);
+    if(graphMode)a.movement=null;
     const free=[...chargers].find(([id,occupant]) => occupant===null);
     if (!free) {
       a.status='waiting_charge'; if (!chargeQueue.includes(agfId)) chargeQueue.push(agfId);
@@ -290,6 +301,13 @@ export function simulate(rawScenario) {
     schedule(now+minute((battery.chargeTargetPct-a.batteryPct)*battery.chargeMinPerPct),
       'CHARGE_ENDED',{agfId,chargerId});
   };
+  const permissionTargets={warehouse:slots,magazine:magazines};
+  for(const event of scenario.permissionEvents??[]){
+    required(Number.isInteger(event.timeMs)&&event.timeMs>=0&&typeof event.permitted==='boolean'&&
+      permissionTargets[event.target]?.has(event.targetId),'invalid equipment permission event');
+    schedule(event.timeMs,'EQUIPMENT_PERMISSION_CHANGED',{
+      target:event.target,targetId:event.targetId,permitted:event.permitted});
+  }
   const production=scenario.productionEvents ?? [];
   required(!(production.length && (scenario.lineIntervalsMin ?? []).some(n => n > 0)),
     'productionEvents and lineIntervalsMin are mutually exclusive');
@@ -438,6 +456,10 @@ export function simulate(rawScenario) {
       const p=pallets.get(e.palletId);
       required(p?.stage==='labeled','exit before label');
       p.stage='exit_ready';record('EXIT_READY',{palletId:e.palletId});
+    } else if(e.type==='EQUIPMENT_PERMISSION_CHANGED'){
+      permissionTargets[e.target].get(e.targetId).permission=e.permitted;
+      record('EQUIPMENT_PERMISSION_CHANGED',{target:e.target,targetId:e.targetId,permitted:e.permitted,
+        permissionEvidence:'scenario-assumption'});
     } else if(e.type==='SHUTTER_STATE_CHANGED'){
       gates.get(e.shutterId).passable=e.passable;
       record('SHUTTER_STATE_CHANGED',{shutterId:e.shutterId,passable:e.passable});
@@ -468,7 +490,8 @@ export function simulate(rawScenario) {
             edgeId:step.edgeId,reason:movement.waitingReason});
           movement.waitingReason=null;
           movement.current={edgeId:step.edgeId,laneId:entered.laneId,fromNodeId:step.fromNodeId,
-            toNodeId:step.toNodeId,enteredAt:now,exitAt:now+step.durationMs};
+            toNodeId:step.toNodeId,enteredAt:now,exitAt:now+step.durationMs,
+            ...(step.displayPath?{displayPath:clone(step.displayPath)}:{})};
           a.status=movement.movement==='empty'?'moving_empty':movement.movement==='loaded'?'moving_loaded':'moving_to_charge';
           a.heading=heading(step.fromNodeId,step.toNodeId);
           record('SEGMENT_ENTERED',{taskId:movement.taskId,agfId:a.id,edgeId:step.edgeId,
@@ -485,11 +508,7 @@ export function simulate(rawScenario) {
         laneId:current.laneId,nodeId:a.currentNodeId,movement:movement.movement});
       movement.current=null;movement.stepIndex++;
       if(movement.stepIndex<movement.steps.length)schedule(now,'SEGMENT_REQUEST',{agfId:a.id});
-      else{
-        const {nextType,delayMs,taskId}=movement;
-        record('ROUTE_COMPLETED',{taskId,agfId:a.id,movement:movement.movement,nodeId:a.currentNodeId});
-        a.movement=null;schedule(now+delayMs,nextType,{taskId,agfId:a.id});
-      }
+      else completeRoute(a);
       wakeTraffic();
     } else if (e.type === 'CHARGE_ARRIVED') {
       const a=agfs.find(a=>a.id===e.agfId);

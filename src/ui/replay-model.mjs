@@ -11,7 +11,27 @@ export function replayTime(anchorMs,elapsedWallMs,speed,durationMs) {
   return Math.min(Math.round(durationMs),Math.floor(anchorMs+elapsedWallMs*speed));
 }
 export function effectiveStatus(agf,snapshot) {
-  return snapshot.tasks.find(task=>task.id===agf.taskId)?.status==='wait_drop'?'wait_drop':agf.status;
+  if(snapshot.tasks.find(task=>task.id===agf.taskId)?.status==='wait_drop')return 'wait_drop';
+  const movement=agf.movement;
+  if(movement&&!movement.current&&movement.stepIndex===movement.steps.length){
+    if(agf.status==='moving_empty')return 'handling_pickup';
+    if(agf.status==='moving_loaded')return 'handling_dropoff';
+  }
+  return agf.status;
+}
+export const workingStatuses=['moving_empty','moving_loaded','handling_pickup','handling_dropoff'];
+export const durationStatuses=['idle','moving_empty','handling_pickup','moving_loaded','handling_dropoff',
+  'waiting_traffic','wait_drop','moving_to_charge','charging','waiting_charge'];
+
+/** Round the table together so displayed tenths sum to the displayed run duration.
+ * Analysis, utilization and CSV retain exact milliseconds. Ties use column order. */
+export function durationTenths(durations) {
+  const cells=durationStatuses.map((status,index)=>({status,index,value:(durations[status]??0)/6000}));
+  const values=Object.fromEntries(cells.map(c=>[c.status,Math.floor(c.value)]));
+  const remaining=Math.round(cells.reduce((sum,c)=>sum+c.value,0))-Object.values(values).reduce((a,b)=>a+b,0);
+  const order=[...cells].sort((a,b)=>(b.value%1)-(a.value%1)||a.index-b.index);
+  for(let i=0;i<remaining;i++)values[order[i].status]++;
+  return values;
 }
 
 /** Integrate saved states over simulated time, including the tail after the last event. */
@@ -31,7 +51,7 @@ export function analyzeRun(run) {
     }
   }
   for(const row of agfs) {
-    row.workingMs=(row.durations.moving_empty??0)+(row.durations.moving_loaded??0);
+    row.workingMs=workingStatuses.reduce((sum,status)=>sum+(row.durations[status]??0),0);
     row.utilizationPct=durationMs?100*row.workingMs/durationMs:0;
   }
   const tasks=run.final.tasks;

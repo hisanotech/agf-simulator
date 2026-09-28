@@ -26,6 +26,7 @@ export function validateOperationalTopology(graph){
     required(nodeTypes.has(node.type),'invalid node type '+node.id);
     required(Number.isFinite(node.x)&&Number.isFinite(node.y),'synthetic display coordinates required '+node.id);
     required(node.approvalState==='synthetic-validated','invalid node approval '+node.id);
+    required(['PZ','WH','INTER'].includes(node.areaId),'invalid node area '+node.id);
   }
   for(const edge of edges.values()){
     required(nodes.has(edge.fromNodeId)&&nodes.has(edge.toNodeId)&&edge.fromNodeId!==edge.toNodeId,
@@ -34,6 +35,14 @@ export function validateOperationalTopology(graph){
     for(const movement of movements)required(Number.isFinite(edge.speedMmPerSec?.[movement])&&
       edge.speedMmPerSec[movement]>0,'invalid speed '+edge.id+'/'+movement);
     required(edge.approvalState==='synthetic-validated','invalid edge approval '+edge.id);
+    if(edge.displayPath){
+      const points=edge.displayPath,from=nodes.get(edge.fromNodeId),to=nodes.get(edge.toNodeId);
+      required(Array.isArray(points)&&points.length>=2&&points.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)),
+        'invalid synthetic display path '+edge.id);
+      required(points[0].x===from.x&&points[0].y===from.y&&points.at(-1).x===to.x&&points.at(-1).y===to.y,
+        'display path endpoints must match nodes '+edge.id);
+      required(points.every((p,i)=>!i||p.x!==points[i-1].x||p.y!==points[i-1].y),'zero display segment '+edge.id);
+    }
     required(Array.isArray(edge.accessScopes),'accessScopes required '+edge.id);
     for(const scope of edge.accessScopes){
       required(movements.has(scope.movement),'invalid movement '+edge.id);
@@ -90,7 +99,8 @@ export function findOperationalPath(graph,startNodeId,endNodeId,{movement,taskTy
     const durationMs=Math.ceil(edge.distanceMm*1000/edge.speedMmPerSec[movement]);
     for(const traversal of traversals(edge))adjacency.get(traversal.from).push({
       edgeId:edge.id,fromNodeId:traversal.from,toNodeId:traversal.to,traversal:traversal.traversal,
-      distanceMm:edge.distanceMm,durationMs,shutterId:edge.shutterId??null
+      distanceMm:edge.distanceMm,durationMs,shutterId:edge.shutterId??null,
+      ...(edge.displayPath?{displayPath:structuredClone(traversal.traversal==='forward'?edge.displayPath:edge.displayPath.toReversed())}:{})
     });
   }
   const best=new Map([[startNodeId,{duration:0,key:'',previous:null,step:null}]]),pending=[startNodeId];

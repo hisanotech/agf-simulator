@@ -12,3 +12,6 @@ private/
 node_modules/
 dist/
 coverage/
+__pycache__/
+*.py[cod]
+.pytest_cache/

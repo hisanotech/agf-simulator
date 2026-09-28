@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {WAREHOUSE_BLOCKS,warehouseLocations,WAREHOUSE_RULES,WAREHOUSE_SERVICE,WAREHOUSE_MAIN_AISLES} from '../src/map/warehouse-layout.mjs';
-import {snapshotIndexAt,replayTime,analyzeRun,compareRuns} from '../src/ui/replay-model.mjs';
+import {snapshotIndexAt,replayTime,analyzeRun,compareRuns,durationTenths} from '../src/ui/replay-model.mjs';
 import {createDemoScenario} from '../src/ui/scenario.mjs';
 import {simulate} from '../src/core/simulate.mjs';
 import {eventCsv} from '../src/ui/export.mjs';
@@ -84,6 +84,41 @@ test('graph analysis separates handling and traffic wait from segment travel',()
   assert.equal(data.trafficWaitMs,100);
   assert.equal(agf.workingMs,400);
   assert.equal(agf.utilizationPct,40);
+  assert.equal(Object.values(agf.durations).reduce((n,ms)=>n+ms,0),1000);
+  assert.equal(agf.timeline.reduce((n,s)=>n+s.endMs-s.startMs,0),1000);
+});
+
+test('real graph snapshots retain handling across unrelated events and zero-length routes',()=>{
+  for(const atPickup of [false,true]) {
+    const input=createDemoScenario('physical');input.durationMin=10;input.lineIntervalsMin=Array(8).fill(0);
+    const pickupNode=input.operationalTopology.interfaceBindings.find(x=>x.pattern==='OT*').nodeId;
+    if(atPickup)for(const agf of input.agfs){agf.currentNodeId=pickupNode;agf.area='PZ';}
+    input.times.pickupMin=2;input.times.dropoffMin=1;
+    input.manualRequests=[{timeMs:0,kind:'05',palletId:'SIM-TEMP-1',locationId:'OT1',
+      destinationLocationId:input.generatedDestinationIds[0],storagePermission:true}];
+    input.alignerReadyEvents=[{timeMs:60000,alignerId:'AL1'}];
+    const run=simulate(input),data=analyzeRun(run),task=run.final.tasks[0],row=data.agfs.find(a=>a.id===task.agfId);
+    assert.equal(task.status,'completed');
+    assert.equal(row.durations.handling_pickup,120000);
+    assert.equal(row.durations.handling_dropoff,60000);
+    for(const [phase,state] of [['empty','moving_empty'],['loaded','moving_loaded']]){
+      const travel=run.events.filter(e=>e.type==='SEGMENT_ENTERED'&&e.taskId===task.id&&e.movement===phase)
+        .reduce((n,e)=>n+e.modelDurationMs,0);
+      assert.equal(row.durations[state]??0,travel);
+    }
+    assert.equal(Object.values(row.durations).reduce((n,ms)=>n+ms,0),600000);
+    assert.ok(Math.abs(run.final.agfs.find(a=>a.id===row.id).batteryPct-(100-row.workingMs/60000*70/360))<.000002);
+  }
+});
+
+test('displayed time categories sum to the horizon despite independent rounding errors',()=>{
+  const durations={idle:3000,moving_empty:3000,handling_pickup:3000,moving_loaded:3000,handling_dropoff:48000};
+  const display=durationTenths(durations);
+  assert.equal(Object.values(display).reduce((a,b)=>a+b,0),10);
+  assert.equal(display.idle,1);
+  assert.equal(display.moving_empty,1);
+  for(const [state,ms] of Object.entries(durations))assert.ok(Math.abs(display[state]*6000-ms)<=6000);
+  assert.deepEqual(durationTenths(durations),display);
 });
 
 test('dashboard scenario uses explicit sample inventory and compares the same production input',()=>{

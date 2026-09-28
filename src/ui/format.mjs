@@ -2,7 +2,10 @@ export const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&a
 export const clock=ms=>{const s=Math.floor(ms/1000);return [Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(n=>String(n).padStart(2,'0')).join(':');};
 export const minutes=ms=>(ms/60000).toFixed(1);
 export const states={idle:'待機',moving_empty:'空走・荷受け',moving_loaded:'積載・荷下ろし',wait_drop:'荷下ろし待ち',
+  handling_pickup:'荷受け',handling_dropoff:'荷下ろし',
   waiting_traffic:'交通待ち',waiting_charge:'充電待ち',moving_to_charge:'充電場所へ移動',charging:'充電中',queued:'割当待ち',completed:'完了'};
+export const stateLabel=(status,graphMode=false)=>graphMode&&status==='moving_empty'?'空走':
+  graphMode&&status==='moving_loaded'?'積載走行':states[status]??status;
 export const taskNames={'01':'製品の包装投入','02':'製品の倉庫入庫','03':'空パレット補充','04':'仮置きから再投入','05':'仮置きから入庫'};
 export const reasons={LOCATION_PERMISSION:'入庫許可なし',SAME_ROW_ACTIVE:'同じ行の置きタスク完了待ち',LOCATION_FULL_OR_RESERVED:'入庫先が満杯または予約済み',
   WRAPPER_INPUT_FULL:'包装機の投入空き待ち',NO_ELIGIBLE_AGF:'実行可能AGF待ち',NO_AREA_AGF:'目的地エリアのAGF待ち',ALIGNER_NOT_READY:'整列機の搬送OK待ち',
@@ -16,6 +19,7 @@ export const eventNames={RUN_STARTED:'シミュレーション開始',RUN_ENDED:
   CHARGE_REQUESTED:'充電移動開始',CHARGE_ARRIVED:'充電場所到着',CHARGE_STARTED:'充電開始',CHARGE_COMPLETED:'充電完了',
   CHARGE_WAITING:'充電待ち',MAGAZINE_USED:'空PL使用',ALIGNER_READY:'整列機 搬送OK',MAGAZINE_REFILLED:'補充完了',SIMULATION_FINISHED:'シミュレーション終了'};
 Object.assign(eventNames,{ROUTE_PLANNED:'合成経路決定',SEGMENT_WAITING:'区間進入待ち',SEGMENT_ENTERED:'区間進入',SEGMENT_EXITED:'区間退出',
+  EQUIPMENT_PERMISSION_CHANGED:'設備受入許可変更',
   ROUTE_COMPLETED:'合成経路到着',SHUTTER_WAITING:'シャッター前停止',SHUTTER_STATE_CHANGED:'シャッター許可変更',
   TRAFFIC_WAIT_ENDED:'交通待ち解除',DEADLOCK_DETECTED:'デッドロック検出',CHARGE_ROUTE_WAITING:'充電経路保留'});
 export const areaName=id=>id==='PZ'?'パレタイズ':id==='WH'?'製品倉庫':id;
