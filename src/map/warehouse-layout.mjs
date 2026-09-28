@@ -52,3 +52,14 @@ export function slotStatus(slot) {
   if(slot.reserved?.length)return 'reserved';
   return 'empty';
 }
+
+/** Extra rules are derived from saved inventory, without modifying location permissions. */
+export function displayedSlotStatus(slot,snapshot){
+  const base=slotStatus(slot);
+  if(!snapshot.storagePolicyActive||slot?.tier!==2||base!=='empty')return base;
+  const lower=Object.values(snapshot.warehouse).find(s=>s.rowId===slot.rowId&&s.column===slot.column&&s.tier===1);
+  const lowerPallet=snapshot.pallets.find(p=>p.palletId===lower?.palletIds[0]);
+  if(lowerPallet?.loadType==='partial')return 'unavailable';
+  if(lowerPallet?.loadType!=='full')return 'unsupported';
+  return base;
+}

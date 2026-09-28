@@ -1,8 +1,21 @@
 import {warehouseLocations} from '../map/warehouse-layout.mjs';
 import syntheticTopology from '../../examples/synthetic-operational-topology.json' with {type:'json'};
+import {defaultProductStreams} from '../core/production-streams.mjs';
 
 /** All inventory, input streams and timing here are explicit, reproducible sample assumptions. */
 export function createDemoScenario(preset='standard') {
+  if(preset==='extended'){
+    const s=createDemoScenario('physical');s.preset=preset;
+    s.lineIntervalsMin=Array(8).fill(0);
+    s.lineStartOffsetsMin=Array.from({length:8},(_,i)=>Number((i*41/8).toFixed(3)));
+    s.productStreams=defaultProductStreams(Array(8).fill(41),s.lineStartOffsetsMin);
+    s.warehousePolicy={evidence:'unconfigured',rowAssignments:[],rowPriority:{}};
+    s.postTaskPolicy={evidence:'unconfigured',waitTargets:{}};
+    s.warehouse.forEach(slot=>{slot.palletIds=[];slot.permission=true;});
+    s.temporaryPallets=s.temporaryPallets.map((p,i)=>({...p,destinationLocationId:null,
+      sourceLineId:'L'+(i+1),productType:'normal',loadType:'full'}));
+    return s;
+  }
   if(!['standard','charge','manual','physical'].includes(preset))throw new Error('Unknown sample scenario');
   const warehouse=warehouseLocations();
   // Exercise all status styles with declared sample state, never a claim about actual inventory.

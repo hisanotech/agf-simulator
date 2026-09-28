@@ -6,9 +6,10 @@ import {snapshotIndexAt,replayTime,analyzeRun,compareRuns,effectiveStatus,workin
 import {initMap,renderWarehouseBlock,describeSlot} from './map-view.mjs';
 import {renderAnalysis,renderComparison,metric} from './analysis-view.mjs';
 import {initCadPanel} from './cad-panel.mjs';
+import {populateExtendedSettings,readExtendedSettings,loadSyntheticSettingsExample} from './extended-settings.mjs';
 import {eventCsv} from './export.mjs';
 import {WAREHOUSE_BLOCKS} from '../map/warehouse-layout.mjs';
-import {escapeHtml as esc,clock,states,stateLabel,taskNames,reasons,eventNames,areaName,locationName,badge} from './format.mjs';
+import {escapeHtml as esc,clock,states,stateLabel,taskNames,reasons,eventNames,areaName,locationName,badge,productLabel} from './format.mjs';
 
 const $=id=>document.getElementById(id);
 const timeFields=[['emptyMin','空走（分）'],['loadedMin','積載走行（分）'],['pickupMin','荷受け（分）'],
@@ -24,11 +25,13 @@ let selectedBlock='WB1',reservationKind='05';
 const map=initMap({svg:$('map'),onSelectAgf:selectAgf,onSelectBlock:openWarehouse});
 
 function populateSettings(scenario) {
+  populateExtendedSettings(scenario);
   $('duration').value=scenario.durationMin;$('lineCapacity').value=scenario.lineCapacity;
   $('fallback').value=scenario.fallback;$('mode').value=scenario.mode;
   $('inputCapacity').value=scenario.wrapper.inputCapacity;$('outputCapacity').value=scenario.wrapper.outputCapacity;
   $('line-fields').innerHTML=scenario.lineIntervalsMin.map((n,i)=>`<div class="line-setting"><h3>系列 ${i+1}</h3>${input('line-'+i,'搬出間隔（分）',n)}${input('offset-'+i,'初回ずらし（分）',scenario.lineStartOffsetsMin[i],0,.001)}</div>`).join('');
   $('time-fields').innerHTML=timeFields.map(([id,label])=>input(id,label,scenario.times[id],id==='wrapMin'?.001:0,.001)).join('');
+  for(const id of ['emptyMin','loadedMin','chargeTravelMin']){$(id).disabled=scenario.motionModel==='synthetic_graph';$(id).title=$(id).disabled?'区間走行ではグラフの距離と速度を使用します。':'';}
   $('battery-fields').innerHTML='<label>消費方式<select id="battery-model"><option value="active_time">走行・荷役の稼働時間</option><option value="per_task">タスク単位（旧シナリオ再現用）</option></select></label>'+
     batteryFields.map(([id,label])=>input(id,label,scenario.battery[id],['chargeMinPerPct','activeReferenceMin'].includes(id)?.001:0,.001,id.endsWith('Pct')&&id!=='chargeMinPerPct'?100:'')).join('');
   $('battery-model').value=batteryModel(scenario.battery);syncBatteryFields();
@@ -58,6 +61,7 @@ function scenarioFromSettings() {
   scenario.agfs=scenario.agfs.map((a,i)=>{const area=$('initial-area-'+i).value;return {...a,
     batteryPct:numeric('initial-battery-'+i),area,
     ...(scenario.motionModel==='synthetic_graph'?{currentNodeId:area==='PZ'?'PZ-HOME':'WH-HOME'}:{})};});
+  readExtendedSettings(scenario);
   return scenario;
 }
 function markDirty(value=true) {dirty=value;$('dirty-state').hidden=!value;}
@@ -115,7 +119,7 @@ function setTime(ms,force=false){if(!result)return;timeMs=Math.max(0,Math.min(an
   batterySecond=Math.floor(timeMs/1000);
 }
 const snapshot=()=>{if(!result)return null;const index=Math.max(0,currentIndex),saved=result.snapshots[index];
-  return {...saved,agfs:saved.agfs.map(a=>{
+  return {...saved,warehouseAllocation:result.scenario.warehousePolicy,agfs:saved.agfs.map(a=>{
     const displayPosition=projectAgfPosition(a,result.scenario.operationalTopology,timeMs);
     return {...a,batteryPct:projectBatteryPct(a,saved.tasks.find(t=>t.id===a.taskId),
       result.scenario.battery,timeMs-result.events[index].timeMs),
@@ -163,7 +167,7 @@ function renderLog(){if(!result)return;const agfFilter=$('log-agf').value,taskFi
     rows.push({e,task,agf});
   }
   $('log-count').textContent=rows.length+'件'+(rows.length>250?' / 最新250件表示':'');
-  $('log').innerHTML=rows.slice(-250).reverse().map(({e,task,agf})=>`<tr><td class="mono">${clock(e.timeMs)}</td><td title="${esc(e.type)}">${esc(eventNames[e.type]??e.type)}</td><td>${esc(agf||'—')}</td><td class="mono">${esc(e.taskId??'—')}</td><td>${esc(locationName(task?.originId??e.lineId))}</td><td>${esc(locationName(task?.destinationId??e.locationId))}</td><td class="reason">${esc(e.reason?(reasons[e.reason]??e.reason):task?(states[task.status]??task.status):e.type==='RUN_STARTED'?'合成入力':'記録済み')}</td></tr>`).join('')||'<tr><td class="empty-cell" colspan="7">該当するイベントはありません。</td></tr>';
+  $('log').innerHTML=rows.slice(-250).reverse().map(({e,task,agf})=>`<tr><td class="mono">${clock(e.timeMs)}</td><td title="${esc(e.type)}">${esc(eventNames[e.type]??e.type)}</td><td>${esc(agf||'—')}</td><td class="mono">${esc(e.taskId??'—')}</td><td>${esc(locationName(task?.originId??e.lineId))}${e.productType?'<small class="product-meta">'+esc(productLabel(e))+'</small>':''}</td><td>${esc(locationName(task?.destinationId??e.locationId))}</td><td class="reason">${esc(e.reason?(reasons[e.reason]??e.reason):task?(states[task.status]??task.status):e.type==='RUN_STARTED'?'合成入力':'記録済み')}</td></tr>`).join('')||'<tr><td class="empty-cell" colspan="7">該当するイベントはありません。</td></tr>';
 }
 function renderTasks(){if(!result)return;const snap=snapshot();
   $('task-time').textContent=clock(timeMs)+' 時点';
@@ -171,7 +175,7 @@ function renderTasks(){if(!result)return;const snap=snapshot();
     return `<div class="task-kind-card"><span class="kind">TRANSPORT ${kind}</span>${taskNames[kind]}<b>${own.length}</b><small>完了 ${done} / 未完了 ${own.length-done}</small></div>`;}).join('');
   const kind=$('task-kind').value,state=$('task-state').value;
   const tasks=snap.tasks.filter(t=>(!kind||t.kind===kind)&&(!state||(state==='completed'?t.status==='completed':t.status!=='completed')));
-  $('task-list').innerHTML=tasks.toReversed().map(t=>`<tr><td class="mono">${esc(t.id)} <span class="badge">${t.kind}</span></td><td>${badge(t.status)}</td><td class="mono">${esc(t.palletId??(t.kind==='03'?'空PL '+snap.magazines[t.magazineId].refillBatch+'枚':'—'))}</td><td>${esc(locationName(t.originId))}</td><td>${esc(locationName(t.destinationId))}</td><td>${esc(t.agfId??'未割当')}</td><td class="reason">${esc(t.waitReason?reasons[t.waitReason]??t.waitReason:'—')}</td></tr>`).join('')||'<tr><td class="empty-cell" colspan="7">この時刻・条件に該当するタスクはありません。モニターで時刻を進めるか、04・05を予約してください。</td></tr>';
+  $('task-list').innerHTML=tasks.toReversed().map(t=>`<tr><td class="mono">${esc(t.id)} <span class="badge">${t.kind}</span></td><td>${badge(t.status)}</td><td class="mono">${esc(t.palletId??(t.kind==='03'?'空PL '+snap.magazines[t.magazineId].refillBatch+'枚':'—'))}${t.palletId?'<small class="product-meta">'+esc(productLabel(t))+'</small>':''}</td><td>${esc(locationName(t.originId))}</td><td>${esc(locationName(t.destinationId))}</td><td>${esc(t.agfId??'未割当')}</td><td class="reason">${esc(t.waitReason?reasons[t.waitReason]??t.waitReason:'—')}</td></tr>`).join('')||'<tr><td class="empty-cell" colspan="7">この時刻・条件に該当するタスクはありません。モニターで時刻を進めるか、04・05を予約してください。</td></tr>';
   $('replenishment-status').textContent=Object.values(snap.magazines).map(m=>m.id+': '+m.quantity+'枚'+(m.pending?'（補充要求）':'')).join(' / ');
 }
 function openWarehouse(id){pause();selectedBlock=id;renderWarehouse();if(!$('warehouse-dialog').open)$('warehouse-dialog').showModal();}
@@ -183,9 +187,10 @@ function openReservation(kind){clearError();try{requireSavedSettings();pause();r
   $('reservation-title').textContent=kind+' '+taskNames[kind]+'を予約';$('reservation-time').textContent=`${runId} / ${clock(timeMs)} に追加します。`;
   $('reservation-error').hidden=true;$('permission').checked=false;
   const temps=snapshot().temporaryPallets;
-  $('temp-pallet').replaceChildren(...temps.map(p=>new Option(p.palletId+(p.reservedTaskId?'（予約済み）':''),p.palletId)));
+  $('temp-pallet').replaceChildren(...temps.map(p=>new Option(p.palletId+' / '+productLabel(p)+(p.reservedTaskId?'（予約済み）':''),p.palletId)));
   $('manual-slot').replaceChildren(...result.scenario.warehouse.map(s=>new Option(s.id,s.id)));
-  $('manual-destination').hidden=kind==='04';syncTemporary();$('reservation-dialog').showModal();
+  $('manual-destination').hidden=kind==='04'||!!result.scenario.warehousePolicy;
+  if(result.scenario.warehousePolicy)$('reservation-time').textContent+=' 入庫先は系列／特注・奥詰め規則から予約します。';syncTemporary();$('reservation-dialog').showModal();
  }catch(error){showError(error);}}
 function syncTemporary(){const temp=snapshot().temporaryPallets.find(p=>p.palletId===$('temp-pallet').value);
   if(temp){$('temp-location').value=temp.locationId;$('manual-slot').value=temp.destinationLocationId;}}
@@ -197,7 +202,7 @@ function reserve(event){event.preventDefault();$('reservation-error').hidden=tru
   if(result.scenario.manualRequests.some(r=>r.palletId===palletId))throw new Error('duplicate reservation');
   const entry={timeMs,kind:reservationKind,palletId,locationId:$('temp-location').value,requestedBy:'local-simulator-ui'};
   if(reservationKind==='04')entry.reentryPermission=true;
-  else{entry.storagePermission=true;entry.destinationLocationId=$('manual-slot').value;}
+  else{entry.storagePermission=true;if(!result.scenario.warehousePolicy)entry.destinationLocationId=$('manual-slot').value;}
   addInput('manualRequests',entry);$('reservation-dialog').close();
  }catch(error){$('reservation-error').textContent=friendlyError(error);$('reservation-error').hidden=false;}}
 function compare(){pause();clearError();try{const scenario=scenarioFromSettings();comparison=compareRuns(scenario);
@@ -205,12 +210,13 @@ function compare(){pause();clearError();try{const scenario=scenarioFromSettings(
  }catch(error){showError(error);}}
 
 populateSettings(base);
+$('load-storage-example').addEventListener('click',()=>{loadSyntheticSettingsExample(base);markDirty();notify('合成検証用の例を読み込みました。現場の行割当・固定HPではありません。「実行」で反映します。');});
 for(let i=1;i<=4;i++)$('log-agf').add(new Option('AGF'+i,'AGF'+i));
 for(let i=1;i<=5;i++){$('mag-select').add(new Option('マガジン'+i,'M'+i));$('align-select').add(new Option('整列機'+i,'AL'+i));}
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
 $('settings-form').addEventListener('submit',event=>event.preventDefault());
 $('settings-form').addEventListener('input',event=>{markDirty();if(event.target.id==='battery-model')syncBatteryFields();});$('mode').addEventListener('change',()=>markDirty());
-$('scenario-select').addEventListener('change',()=>{pause();base=createDemoScenario($('scenario-select').value);populateSettings(base);markDirty();notify('シナリオを設定欄に読み込みました。「実行」で反映します。');});
+$('scenario-select').addEventListener('change',()=>{pause();base=createDemoScenario($('scenario-select').value);populateSettings(base);markDirty();if(base.preset==='extended')showView('settings');notify('シナリオを設定欄に読み込みました。「実行」で反映します。');});
 $('run').addEventListener('click',execute);$('run-settings').addEventListener('click',()=>{execute();if(!dirty)showView('monitor');});
 $('reset').addEventListener('click',()=>{pause();clearError();base=createDemoScenario($('scenario-select').value);populateSettings(base);execute();});
 $('compare').addEventListener('click',compare);$('compare-page').addEventListener('click',compare);

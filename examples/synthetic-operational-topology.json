@@ -115,6 +115,22 @@
       "x": 782,
       "y": 842,
       "approvalState": "synthetic-validated"
+    },
+    {
+      "id": "HP1",
+      "type": "wait",
+      "areaId": "WH",
+      "x": 782,
+      "y": 778.5,
+      "approvalState": "synthetic-validated"
+    },
+    {
+      "id": "HP2",
+      "type": "wait",
+      "areaId": "WH",
+      "x": 782,
+      "y": 809.5,
+      "approvalState": "synthetic-validated"
     }
   ],
   "edges": [
@@ -126,7 +142,8 @@
       "speedMmPerSec": {
         "empty": 1000,
         "loaded": 800,
-        "charge": 900
+        "charge": 900,
+        "wait": 1000
       },
       "lanes": [
         {
@@ -158,6 +175,12 @@
           "taskTypes": [
             "CHARGE"
           ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
         }
       ],
       "approvalState": "synthetic-validated",
@@ -184,7 +207,8 @@
       "speedMmPerSec": {
         "empty": 1000,
         "loaded": 800,
-        "charge": 900
+        "charge": 900,
+        "wait": 1000
       },
       "lanes": [
         {
@@ -218,6 +242,12 @@
           "taskTypes": [
             "CHARGE"
           ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
         }
       ],
       "approvalState": "synthetic-validated",
@@ -240,7 +270,8 @@
       "speedMmPerSec": {
         "empty": 800,
         "loaded": 700,
-        "charge": 800
+        "charge": 800,
+        "wait": 800
       },
       "lanes": [
         {
@@ -272,6 +303,12 @@
           "taskTypes": [
             "CHARGE"
           ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
         }
       ],
       "approvalState": "synthetic-validated",
@@ -294,7 +331,8 @@
       "speedMmPerSec": {
         "empty": 1000,
         "loaded": 800,
-        "charge": 900
+        "charge": 900,
+        "wait": 1000
       },
       "lanes": [
         {
@@ -326,6 +364,12 @@
           "taskTypes": [
             "CHARGE"
           ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
         }
       ],
       "approvalState": "synthetic-validated",
@@ -352,7 +396,8 @@
       "speedMmPerSec": {
         "empty": 1000,
         "loaded": 800,
-        "charge": 900
+        "charge": 900,
+        "wait": 1000
       },
       "lanes": [
         {
@@ -384,6 +429,12 @@
           "taskTypes": [
             "CHARGE"
           ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
         }
       ],
       "approvalState": "synthetic-validated",
@@ -410,7 +461,8 @@
       "speedMmPerSec": {
         "empty": 1000,
         "loaded": 800,
-        "charge": 900
+        "charge": 900,
+        "wait": 1000
       },
       "lanes": [
         {
@@ -442,6 +494,12 @@
           "taskTypes": [
             "CHARGE"
           ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
         }
       ],
       "approvalState": "synthetic-validated",
@@ -464,7 +522,8 @@
       "speedMmPerSec": {
         "empty": 1000,
         "loaded": 800,
-        "charge": 900
+        "charge": 900,
+        "wait": 1000
       },
       "lanes": [
         {
@@ -496,6 +555,12 @@
           "taskTypes": [
             "CHARGE"
           ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
         }
       ],
       "approvalState": "synthetic-validated",
@@ -522,7 +587,8 @@
       "speedMmPerSec": {
         "empty": 1200,
         "loaded": 1000,
-        "charge": 1000
+        "charge": 1000,
+        "wait": 1200
       },
       "lanes": [
         {
@@ -556,6 +622,12 @@
           "taskTypes": [
             "CHARGE"
           ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
         }
       ],
       "approvalState": "synthetic-validated",
@@ -586,7 +658,8 @@
       "speedMmPerSec": {
         "empty": 900,
         "loaded": 700,
-        "charge": 800
+        "charge": 800,
+        "wait": 900
       },
       "lanes": [
         {
@@ -620,6 +693,12 @@
           "taskTypes": [
             "CHARGE"
           ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
         }
       ],
       "approvalState": "synthetic-validated",
@@ -642,7 +721,8 @@
       "speedMmPerSec": {
         "empty": 1000,
         "loaded": 800,
-        "charge": 900
+        "charge": 900,
+        "wait": 1000
       },
       "lanes": [
         {
@@ -676,6 +756,12 @@
           "taskTypes": [
             "CHARGE"
           ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
         }
       ],
       "approvalState": "synthetic-validated",
@@ -698,7 +784,8 @@
       "speedMmPerSec": {
         "empty": 900,
         "loaded": 700,
-        "charge": 800
+        "charge": 800,
+        "wait": 900
       },
       "lanes": [
         {
@@ -730,6 +817,12 @@
           "taskTypes": [
             "CHARGE"
           ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
         }
       ],
       "approvalState": "synthetic-validated",
@@ -756,7 +849,8 @@
       "speedMmPerSec": {
         "empty": 900,
         "loaded": 700,
-        "charge": 800
+        "charge": 800,
+        "wait": 900
       },
       "lanes": [
         {
@@ -788,6 +882,12 @@
           "taskTypes": [
             "CHARGE"
           ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
         }
       ],
       "approvalState": "synthetic-validated",
@@ -810,7 +910,8 @@
       "speedMmPerSec": {
         "empty": 900,
         "loaded": 700,
-        "charge": 800
+        "charge": 800,
+        "wait": 900
       },
       "lanes": [
         {
@@ -842,6 +943,12 @@
           "taskTypes": [
             "CHARGE"
           ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
         }
       ],
       "approvalState": "synthetic-validated",
@@ -857,6 +964,136 @@
         {
           "x": 782,
           "y": 842
+        }
+      ]
+    },
+    {
+      "id": "E14",
+      "fromNodeId": "WH-HOME",
+      "toNodeId": "HP1",
+      "distanceMm": 4000,
+      "speedMmPerSec": {
+        "empty": 900,
+        "loaded": 700,
+        "charge": 800,
+        "wait": 900
+      },
+      "lanes": [
+        {
+          "id": "E14-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 745
+        },
+        {
+          "x": 682.5,
+          "y": 778.5
+        },
+        {
+          "x": 782,
+          "y": 778.5
+        }
+      ]
+    },
+    {
+      "id": "E15",
+      "fromNodeId": "WH-HOME",
+      "toNodeId": "HP2",
+      "distanceMm": 4000,
+      "speedMmPerSec": {
+        "empty": 900,
+        "loaded": 700,
+        "charge": 800,
+        "wait": 900
+      },
+      "lanes": [
+        {
+          "id": "E15-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 745
+        },
+        {
+          "x": 682.5,
+          "y": 809.5
+        },
+        {
+          "x": 782,
+          "y": 809.5
         }
       ]
     }
@@ -904,6 +1141,14 @@
     {
       "pattern": "CHARGE-PLACE",
       "nodeId": "WH-CHARGE"
+    },
+    {
+      "pattern": "HP1",
+      "nodeId": "HP1"
+    },
+    {
+      "pattern": "HP2",
+      "nodeId": "HP2"
     }
   ],
   "displayEvidence": "schematic-synthetic-only; representative interfaces, not individual site stops; display length is never used for duration"

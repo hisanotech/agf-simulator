@@ -1,11 +1,11 @@
-import {WAREHOUSE_BLOCKS,warehouseLocations,slotStatus,WAREHOUSE_SERVICE} from '../map/warehouse-layout.mjs';
-import {escapeHtml as esc,stateLabel,locationName} from './format.mjs';
+import {WAREHOUSE_BLOCKS,warehouseLocations,slotStatus,displayedSlotStatus,WAREHOUSE_SERVICE} from '../map/warehouse-layout.mjs';
+import {escapeHtml as esc,stateLabel,locationName,productLabel} from './format.mjs';
 
 import {effectiveStatus} from './replay-model.mjs';
 
 const slots=warehouseLocations();
-const palette={empty:'#e2e8f0',occupied:'#10b981',reserved:'#f59e0b',unavailable:'#64748b',unknown:'#cbd5e1'};
-const statusNames={empty:'空き',occupied:'使用中',reserved:'予約済み',unavailable:'使用不可',unknown:'未取得'};
+const palette={empty:'#e2e8f0',occupied:'#10b981',reserved:'#f59e0b',unavailable:'#64748b',unknown:'#cbd5e1',unsupported:'#dbe5f1'};
+const statusNames={empty:'空き',occupied:'使用中',reserved:'予約済み',unavailable:'使用不可',unknown:'未取得',unsupported:'下段成立待ち'};
 // These are drawing coordinates of a schematic, with no relationship to CAD coordinates.
 const blockBoxes={WB1:[45,514,266,112],WB2:[45,644,266,72],WB3:[45,734,266,172],EB1:[710,514,356,82],EB2:[710,644,356,82]};
 const aisleXs=[400,435,665,700],eastAxis=(aisleXs[2]+aisleXs[3])/2;
@@ -63,14 +63,14 @@ export function initMap({svg,onSelectAgf,onSelectBlock}) {
     const blocks=WAREHOUSE_BLOCKS.map(block=>{
       const [x,y,w,h]=blockBoxes[block.id],bw=(w-32)/block.columns,bh=(h-50)/block.rows;
       const blockSlots=slots.filter(s=>s.blockId===block.id);
-      const used=blockSlots.filter(s=>slotStatus(snapshot.warehouse[s.id])==='occupied').length;
+      const used=blockSlots.filter(s=>displayedSlotStatus(snapshot.warehouse[s.id],snapshot)==='occupied').length;
       const count=blockSlots.length;
       const active=[selectedTask?.originId,selectedTask?.destinationId].some(id=>id?.startsWith(block.id+'-'));
       let cells='';
       for(let r=1;r<=block.rows;r++)for(let c=1;c<=block.columns;c++) {
         if(block.emptyColumns.includes(c)){cells+=`<rect data-row="${r}" data-column="${c}" data-tiers="2" x="${x+16+(c-1)*bw}" y="${y+40+(r-1)*bh}" width="${bw-2}" height="${bh-2}" fill="url(#gap)"/>`;continue;}
         const pair=blockSlots.filter(s=>s.row===r&&s.column===c).map(s=>slotStatus(snapshot.warehouse[s.id]));
-        const state=['unavailable','reserved','occupied','empty'].find(s=>pair.includes(s))??'unknown';
+        const state=['occupied','reserved','unavailable','empty','unsupported'].find(s=>pair.includes(s))??'unknown';
         cells+=`<rect data-row="${r}" data-column="${c}" data-tiers="2" x="${x+16+(c-1)*bw}" y="${y+40+(r-1)*bh}" width="${bw-2}" height="${bh-2}" rx="2" fill="${palette[state]}"/>`;
       }
       return `<g data-block="${block.id}" role="button" tabindex="0" aria-label="${block.id} ${block.label} ${count}保管位置の行列段を表示" class="warehouse-block${active?' target-equipment':''}">
@@ -146,18 +146,18 @@ export function renderWarehouseBlock(blockId,tier,snapshot) {
   const counts=Object.fromEntries(Object.keys(palette).map(state=>[state,own.filter(s=>slotStatus(snapshot.warehouse[s.id])===state).length]));
   const cell=(row,column)=>{
     if(block.emptyColumns.includes(column))return '<div class="slot-gap" title="空列：配置対象外・通行可否未確定">／</div>';
-    const slot=own.find(s=>s.row===row&&s.column===column&&s.tier===tier),state=slotStatus(snapshot.warehouse[slot.id]);
+    const slot=own.find(s=>s.row===row&&s.column===column&&s.tier===tier),state=displayedSlotStatus(snapshot.warehouse[slot.id],snapshot);
     return `<button class="slot slot-${state}" data-slot="${slot.id}" aria-label="${slot.id} ${statusNames[state]}" title="${slot.id} · ${statusNames[state]}"><span>${row}-${column}</span><b>${state==='occupied'?'●':state==='reserved'?'◷':state==='unavailable'?'×':'·'}</b></button>`;
   };
   return `<div class="block-summary"><div><span class="eyebrow">WAREHOUSE / ${block.id}</span><h2>${block.label} · ${block.id}</h2><p>${block.rows}行 × ${block.columns}列 × 2段 ${block.emptyColumns.length?'（第10列は配置対象外）':''}</p></div><strong>${own.length}<small>保管位置</small></strong></div>
     <div class="slot-counts">${Object.entries(counts).filter(([s])=>s!=='unknown').map(([s,n])=>`<span><i class="legend-dot slot-${s}"></i>${statusNames[s]} <b>${n}</b></span>`).join('')}</div>
     <div class="notice">概念図・サンプル在庫 ／ 各行は双方向1車線、横並び通行不可。個別停止位置・主通路への接続は未確認です。</div>
     <div class="warehouse-scroll"><div class="slot-grid" style="--cols:${block.columns}"><span></span>${Array.from({length:block.columns},(_,i)=>`<span class="col-number">${i+1}列</span>`).join('')}
-      ${Array.from({length:block.rows},(_,i)=>`<span class="row-number">${i+1}行<br><small>↔ 1車線</small></span>${Array.from({length:block.columns},(_,c)=>cell(i+1,c+1)).join('')}`).join('')}</div></div>
+      ${Array.from({length:block.rows},(_,i)=>`<span class="row-number">${i+1}行<br><small>↔ 1車線</small>${snapshot.warehouseAllocation?'<br><small>'+esc((()=>{const a=snapshot.warehouseAllocation.rowAssignments.find(a=>a.rowId===block.id+'-R'+String(i+1).padStart(2,'0'));return a?.usage==='special'?'特注':a?.sourceLineId??'未割当';})())+'</small>':''}</span>${Array.from({length:block.columns},(_,c)=>cell(i+1,c+1)).join('')}`).join('')}</div></div>
     <p class="muted">${tier}段を表示中。集計は2段合計。${block.emptyColumns.length?'斜線の空列は道路を意味しません。':''}位置を選ぶとパレット・予約を確認できます。</p>`;
 }
 
 export function describeSlot(id,snapshot) {
   const slot=snapshot.warehouse[id];
-  return `${locationName(id)} ｜ ${statusNames[slotStatus(slot)]} ｜ パレット：${slot?.palletIds?.join(', ')||'なし'} ｜ 予約：${slot?.reserved?.join(', ')||'なし'}`;
+  return `${locationName(id)} ｜ ${statusNames[displayedSlotStatus(slot,snapshot)]} ｜ パレット：${slot?.palletIds?.map(palletId=>palletId+' ('+productLabel(snapshot.pallets.find(p=>p.palletId===palletId))+')').join(', ')||'なし'} ｜ 予約：${slot?.reserved?.join(', ')||'なし'}`;
 }

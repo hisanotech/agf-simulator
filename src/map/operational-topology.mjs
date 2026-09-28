@@ -1,5 +1,5 @@
 const required=(condition,message)=>{if(!condition)throw new Error(message);};
-const movements=new Set(['empty','loaded','charge']);
+const movements=new Set(['empty','loaded','charge','wait']);
 const laneDirections=new Set(['forward','reverse','both']);
 const nodeTypes=new Set(['home','pickup','dropoff','charge','wait','shutter-wait','junction','turn','passage']);
 
@@ -32,7 +32,7 @@ export function validateOperationalTopology(graph){
     required(nodes.has(edge.fromNodeId)&&nodes.has(edge.toNodeId)&&edge.fromNodeId!==edge.toNodeId,
       'invalid edge endpoints '+edge.id);
     required(Number.isFinite(edge.distanceMm)&&edge.distanceMm>0,'invalid distance '+edge.id);
-    for(const movement of movements)required(Number.isFinite(edge.speedMmPerSec?.[movement])&&
+    for(const movement of ['empty','loaded','charge',...(edge.accessScopes?.some(s=>s.movement==='wait')?['wait']:[])])required(Number.isFinite(edge.speedMmPerSec?.[movement])&&
       edge.speedMmPerSec[movement]>0,'invalid speed '+edge.id+'/'+movement);
     required(edge.approvalState==='synthetic-validated','invalid edge approval '+edge.id);
     if(edge.displayPath){

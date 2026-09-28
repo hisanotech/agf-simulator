@@ -17,7 +17,8 @@ export function validateBatteryModel(battery) {
 }
 
 export const isBatteryActive = (agf, task) => agf.status === 'moving_empty' ||
-  (agf.status === 'moving_loaded' && task?.status !== 'wait_drop') || agf.status === 'moving_to_charge';
+  (agf.status === 'moving_loaded' && task?.status !== 'wait_drop') ||
+  agf.status === 'moving_to_charge' || agf.status === 'moving_to_wait';
 
 export const activeConsumptionPct = (battery, elapsedMs) =>
   elapsedMs / Math.round(battery.activeReferenceMin * 60_000) * battery.activeReferenceConsumptionPct;

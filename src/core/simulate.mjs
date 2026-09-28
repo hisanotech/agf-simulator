@@ -2,6 +2,8 @@ import { selectAgf } from './select-agf.mjs';
 import { batteryModel, validateBatteryModel, createBatteryLedger } from './battery-model.mjs';
 import {validateOperationalTopology,findOperationalPath,resolveInterfaceNode} from '../map/operational-topology.mjs';
 import {createTrafficController} from './traffic-controller.mjs';
+import {validateWarehousePolicy,validateProduct,validateStoredPallets,chooseWarehouseLocation,canUseUpper} from './warehouse-policy.mjs';
+import {generateProductionEvents} from './production-streams.mjs';
 
 const minute = value => Math.round(value * 60_000);
 const required = (test, message) => { if (!test) throw new Error(message); };
@@ -38,6 +40,8 @@ export function simulate(rawScenario) {
     Number.isInteger(scenario.wrapper?.outputCapacity) && scenario.wrapper.outputCapacity > 0,
     'wrapper capacities required');
   const graphMode=scenario.motionModel==='synthetic_graph';
+  const postTaskPolicy=scenario.postTaskPolicy??null;
+  required(!postTaskPolicy||graphMode,'HP return requires an explicit synthetic graph');
   required(graphMode||scenario.motionModel===undefined||scenario.motionModel==='fixed_time',
     'motionModel must be fixed_time or synthetic_graph');
   const topology=graphMode?scenario.operationalTopology:null;
@@ -56,6 +60,14 @@ export function simulate(rawScenario) {
   const batteryLedger = batteryModel(battery) === 'active_time' ? createBatteryLedger(agfs,battery) : null;
   const chargers = new Map((scenario.chargerIds ?? []).map(id => [id,null]));
   required(chargers.size === 2 && new Set(scenario.chargerIds).size === 2, 'two chargers required');
+  const waitingPlaces=new Map([['HP1',null],['HP2',null]]);
+  if(postTaskPolicy){
+    for(const [agfId,hpId] of Object.entries(postTaskPolicy.waitTargets??{}))required(
+      agfs.some(a=>a.id===agfId)&&waitingPlaces.has(hpId),'invalid explicit HP return target');
+    for(const a of agfs)if(waitingPlaces.has(a.currentNodeId)){
+      required(!waitingPlaces.get(a.currentNodeId),'initial HP capacity exceeded');waitingPlaces.set(a.currentNodeId,a.id);
+    }
+  }
   const slots = new Map((scenario.warehouse ?? []).map(s => [s.id,{...s,palletIds:[...(s.palletIds ?? [])],reserved:[]}]));
   required(slots.size > 0 && slots.size === scenario.warehouse.length, 'unique warehouse locations required');
   for (const s of slots.values()) required(s.id && s.rowId && Number.isInteger(s.capacity) &&
@@ -71,23 +83,56 @@ export function simulate(rawScenario) {
   required(temps.size === (scenario.temporaryPallets ?? []).length, 'duplicate temporary pallet');
   for (const p of temps.values()) required(['OT1','OT2','OT3'].includes(p.locationId), 'unknown temporary location');
   const pallets = new Map([...temps.values()].map(p => [p.palletId,{...p,stage:'temporary'}]));
+  const warehousePolicy=scenario.warehousePolicy??null,lineIds=[...lines.keys()];
+  for(const p of scenario.initialPallets??[]){
+    required(p.palletId&&!pallets.has(p.palletId),'duplicate initial pallet');
+    pallets.set(p.palletId,{...p,stage:'stored'});
+  }
+  if(warehousePolicy){
+    validateWarehousePolicy(warehousePolicy,[...slots.values()],{lineIds,
+      specialEnabled:(scenario.productStreams??[]).some(s=>s.enabled&&s.productType==='special')||
+        [...(scenario.productionEvents??[]),...temps.values()].some(p=>p.productType==='special')});
+    for(const p of temps.values())validateProduct(p,lineIds);
+    validateStoredPallets(slots,pallets,warehousePolicy,lineIds);
+  }
   const tasks = new Map(), queue = [], history = [], snapshots = [], rowBusy = new Set();
   const wrapper = {input:[], output:[], processing:null, readyToRelease:false};
   let now = 0, order = 0, nextTask = 0;
   const stats = {created:0, stored:0, completed:0, byKind:{}, chargingStarts:0};
   const pending = [];
+  // Warehouse state changes far less often than movement events. Share only frozen
+  // versions across snapshots; mutable simulation slots never escape into history.
+  const dirtySlots=new Set(slots.keys());
+  let savedWarehouse=null;
+  const snapshotWarehouse=()=>{
+    if(dirtySlots.size){
+      const next={...savedWarehouse};
+      for(const id of dirtySlots){
+        const saved=clone(slots.get(id));
+        Object.freeze(saved.palletIds);Object.freeze(saved.reserved);next[id]=Object.freeze(saved);
+      }
+      savedWarehouse=Object.freeze(next);dirtySlots.clear();
+    }
+    return savedWarehouse;
+  };
   const snapshot = () => ({
     agfs:clone(agfs), lines:Object.fromEntries([...lines].map(([k,v]) => [k,[...v]])),
     wrapper:clone(wrapper), chargers:Object.fromEntries(chargers),
     magazines:Object.fromEntries([...magazines].map(([k,v]) => [k,clone(v)])),
     aligners:Object.fromEntries([...aligners].map(([k,v]) => [k,clone(v)])),
     temporaryPallets:clone([...temps.values()]),
-    warehouse:Object.fromEntries([...slots].map(([k,v]) => [k,clone(v)])),
+    warehouse:snapshotWarehouse(),
     tasks:clone([...tasks.values()]), pallets:clone([...pallets.values()]),
+    ...(warehousePolicy?{storagePolicyActive:true}:{}),
+    ...(postTaskPolicy?{waitingPlaces:Object.fromEntries(waitingPlaces)}:{}),
     ...(graphMode?{traffic:traffic.snapshot(),gates:Object.fromEntries([...gates].map(([id,state])=>[id,clone(state)]))}:{})
   });
   const record = (type, fields={}) => {
+    const p=pallets.get(fields.palletId??tasks.get(fields.taskId)?.palletId);
+    const location=slots.get(fields.locationId??p?.destinationLocationId);
     history.push({timeMs:now,sequence:history.length,type,
+      ...(p?{sourceLineId:p.sourceLineId??p.lineId??null,productType:p.productType??null,loadType:p.loadType??null}:{}),
+      ...(location?{storageLocationId:location.id,blockId:location.blockId,row:location.row,column:location.column,tier:location.tier}:{}),
       ...(graphMode?{etaStatus:'synthetic-assumption'}:{}),...fields});
     snapshots.push(snapshot());
   };
@@ -119,10 +164,10 @@ export function simulate(rawScenario) {
   };
   const beginRoute=(task,agf,movement,path,nextType,delayMs=0)=>{
     const taskId=task?.id??null;
-    agf.status=movement==='empty'?'moving_empty':movement==='loaded'?'moving_loaded':'moving_to_charge';
+    agf.status=movement==='empty'?'moving_empty':movement==='loaded'?'moving_loaded':movement==='wait'?'moving_to_wait':'moving_to_charge';
     agf.movement={movement,taskId,steps:clone(path.steps),stepIndex:0,nextType,delayMs,
       current:null,waitingReason:null,retryScheduled:false};
-    record('ROUTE_PLANNED',{taskId,kind:task?.kind??'CHARGE',agfId:agf.id,movement,
+    record('ROUTE_PLANNED',{taskId,kind:task?.kind??(movement==='wait'?'WAIT':'CHARGE'),agfId:agf.id,movement,
       edgeIds:path.steps.map(step=>step.edgeId),modelDistanceMm:path.modelDistanceMm,
       modelDurationMs:path.modelDurationMs,etaStatus:path.etaStatus});
     if(path.steps.length)schedule(now,'SEGMENT_REQUEST',{agfId:agf.id});
@@ -139,8 +184,10 @@ export function simulate(rawScenario) {
     }
   };
   const request = (kind, fields) => {
+    const p=pallets.get(fields.palletId);
     const t = {id:'T' + String(++nextTask).padStart(5,'0'),kind,status:'queued',
-      requestedAt:now,assignedAt:null,pickupAt:null,completedAt:null,waitReason:null,...fields};
+      requestedAt:now,assignedAt:null,pickupAt:null,completedAt:null,waitReason:null,
+      ...(p?{sourceLineId:p.sourceLineId??p.lineId??null,productType:p.productType??null,loadType:p.loadType??null}:{}),...fields};
     tasks.set(t.id,t); pending.push(t.id);
     record('TASK_REQUESTED',{taskId:t.id,kind,palletId:t.palletId ?? null});
     return t;
@@ -150,12 +197,20 @@ export function simulate(rawScenario) {
   const reserveSlot = (slotId,palletId) => {
     const s=slots.get(slotId);
     if (!canReserveSlot(s)) return false;
-    s.reserved.push(palletId); rowBusy.add(s.rowId); return true;
+    s.reserved.push(palletId);dirtySlots.add(s.id); rowBusy.add(s.rowId); return true;
   };
   const issue02 = () => {
     let changed=false;
     for (const p of pallets.values()) {
       if (p.stage !== 'exit_ready') continue;
+      if(warehousePolicy){
+        const choice=chooseWarehouseLocation({pallet:p,policy:warehousePolicy,slots,pallets,rowBusy});
+        if(!choice.location){
+          if(p.waitReason!==choice.reason){p.waitReason=choice.reason;record('TASK_02_HELD',{palletId:p.palletId,reason:choice.reason});}
+          continue;
+        }
+        p.destinationLocationId=choice.location.id;
+      }
       if (!p.destinationLocationId || !slots.has(p.destinationLocationId))
         throw new Error('02 needs an explicit destinationLocationId for ' + p.palletId);
       if (!reserveSlot(p.destinationLocationId,p.palletId)) {
@@ -193,21 +248,14 @@ export function simulate(rawScenario) {
     maybeStartWrap();
   };
   const finishTask = (t,a) => {
-    t.status='completed'; t.completedAt=now; t.waitReason=null; a.status='idle'; a.taskId=null; a.carriedPalletId=null;
+    t.status='completed'; t.completedAt=now; t.waitReason=null;
+    a.status=postTaskPolicy?'dispatch_pending':'idle'; a.taskId=null; a.carriedPalletId=null;
     if(graphMode)a.movement=null;
     a.area=t.destinationArea;
     if (!batteryLedger) a.batteryPct=Math.max(0,Math.round((a.batteryPct-battery.consumptionPct)*1000)/1000);
     stats.completed++; stats.byKind[t.kind]=(stats.byKind[t.kind]??0)+1;
     record('TASK_COMPLETED',{taskId:t.id,kind:t.kind,agfId:a.id,palletId:t.palletId ?? null});
-    if (a.batteryPct <= battery.chargeStartPct) {
-      a.status='moving_to_charge';
-      record('CHARGE_REQUESTED',{agfId:a.id,batteryPct:a.batteryPct});
-      if(graphMode){
-        const path=routeFor(a.currentNodeId,'CHARGE-PLACE','charge','CHARGE');
-        if(path)beginRoute(null,a,'charge',path,'CHARGE_ARRIVED');
-        else {a.status='waiting_traffic';record('CHARGE_ROUTE_WAITING',{agfId:a.id,reason:'UNREACHABLE_CHARGE_ROUTE'});}
-      }else schedule(now+minute(times.chargeTravelMin),'CHARGE_ARRIVED',{agfId:a.id});
-    }
+    if (a.batteryPct <= battery.chargeStartPct) requestCharge(a);
   };
   const completeDrop = (t,a) => {
     if (t.kind === '01' || t.kind === '04') {
@@ -220,7 +268,10 @@ export function simulate(rawScenario) {
       required(s && s.reserved.includes(t.palletId) &&
         s.palletIds.length < s.capacity, 'unavailable reserved warehouse location');
       if(s.permission===false){t.status='wait_drop';hold(t,'LOCATION_PERMISSION');return false;}
+      if(warehousePolicy&&s.tier===2)required(canUseUpper([...slots.values()].find(l=>
+        l.rowId===s.rowId&&l.column===s.column&&l.tier===1),pallets),'upper tier needs a stored full lower pallet');
       s.reserved.splice(s.reserved.indexOf(t.palletId),1); s.palletIds.push(t.palletId);
+      dirtySlots.add(s.id);
       rowBusy.delete(s.rowId); pallets.get(t.palletId).stage='stored'; stats.stored++;
       record('STORE_COMPLETED',{taskId:t.id,palletId:t.palletId,locationId:s.id});
     } else if (t.kind === '03') {
@@ -247,13 +298,26 @@ export function simulate(rawScenario) {
     for (const id of pending) {
       const t=tasks.get(id);
       if (t.status !== 'queued') continue;
+      if(warehousePolicy&&t.kind==='05'&&!t.destinationId){
+        const p=pallets.get(t.palletId),choice=chooseWarehouseLocation({pallet:p,policy:warehousePolicy,slots,pallets,rowBusy});
+        if(!choice.location){hold(t,choice.reason);continue;}
+        required(reserveSlot(choice.location.id,p.palletId),'05 automatic destination reservation failed');
+        t.destinationId=choice.location.id;p.destinationLocationId=choice.location.id;
+        record('WAREHOUSE_LOCATION_RESERVED',{taskId:t.id,palletId:p.palletId,locationId:choice.location.id});
+      }
       if (t.kind === '03' && !t.alignerId) {
         const source=[...aligners.values()].filter(a => a.ready === true && !a.reservedTaskId).sort(byId)[0];
         if (!source) {hold(t,'ALIGNER_NOT_READY'); continue;}
         t.alignerId=source.id; t.originId=source.id;
       }
-      const a=selectAgf(agfs,{destinationArea:t.destinationArea},{
-        mode:scenario.mode,reservePct:battery.reservePct,fallback});
+      const available=a=>(a.status==='idle'||(postTaskPolicy&&a.status==='dispatch_pending'))&&
+        (!postTaskPolicy||a.batteryPct>battery.chargeStartPct);
+      const choose=values=>{
+        const chosen=selectAgf(values.filter(available).map(a=>a.status==='dispatch_pending'?{...a,status:'idle'}:a),
+          {destinationArea:t.destinationArea},{mode:scenario.mode,reservePct:battery.reservePct,fallback});
+        return values.find(a=>a.id===chosen?.id)??null;
+      };
+      const a=choose(agfs);
       if (!a) {hold(t,'NO_ELIGIBLE_AGF'); continue;}
       if (t.kind === '03') {
         const source=aligners.get(t.alignerId);
@@ -263,18 +327,18 @@ export function simulate(rawScenario) {
       if(graphMode){
         const candidates=[];
         for(const candidate of agfs){
-          if(candidate.status!=='idle'||candidate.batteryPct<battery.reservePct)continue;
+          if(!available(candidate)||candidate.batteryPct<=battery.reservePct)continue;
           const empty=routeFor(candidate.currentNodeId,t.originId,'empty',t.kind);
           const originNodeId=resolveInterfaceNode(topology,t.originId);
           const loaded=originNodeId?routeFor(originNodeId,t.destinationId,'loaded',t.kind):null;
           if(empty&&loaded)candidates.push({candidate,empty,loaded});
         }
-        selected=selectAgf(candidates.map(item=>item.candidate),{destinationArea:t.destinationArea},{
-          mode:scenario.mode,reservePct:battery.reservePct,fallback});
+        selected=choose(candidates.map(item=>item.candidate));
         routePair=candidates.find(item=>item.candidate===selected)??null;
         if(!selected||!routePair){hold(t,'UNREACHABLE_ROUTE');continue;}
       }
       if(t.kind==='03')aligners.get(t.alignerId).reservedTaskId=t.id;
+      if(postTaskPolicy)releasePlaces(selected);
       t.status='moving_empty'; t.assignedAt=now; t.agfId=selected.id; t.waitReason=null;
       t.emptyRoute=graphMode?routePair.empty:null;t.loadedRoute=graphMode?routePair.loaded:null;
       selected.status='moving_empty'; selected.taskId=t.id;
@@ -301,6 +365,45 @@ export function simulate(rawScenario) {
     schedule(now+minute((battery.chargeTargetPct-a.batteryPct)*battery.chargeMinPerPct),
       'CHARGE_ENDED',{agfId,chargerId});
   };
+  const releasePlaces=a=>{
+    for(const [id,occupant] of waitingPlaces)if(occupant===a.id)waitingPlaces.set(id,null);
+    if(a.chargerId&&a.status!=='charging'){
+      const chargerId=a.chargerId;chargers.set(chargerId,null);a.chargerId=null;
+      record('CHARGER_RELEASED',{agfId:a.id,chargerId});
+      if(chargeQueue.length)startCharge(chargeQueue.shift());
+    }
+  };
+  const requestCharge=a=>{
+    a.status='moving_to_charge';
+    record('CHARGE_REQUESTED',{agfId:a.id,batteryPct:a.batteryPct});
+    if(graphMode){
+      const path=routeFor(a.currentNodeId,'CHARGE-PLACE','charge','CHARGE');
+      if(path){if(postTaskPolicy)releasePlaces(a);beginRoute(null,a,'charge',path,'CHARGE_ARRIVED');}
+      else {a.status='waiting_traffic';record('CHARGE_ROUTE_WAITING',{agfId:a.id,reason:'UNREACHABLE_CHARGE_ROUTE'});}
+    }else schedule(now+minute(times.chargeTravelMin),'CHARGE_ARRIVED',{agfId:a.id});
+  };
+  const chargeIdleAgfs=()=>{
+    if(!postTaskPolicy)return;
+    for(const a of [...agfs].sort(byId))if(!a.blocked&&['idle','dispatch_pending'].includes(a.status)&&
+      a.batteryPct<=battery.chargeStartPct)requestCharge(a);
+  };
+  const settleWaiting=()=>{
+    if(!postTaskPolicy)return;
+    for(const a of [...agfs].sort(byId)){
+      if(!['dispatch_pending','waiting_hp_capacity'].includes(a.status))continue;
+      const target=postTaskPolicy.waitTargets?.[a.id];
+      const holdReturn=(status,reason)=>{
+        if(a.status!==status){a.status=status;record('WAIT_RETURN_HELD',{agfId:a.id,hpId:target??null,reason});}
+      };
+      if(!target){holdReturn('waiting_hp_instruction','HP_TARGET_UNRESOLVED');continue;}
+      if(waitingPlaces.get(target)&&waitingPlaces.get(target)!==a.id){holdReturn('waiting_hp_capacity','HP_CAPACITY_UNRESOLVED');continue;}
+      const path=routeFor(a.currentNodeId,target,'wait','WAIT');
+      if(!path){holdReturn('waiting_hp_route','UNREACHABLE_WAIT_ROUTE');continue;}
+      releasePlaces(a);waitingPlaces.set(target,a.id);a.waitTarget=target;
+      record('WAIT_RETURN_REQUESTED',{agfId:a.id,hpId:target});
+      beginRoute(null,a,'wait',path,'WAIT_ARRIVED');
+    }
+  };
   const permissionTargets={warehouse:slots,magazine:magazines};
   for(const event of scenario.permissionEvents??[]){
     required(Number.isInteger(event.timeMs)&&event.timeMs>=0&&typeof event.permitted==='boolean'&&
@@ -309,15 +412,19 @@ export function simulate(rawScenario) {
       target:event.target,targetId:event.targetId,permitted:event.permitted});
   }
   const production=scenario.productionEvents ?? [];
-  required(!(production.length && (scenario.lineIntervalsMin ?? []).some(n => n > 0)),
+  required(!(production.length && ((scenario.lineIntervalsMin ?? []).some(n => n > 0)||scenario.productStreams?.some(s=>s.enabled))),
     'productionEvents and lineIntervalsMin are mutually exclusive');
   if (production.length) {
     for (const x of production) {
       required(Number.isInteger(x.timeMs) && x.timeMs>=0 &&
-        lines.has(x.lineId) && x.palletId && slots.has(x.destinationLocationId),
+        lines.has(x.lineId) && x.palletId && (warehousePolicy||slots.has(x.destinationLocationId)),
         'invalid external production event');
+      required(x.sourceLineId===undefined||x.sourceLineId===x.lineId,'sourceLineId must match production lineId');
       schedule(x.timeMs,'PALLET_EXITED',{...x,inputKind:'external'});
     }
+  } else if(scenario.productStreams){
+    required(warehousePolicy,'product streams require warehouse policy');
+    for(const event of generateProductionEvents(scenario.productStreams,durationMs,lineIds))schedule(event.timeMs,'PALLET_EXITED',event);
   } else {
     required(Array.isArray(scenario.lineIntervalsMin) && scenario.lineIntervalsMin.length===8,
       'eight independent lineIntervalsMin required');
@@ -363,6 +470,7 @@ export function simulate(rawScenario) {
   record('RUN_STARTED',{inputKind:production.length?'external':'synthetic-interval',mode:scenario.mode,
     mapStatus:graphMode?'synthetic-operational':'conceptual-only',
     timingStatus:graphMode?'synthetic-graph-assumption':'scenario-assumption'});
+  chargeIdleAgfs();
   while(queue.length) {
     queue.sort((a,b)=>a.timeMs-b.timeMs || a.order-b.order);
     const e=queue.shift();
@@ -373,10 +481,12 @@ export function simulate(rawScenario) {
       const l=lines.get(e.lineId);
       required(l && !pallets.has(e.palletId),'unknown line or duplicate pallet');
       required(l.length<scenario.lineCapacity,'line buffer overflow at '+e.lineId+' / '+now);
-      required(slots.has(e.destinationLocationId),'destination unknown');
+      required(warehousePolicy||slots.has(e.destinationLocationId),'destination unknown');
+      const attributes={sourceLineId:e.sourceLineId??e.lineId,productType:e.productType??'normal',loadType:e.loadType??'full'};
+      validateProduct(attributes,lineIds);
       l.push(e.palletId);
-      pallets.set(e.palletId,{palletId:e.palletId,lineId:e.lineId,
-        destinationLocationId:e.destinationLocationId,stage:'line',inputKind:e.inputKind});
+      pallets.set(e.palletId,{palletId:e.palletId,lineId:e.lineId,...attributes,
+        destinationLocationId:warehousePolicy?null:e.destinationLocationId,stage:'line',inputKind:e.inputKind});
       stats.created++;
       record('PALLET_EXITED',{lineId:e.lineId,palletId:e.palletId,inputKind:e.inputKind});
       request('01',{palletId:e.palletId,originArea:'PZ',destinationArea:'PZ',
@@ -387,12 +497,12 @@ export function simulate(rawScenario) {
         'manual 04/05 requires unreserved pallet at specified temporary location');
       required(e.kind==='04' ? e.reentryPermission===true : e.storagePermission===true,
         'manual request requires explicit permission');
-      if (e.kind==='05') required(slots.has(e.destinationLocationId) &&
+      if (e.kind==='05'&&!warehousePolicy) required(slots.has(e.destinationLocationId) &&
         reserveSlot(e.destinationLocationId,e.palletId),'05 destination unavailable');
       p.stage='queued_'+e.kind;
       const t=request(e.kind,{palletId:e.palletId,originArea:'PZ',
         destinationArea:e.kind==='04'?'PZ':'WH',originId:e.locationId,
-        destinationId:e.kind==='04'?'WRAP-INPUT':e.destinationLocationId,requestedBy:e.requestedBy??'operator'});
+        destinationId:e.kind==='04'?'WRAP-INPUT':warehousePolicy?null:e.destinationLocationId,requestedBy:e.requestedBy??'operator'});
       temp.reservedTaskId=t.id;
       record('MANUAL_TASK_RESERVED',{taskId:t.id,kind:t.kind,palletId:e.palletId});
     } else if (e.type === 'MAGAZINE_USED') {
@@ -458,6 +568,7 @@ export function simulate(rawScenario) {
       p.stage='exit_ready';record('EXIT_READY',{palletId:e.palletId});
     } else if(e.type==='EQUIPMENT_PERMISSION_CHANGED'){
       permissionTargets[e.target].get(e.targetId).permission=e.permitted;
+      if(e.target==='warehouse')dirtySlots.add(e.targetId);
       record('EQUIPMENT_PERMISSION_CHANGED',{target:e.target,targetId:e.targetId,permitted:e.permitted,
         permissionEvidence:'scenario-assumption'});
     } else if(e.type==='SHUTTER_STATE_CHANGED'){
@@ -492,7 +603,8 @@ export function simulate(rawScenario) {
           movement.current={edgeId:step.edgeId,laneId:entered.laneId,fromNodeId:step.fromNodeId,
             toNodeId:step.toNodeId,enteredAt:now,exitAt:now+step.durationMs,
             ...(step.displayPath?{displayPath:clone(step.displayPath)}:{})};
-          a.status=movement.movement==='empty'?'moving_empty':movement.movement==='loaded'?'moving_loaded':'moving_to_charge';
+          a.status=movement.movement==='empty'?'moving_empty':movement.movement==='loaded'?'moving_loaded':
+            movement.movement==='wait'?'moving_to_wait':'moving_to_charge';
           a.heading=heading(step.fromNodeId,step.toNodeId);
           record('SEGMENT_ENTERED',{taskId:movement.taskId,agfId:a.id,edgeId:step.edgeId,
             laneId:entered.laneId,fromNodeId:step.fromNodeId,toNodeId:step.toNodeId,
@@ -510,6 +622,12 @@ export function simulate(rawScenario) {
       if(movement.stepIndex<movement.steps.length)schedule(now,'SEGMENT_REQUEST',{agfId:a.id});
       else completeRoute(a);
       wakeTraffic();
+    } else if(e.type==='WAIT_ARRIVED'){
+      const a=agfs.find(a=>a.id===e.agfId);
+      required(postTaskPolicy&&a?.status==='moving_to_wait'&&waitingPlaces.get(a.waitTarget)===a.id,
+        'HP arrival without reserved return');
+      a.status='idle';a.movement=null;
+      record('WAIT_ARRIVED',{agfId:a.id,hpId:a.waitTarget,batteryPct:a.batteryPct});
     } else if (e.type === 'CHARGE_ARRIVED') {
       const a=agfs.find(a=>a.id===e.agfId);
       required(a?.status==='moving_to_charge','charge arrival without travel');
@@ -519,13 +637,14 @@ export function simulate(rawScenario) {
       const a=agfs.find(a=>a.id===e.agfId);
       required(a?.status==='charging' && a.chargerId===e.chargerId &&
         chargers.get(e.chargerId)===a.id,'invalid charge end');
-      a.batteryPct=battery.chargeTargetPct;a.status='idle';a.chargerId=null;
+      a.batteryPct=battery.chargeTargetPct;a.status=postTaskPolicy?'dispatch_pending':'idle';
+      if(!postTaskPolicy)a.chargerId=null;
       batteryLedger?.finishCharge(a);
-      chargers.set(e.chargerId,null);
+      if(!postTaskPolicy)chargers.set(e.chargerId,null);
       record('CHARGE_ENDED',{agfId:a.id,chargerId:e.chargerId,batteryPct:a.batteryPct});
-      if (chargeQueue.length) startCharge(chargeQueue.shift());
+      if (!postTaskPolicy&&chargeQueue.length) startCharge(chargeQueue.shift());
     } else throw new Error('unsupported event '+e.type);
-    wakeDrops(); issue02(); dispatch();
+    wakeDrops(); issue02(); chargeIdleAgfs(); dispatch(); settleWaiting();
   }
   if (batteryLedger) {
     batteryLedger.advance(now,durationMs,tasks);

@@ -13,7 +13,8 @@ const copy=()=>structuredClone(graph);
 test('synthetic operational topology is explicit, metric, but never presented as CAD physical ETA',()=>{
   const result=validateOperationalTopology(graph);
   assert.equal(result.datasetKind,'synthetic');
-  assert.equal(result.nodes,13);
+  assert.equal(result.nodes,15);
+  assert.deepEqual(graph.nodes.filter(n=>n.type==='wait').map(n=>n.id),['HP1','HP2']);
   assert.ok(result.edges>0);
   assert.equal(graph.evidence,'synthetic-assumption');
   assert.equal(graph.readiness.operationalRoutingReady,true);
