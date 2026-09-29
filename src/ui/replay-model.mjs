@@ -12,6 +12,7 @@ export function replayTime(anchorMs,elapsedWallMs,speed,durationMs) {
   return Math.min(Math.round(durationMs),Math.floor(anchorMs+elapsedWallMs*speed));
 }
 export function effectiveStatus(agf,snapshot) {
+  if(agf.status==='waiting_traffic'&&agf.movement?.waitingReason==='CHARGE_PLACE')return 'waiting_charge';
   if(agf.status==='idle'&&snapshot.waitingPlaces?.[agf.currentNodeId]===agf.id)return 'hp_wait';
   if(snapshot.tasks.find(task=>task.id===agf.taskId)?.status==='wait_drop')return 'wait_drop';
   const movement=agf.movement;

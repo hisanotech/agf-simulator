@@ -61,6 +61,27 @@ export function simulate(rawScenario) {
   const chargers = new Map((scenario.chargerIds ?? []).map(id => [id,null]));
   required(chargers.size === 2 && new Set(scenario.chargerIds).size === 2, 'two chargers required');
   const waitingPlaces=new Map([['HP1',null],['HP2',null]]);
+  // Stop occupancy is independent of electrical charger occupancy. The optional
+  // ordered places are explicit synthetic scenario input, never a place/charger pair.
+  const chargePlaces=new Map((scenario.chargePlaceIds??[]).map(id=>[id,null]));
+  if(chargePlaces.size){
+    required(postTaskPolicy&&chargePlaces.size===2&&scenario.chargePlaceIds.length===2&&
+      [...chargePlaces.keys()].every(id=>graphNodes.get(id)?.type==='charge'&&resolveInterfaceNode(topology,id)===id),
+      'two explicit synthetic charging stops required');
+  }
+  if(scenario.initialParking){
+    const allowed=new Set([...waitingPlaces.keys(),...chargePlaces.keys()]);
+    required(postTaskPolicy&&allowed.size===4&&scenario.initialParking.evidence&&
+      scenario.initialParking.placeIds?.length===4&&new Set(scenario.initialParking.placeIds).size===4&&
+      scenario.initialParking.placeIds.every(id=>allowed.has(id))&&
+      new Set(agfs.map(a=>a.currentNodeId)).size===4&&
+      agfs.every(a=>allowed.has(a.currentNodeId)&&a.status==='idle'&&a.area===graphNodes.get(a.currentNodeId).areaId),
+      'invalid initial parking: four distinct allowed idle stops required');
+  }
+  for(const a of agfs)if(chargePlaces.has(a.currentNodeId)){
+    required(!chargePlaces.get(a.currentNodeId),'initial parking capacity exceeded');
+    chargePlaces.set(a.currentNodeId,a.id);
+  }
   if(postTaskPolicy){
     for(const [agfId,hpId] of Object.entries(postTaskPolicy.waitTargets??{}))required(
       agfs.some(a=>a.id===agfId)&&waitingPlaces.has(hpId),'invalid explicit HP return target');
@@ -125,6 +146,7 @@ export function simulate(rawScenario) {
     tasks:clone([...tasks.values()]), pallets:clone([...pallets.values()]),
     ...(warehousePolicy?{storagePolicyActive:true}:{}),
     ...(postTaskPolicy?{waitingPlaces:Object.fromEntries(waitingPlaces)}:{}),
+    ...(chargePlaces.size?{chargePlaces:Object.fromEntries(chargePlaces)}:{}),
     ...(graphMode?{traffic:traffic.snapshot(),gates:Object.fromEntries([...gates].map(([id,state])=>[id,clone(state)]))}:{})
   });
   const record = (type, fields={}) => {
@@ -364,27 +386,45 @@ export function simulate(rawScenario) {
     }
     const [chargerId]=free;
     required(a.status === 'moving_to_charge' || a.status === 'waiting_charge', 'AGF not at charging location');
+    if(chargePlaces.size)required(chargePlaces.get(a.currentNodeId)===a.id,'charge start without occupied stop');
     a.status='charging'; a.area='WH'; a.chargerId=chargerId; chargers.set(chargerId,agfId);
     batteryLedger?.startCharge(a,now);
     stats.chargingStarts++;
-    record('CHARGE_STARTED',{agfId,chargerId,batteryPct:a.batteryPct});
+    record('CHARGE_STARTED',{agfId,chargerId,batteryPct:a.batteryPct,
+      ...(chargePlaces.size?{chargePlaceId:a.currentNodeId}:{})});
     schedule(now+minute((battery.chargeTargetPct-a.batteryPct)*battery.chargeMinPerPct),
       'CHARGE_ENDED',{agfId,chargerId});
   };
-  const releasePlaces=a=>{
-    for(const [id,occupant] of waitingPlaces)if(occupant===a.id)waitingPlaces.set(id,null);
+  const releaseCharger=a=>{
     if(a.chargerId&&a.status!=='charging'){
       const chargerId=a.chargerId;chargers.set(chargerId,null);a.chargerId=null;
       record('CHARGER_RELEASED',{agfId:a.id,chargerId});
       if(chargeQueue.length)startCharge(chargeQueue.shift());
     }
   };
+  const releasePlaces=a=>{
+    for(const [id,occupant] of waitingPlaces)if(occupant===a.id)waitingPlaces.set(id,null);
+    a.chargeTarget=null;
+    // An AGF still waiting for its outgoing segment physically holds its stop.
+    // For explicit charging stops, release at SEGMENT_ENTERED, not route planning.
+    if(chargePlaces.get(a.currentNodeId)!==a.id)releaseCharger(a);
+  };
   const requestCharge=a=>{
     a.status='moving_to_charge';
     record('CHARGE_REQUESTED',{agfId:a.id,batteryPct:a.batteryPct});
     if(graphMode){
-      const path=routeFor(a.currentNodeId,'CHARGE-PLACE','charge','CHARGE');
-      if(path){if(postTaskPolicy)releasePlaces(a);beginRoute(null,a,'charge',path,'CHARGE_ARRIVED');}
+      // Keep an occupied initial charging stop when charging there. Otherwise
+      // prefer a free, reachable stop, then the shortest queue in scenario order.
+      const choices=[...chargePlaces.keys()].map(id=>({id,path:routeFor(a.currentNodeId,id,'charge','CHARGE')}))
+        .filter(c=>c.path);
+      const load=id=>(chargePlaces.get(id)?1:0)+agfs.filter(other=>other.chargeTarget===id&&other.id!==chargePlaces.get(id)).length;
+      choices.sort((a1,b1)=>(chargePlaces.get(a1.id)===a.id?-1:chargePlaces.get(b1.id)===a.id?1:load(a1.id)-load(b1.id)));
+      const target=chargePlaces.size?choices[0]?.id:'CHARGE-PLACE';
+      const path=chargePlaces.size?choices[0]?.path:routeFor(a.currentNodeId,target,'charge','CHARGE');
+      if(path){
+        if(postTaskPolicy)releasePlaces(a);
+        a.chargeTarget=target;beginRoute(null,a,'charge',path,'CHARGE_ARRIVED');
+      }
       else {a.status='waiting_traffic';record('CHARGE_ROUTE_WAITING',{agfId:a.id,reason:'UNREACHABLE_CHARGE_ROUTE'});}
     }else schedule(now+minute(times.chargeTravelMin),'CHARGE_ARRIVED',{agfId:a.id});
   };
@@ -592,6 +632,14 @@ export function simulate(rawScenario) {
           record('SHUTTER_WAITING',{taskId:movement.taskId,agfId:a.id,edgeId:step.edgeId,
             shutterId:step.shutterId,nodeId:a.currentNodeId});
         }
+      }else if(chargePlaces.has(step.toNodeId)&&chargePlaces.get(step.toNodeId)&&chargePlaces.get(step.toNodeId)!==a.id){
+        if(movement.waitingReason!=='CHARGE_PLACE'){
+          movement.waitingReason='CHARGE_PLACE';a.status='waiting_traffic';
+          record('SEGMENT_WAITING',{taskId:movement.taskId,agfId:a.id,edgeId:step.edgeId,
+            blockers:[chargePlaces.get(step.toNodeId)],reason:'CHARGE_PLACE_OCCUPIED',chargePlaceId:step.toNodeId});
+          if(movement.movement==='charge')record('CHARGE_WAITING',{agfId:a.id,chargePlaceId:step.toNodeId,
+            reason:'CHARGE_PLACE_OCCUPIED',phase:'before-arrival'});
+        }
       }else{
         const entered=traffic.tryEnter({agfId:a.id,edgeId:step.edgeId,traversal:step.traversal,requestOrder:e.order});
         if(!entered.entered){
@@ -603,6 +651,12 @@ export function simulate(rawScenario) {
             if(deadlocks.length)record('DEADLOCK_DETECTED',{cycles:deadlocks,recoveryPolicy:'detect-only'});
           }
         }else{
+          if(chargePlaces.get(step.fromNodeId)===a.id){
+            chargePlaces.set(step.fromNodeId,null);
+            record('PARKING_RELEASED',{agfId:a.id,placeId:step.fromNodeId});
+            releaseCharger(a);wakeTraffic();
+          }
+          if(chargePlaces.has(step.toNodeId))chargePlaces.set(step.toNodeId,a.id);
           if(movement.waitingReason)record('TRAFFIC_WAIT_ENDED',{taskId:movement.taskId,agfId:a.id,
             edgeId:step.edgeId,reason:movement.waitingReason});
           movement.waitingReason=null;

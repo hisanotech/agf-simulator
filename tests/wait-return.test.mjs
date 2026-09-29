@@ -96,3 +96,60 @@ test('full or unreachable HP holds without a fallback, overlapping occupancy or 
     if(cause==='full')assert.equal(r.final.waitingPlaces.HP1,'AGF2');
   }
 });
+
+function pzScenario(kind){
+  const s=scenario();s.durationMin=10;s.manualRequests=[];s.productionEvents=[];
+  s.agfs[0].area='PZ';s.agfs[0].currentNodeId='PZ-HOME';
+  if(kind==='01')s.productionEvents=[{timeMs:0,lineId:'L1',palletId:'PZ-TEST-1',destinationLocationId:s.generatedDestinationIds[0]}];
+  if(kind==='03'){s.aligners[0].ready=true;s.magazineUses=[{timeMs:0,magazineId:'M1'}];}
+  if(kind==='04')s.manualRequests=[{timeMs:0,kind:'04',palletId:'SIM-TEMP-1',locationId:'OT1',reentryPermission:true}];
+  return s;
+}
+for(const kind of ['01','03','04']){
+  test(`PZ ${kind} common completion clears task/load, then returns via EXIT and east gate to HP`,()=>{
+    const s=pzScenario(kind),r=simulate(s),done=r.events.find(e=>e.type==='TASK_COMPLETED'&&e.kind===kind);
+    assert.ok(done);const a=r.snapshots[done.sequence].agfs[0];
+    assert.equal(a.status,'dispatch_pending');assert.equal(a.taskId,null);assert.equal(a.carriedPalletId,null);
+    const events=r.events.slice(done.sequence+1),route=events.find(e=>e.type==='ROUTE_PLANNED'&&e.agfId==='AGF1');
+    assert.equal(route.movement,'wait');assert.ok(route.edgeIds.includes('E09')&&route.edgeIds.includes('E10'));
+    const arrived=events.find(e=>e.type==='WAIT_ARRIVED'&&e.agfId==='AGF1');assert.ok(arrived);
+    for(const snapshot of r.snapshots.slice(done.sequence,arrived.sequence)){
+      assert.notEqual(snapshot.agfs[0].status,'idle');
+    }
+    assert.equal(r.snapshots[arrived.sequence].agfs[0].currentNodeId,'HP1');
+    assert.ok(events.filter(e=>e.type==='WAIT_RETURN_REQUESTED').every(e=>['HP1','HP2'].includes(e.hpId)));
+  });
+  test(`PZ ${kind} completion prioritizes the configured charging threshold over a pending task`,()=>{
+    const s=pzScenario(kind);s.agfs[0].batteryPct=40.01;s.manualRequests.push(nextRequest(s,1));
+    const r=simulate(s),done=r.events.find(e=>e.type==='TASK_COMPLETED'&&e.kind===kind);
+    const after=r.events.slice(done.sequence+1),charge=after.find(e=>e.type==='CHARGE_REQUESTED');
+    assert.ok(charge);assert.equal(charge.timeMs,done.timeMs);
+    assert.ok(!after.some(e=>e.type==='TASK_ASSIGNED'&&e.agfId==='AGF1'));
+    assert.ok(after.some(e=>e.type==='CHARGE_STARTED'));
+  });
+  test(`PZ ${kind} completion uses existing selection and starts a chosen next task without visiting HP`,()=>{
+    const s=pzScenario(kind);s.manualRequests.push(nextRequest(s,1));const r=simulate(s);
+    const done=r.events.find(e=>e.type==='TASK_COMPLETED'&&e.kind===kind);
+    const after=r.events.slice(done.sequence+1),assigned=after.find(e=>e.type==='TASK_ASSIGNED');
+    assert.equal(assigned.agfId,'AGF1');assert.equal(assigned.timeMs,done.timeMs);
+    assert.ok(!after.slice(0,after.indexOf(assigned)).some(e=>e.type==='WAIT_RETURN_REQUESTED'));
+    const planned=after.find(e=>e.type==='ROUTE_PLANNED');assert.equal(planned.movement,'empty');
+    assert.ok(planned.edgeIds.every(id=>!['E14','E15'].includes(id)));
+  });
+  test(`PZ ${kind} finisher returns to HP when another eligible AGF receives the concurrent task`,()=>{
+    const s=pzScenario(kind),probe=simulate(s),doneAt=probe.events.find(e=>e.type==='TASK_COMPLETED'&&e.kind===kind).timeMs;
+    s.agfs[1].blocked=false;s.agfs[1].batteryPct=95;
+    s.manualRequests.push(nextRequest(s,doneAt));const r=simulate(s);
+    const done=r.events.find(e=>e.type==='TASK_COMPLETED'&&e.kind===kind);
+    assert.equal(done.agfId,'AGF1');
+    assert.equal(r.final.tasks.find(t=>t.palletId==='SIM-TEMP-2').agfId,'AGF2');
+    assert.ok(r.events.some(e=>e.type==='WAIT_RETURN_REQUESTED'&&e.agfId==='AGF1'&&e.timeMs===done.timeMs));
+  });
+}
+
+test('neither charging places nor pillar candidates can become normal HP targets',()=>{
+  for(const id of ['CHARGE-PLACE1','CHARGE-PLACE2','PILLAR-WAIT-W','PILLAR-WAIT-E','WH-HOME','PZ-HOME']){
+    const s=scenario();s.postTaskPolicy.waitTargets.AGF1=id;
+    assert.throws(()=>simulate(s),/invalid explicit HP return target/);
+  }
+});

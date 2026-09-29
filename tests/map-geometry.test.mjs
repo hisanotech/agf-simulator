@@ -106,9 +106,13 @@ test('G14/G15 service places are a horizontal-body vertical column below EB2, be
     if(i>1){assert.equal(a.y,equipment('AL1').y);assert.ok(a.x>equipment('AL'+(i-1)).right);}}
   assert.ok(storage.x>places[0].right&&inside(storage,wh));
 });
-test('G16/G17 extra pillar waiting candidates remain on either side; forbidden storage has no drawn route',()=>{
-  const wall=box('FIRE-NORTH').cx,w=box('PILLAR-WAIT-W'),e=box('PILLAR-WAIT-E');
-  assert.ok(w.right<wall&&e.x>wall&&w.y===e.y&&inside(w,wh)&&inside(e,wh));
+test('G16/G17 pillar candidates occupy the confirmed rack gaps without moving racks or entering forbidden storage',()=>{
+  const w=box('PILLAR-WAIT-W'),e=box('PILLAR-WAIT-E'),wb2=block('WB2'),wb3=block('WB3'),eb1=block('EB1'),eb2=block('EB2');
+  assert.ok(w.y>wb2.bottom&&w.bottom<wb3.y&&w.x>wb2.cx&&w.right<=wb2.right);
+  assert.ok(e.y>eb1.bottom&&e.bottom<eb2.y&&e.x>=eb1.x&&e.right<eb1.cx);
+  for(const [id,expected] of Object.entries({WB1:[45,514,266,112],WB2:[45,644,266,72],WB3:[45,734,266,172],EB1:[710,514,356,82],EB2:[710,644,356,82]})){
+    const b=block(id);assert.deepEqual([b.x,b.y,b.w,b.h],expected);
+  }
   const store=box('EMPTY-PALLET-STORE');
   for(const id of ['WH-E-MAIN-1','WH-E-MAIN-2'])assert.ok(numbers(id)[0]<store.x);
   assert.doesNotMatch(html,/data-route-edge="[^"]*EMPTY/);

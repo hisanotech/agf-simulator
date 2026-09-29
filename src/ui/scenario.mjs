@@ -11,6 +11,10 @@ export function createDemoScenario(preset='standard') {
     s.productStreams=defaultProductStreams(Array(8).fill(41),s.lineStartOffsetsMin);
     s.warehousePolicy={evidence:'unconfigured',rowAssignments:[],rowPriority:{}};
     s.postTaskPolicy={evidence:'unconfigured',waitTargets:{}};
+    // A configurable synthetic allocation, not a fixed site assignment or charger mapping.
+    s.initialParking={evidence:'synthetic-explicit-example',placeIds:['HP1','HP2','CHARGE-PLACE1','CHARGE-PLACE2']};
+    s.chargePlaceIds=['CHARGE-PLACE1','CHARGE-PLACE2'];
+    s.agfs.forEach((a,i)=>{a.currentNodeId=s.initialParking.placeIds[i];a.area='WH';});
     s.warehouse.forEach(slot=>{slot.palletIds=[];slot.permission=true;});
     s.temporaryPallets=s.temporaryPallets.map((p,i)=>({...p,destinationLocationId:null,
       sourceLineId:'L'+(i+1),productType:'normal',loadType:'full'}));
@@ -48,4 +52,14 @@ export function createDemoScenario(preset='standard') {
     ...(preset==='physical'?{motionModel:'synthetic_graph',operationalTopology:structuredClone(syntheticTopology),
       shutterEvents:[]}:{})
   };
+}
+
+/** Preserve explicit parking selections when the settings form builds a run. */
+export function initialAgfFromSettings(scenario,agf,{batteryPct,position}){
+  if(scenario.initialParking){
+    if(!scenario.initialParking.placeIds.includes(position))throw new Error('invalid initial parking selection');
+    return {...agf,batteryPct,area:'WH',currentNodeId:position};
+  }
+  return {...agf,batteryPct,area:position,...(scenario.motionModel==='synthetic_graph'?
+    {currentNodeId:position==='PZ'?'PZ-HOME':'WH-HOME'}:{})};
 }

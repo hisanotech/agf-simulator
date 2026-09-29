@@ -26,10 +26,12 @@ dialog{background:#1e293b;border:1px solid #4b627c;border-radius:14px;color:#f8f
 #map{height:auto;aspect-ratio:1400/850;min-height:0;max-height:none}
 #map text{font-size:19px}#map .zone-heading{font-size:22px}
 #map .map-small,#map .path-label,#map .aisle-label,#map .shutter-label,#map .compact-label{font-size:17px}
+#map .equipment .map-small{font-size:17px}
 #map .map-small,#map .aisle-label,#map .path-label{fill:#475569}
 #map .active-route{stroke:#0891b2;opacity:.9}#map .align-center{text-anchor:middle}
 .map-stamp{font-size:11px}.timeline-waiting_traffic{background:#d97706}
 .nav-item{font-size:13px}.agf-details,.battery-line,.model-note{font-size:12px}
+.map-panel>.panel-heading .muted,.eyebrow,.map-legend,.playback-footer,.equipment-group p{font-size:11px}
 .settings-category{margin-bottom:14px}.settings-category>summary{cursor:pointer;color:#e2e8f0;font-size:15px;font-weight:650;padding:3px}
 .settings-category>summary small{display:inline-block;color:#94a3b8;font-weight:400;margin-left:12px}
 .settings-category>.settings-grid{margin-top:20px}.settings-category .panel{background:#192638}

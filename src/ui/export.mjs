@@ -2,7 +2,7 @@
 export function eventCsv(run,runId) {
   const columns=['runId','mode','timeMs','sequence','type','kind','taskId','palletId','agfId','originId','destinationId',
     'status','lineId','magazineId','locationId','reason','inputKind','edgeId','laneId','fromNodeId','toNodeId','nodeId','movement','heading','modelDurationMs',
-    'shutterId','passable','etaStatus','target','targetId','permitted','permissionEvidence','hpId',
+    'shutterId','passable','etaStatus','target','targetId','permitted','permissionEvidence','hpId','placeId','chargePlaceId','chargerId',
     'sourceLineId','productType','loadType','storageLocationId','blockId','row','column','tier','storageResult',
     'timingStatus','inventoryStatus','batteryModel','batteryConsumptionBasis','batteryScope','scenarioJson'];
   const cell=value=>{const s=String(value??'');return /[",\r\n]/.test(s)?'"'+s.replaceAll('"','""')+'"':s;};

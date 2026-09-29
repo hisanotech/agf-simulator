@@ -131,6 +131,22 @@
       "x": 782,
       "y": 809.5,
       "approvalState": "synthetic-validated"
+    },
+    {
+      "id": "CHARGE-PLACE1",
+      "type": "charge",
+      "areaId": "WH",
+      "x": 782,
+      "y": 842.5,
+      "approvalState": "synthetic-validated"
+    },
+    {
+      "id": "CHARGE-PLACE2",
+      "type": "charge",
+      "areaId": "WH",
+      "x": 782,
+      "y": 873.5,
+      "approvalState": "synthetic-validated"
     }
   ],
   "edges": [
@@ -1096,6 +1112,136 @@
           "y": 809.5
         }
       ]
+    },
+    {
+      "id": "E16",
+      "fromNodeId": "WH-HOME",
+      "toNodeId": "CHARGE-PLACE1",
+      "distanceMm": 7000,
+      "speedMmPerSec": {
+        "empty": 900,
+        "loaded": 700,
+        "charge": 800,
+        "wait": 900
+      },
+      "lanes": [
+        {
+          "id": "E16-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 745
+        },
+        {
+          "x": 682.5,
+          "y": 842.5
+        },
+        {
+          "x": 782,
+          "y": 842.5
+        }
+      ]
+    },
+    {
+      "id": "E17",
+      "fromNodeId": "WH-HOME",
+      "toNodeId": "CHARGE-PLACE2",
+      "distanceMm": 7000,
+      "speedMmPerSec": {
+        "empty": 900,
+        "loaded": 700,
+        "charge": 800,
+        "wait": 900
+      },
+      "lanes": [
+        {
+          "id": "E17-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 745
+        },
+        {
+          "x": 682.5,
+          "y": 873.5
+        },
+        {
+          "x": 782,
+          "y": 873.5
+        }
+      ]
     }
   ],
   "shutters": [
@@ -1149,6 +1295,14 @@
     {
       "pattern": "HP2",
       "nodeId": "HP2"
+    },
+    {
+      "pattern": "CHARGE-PLACE1",
+      "nodeId": "CHARGE-PLACE1"
+    },
+    {
+      "pattern": "CHARGE-PLACE2",
+      "nodeId": "CHARGE-PLACE2"
     }
   ],
   "displayEvidence": "schematic-synthetic-only; representative interfaces, not individual site stops; display length is never used for duration"

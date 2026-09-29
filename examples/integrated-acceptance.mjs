@@ -30,7 +30,7 @@ export function integratedAcceptanceScenario(kind='normal'){
       {timeMs:55*60000,shutterId:'SH-EAST',passable:true}];
   }
   if(kind==='charging-boundary'){
-    s.agfs.forEach(a=>{a.batteryPct=40;a.currentNodeId='WH-HOME';a.area='WH';});
+    s.agfs.forEach(a=>{a.batteryPct=40;});
     s.battery.chargeTargetPct=100;
     s.productStreams.forEach(p=>p.enabled=false);s.manualRequests=[];s.magazineUses=[];
   }

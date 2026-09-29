@@ -62,7 +62,7 @@ export function initMap({svg,onSelectAgf,onSelectBlock}) {
       if(id.startsWith('PM'))detail=(snapshot.magazines[equipmentInterface(id)]?.quantity??0)+'枚';
       return equipment(id,label,x,65,55,54,detail);
     }).join('');
-    const temps=[1,2,3].map((n,i)=>equipment('OT'+n,'OT'+n,810+i*78,277,69,34,
+    const temps=[1,2,3].map((n,i)=>equipment('OT'+n,'OT'+n,810+i*78,262,69,50,
       `${snapshot.temporaryPallets.filter(p=>p.locationId==='OT'+n).length} PL`)).join('');
     const blocks=WAREHOUSE_BLOCKS.map(block=>{
       const [x,y,w,h]=blockBoxes[block.id],bw=(w-32)/block.columns,bh=(h-50)/block.rows;
@@ -90,13 +90,14 @@ export function initMap({svg,onSelectAgf,onSelectBlock}) {
     }).join(''):'';
     const agfs=markerLayouts(snapshot.agfs).map(({agf,index,x,y,labelX})=>{
       const status=effectiveStatus(agf,snapshot);
-      const positionLabel=agf.displayPosition?`合成グラフ位置 ${agf.currentNodeId??agf.movement?.current?.edgeId??''}`:'所属エリアの仮位置';
+      const positionLabel=agf.displayPosition?`合成グラフ位置 ${locationName(agf.currentNodeId??agf.movement?.current?.edgeId??'')}`:'所属エリアの仮位置';
+      const parked=agf.displayPosition&&!agf.movement?.current&&['HP1','HP2','CHARGE-PLACE1','CHARGE-PLACE2'].includes(agf.currentNodeId);
+      const body=parked?`<rect class="agf-halo" x="-17" y="-13" width="77" height="26" rx="8"/><rect x="-13" y="-12" width="26" height="24" rx="6" class="agf-body"/>${text(0,6,index+1,'agf-number align-center')}${text(18,6,agf.batteryPct.toFixed(1)+'%','map-small',`data-battery-text="${agf.id}"`)}`:
+        `<rect class="agf-halo" x="-33" y="-25" width="104" height="50" rx="15"/><rect x="-23" y="-18" width="46" height="36" rx="9" class="agf-body"/>${text(0,6,index+1,'agf-number align-center')}${agf.heading?text(0,-27,{east:'→',west:'←',north:'↑',south:'↓'}[agf.heading]??'·','heading-label'):''}${text(35,-4,agf.batteryPct.toFixed(1)+'%','map-small',`data-battery-text="${agf.id}"`)}${text(35,13,agf.carriedPalletId?'▣ 積載':'□ 空車','map-small')}`;
       return `<g data-agf="${esc(agf.id)}" data-heading="${esc(agf.heading??'unresolved')}" role="button" tabindex="0" aria-label="${esc(agf.id+' '+(stateLabel(status,!!agf.movement))+' '+positionLabel)}" class="agf-marker${agf.id===selected?' selected':''}" transform="translate(${x},${y})">
-        <title>${esc(agf.id+'：'+positionLabel+' / '+(agf.heading??'向き未確定'))}</title>
+        <title>${esc(agf.id+'：'+positionLabel+' / '+(agf.heading??'向き未確定')+' / '+(agf.carriedPalletId?'積載':'空車'))}</title>
         <path class="agf-leader" d="M0 0 H${labelX}"/><circle class="agf-position" cx="0" cy="0" r="3"/>
-        <g class="agf-label" transform="translate(${labelX},0)"><rect class="agf-halo" x="-33" y="-25" width="104" height="50" rx="15"/>
-        <rect x="-23" y="-18" width="46" height="36" rx="9" class="agf-body"/>${text(0,6,index+1,'agf-number align-center')}
-        ${agf.heading?text(0,-27,{east:'→',west:'←',north:'↑',south:'↓'}[agf.heading]??'·','heading-label'):''}${text(35,-4,agf.batteryPct.toFixed(1)+'%','map-small',`data-battery-text="${agf.id}"`)}${text(35,13,agf.carriedPalletId?'▣ 積載':'□ 空車','map-small')}</g></g>`;
+        <g class="agf-label" transform="translate(${labelX},0)">${body}</g></g>`;
     }).join('');
     svg.innerHTML=`<defs><pattern id="map-grid" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" fill="#cbd5e1"/></pattern>
       <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#0e7490"/></marker>
@@ -114,13 +115,16 @@ export function initMap({svg,onSelectAgf,onSelectBlock}) {
       <g data-acceptance="G06"><path data-map-id="NORMAL-RETURN" d="M${eastAxis} 322 V444" class="normal-flow return-flow" marker-end="url(#arrow)"/>${text(eastAxis+18,426,'南へ直進','map-small')}</g>
       <g data-acceptance="G07"><path data-map-id="NORMAL-ENTRY" d="M${eastAxis} 444 V390 H192 V322" class="normal-flow entry-flow" marker-end="url(#arrow)"/>${text(250,380,'倉庫東SH → 西行 → パレ西SH','map-small')}</g>
       <g data-acceptance="G08"><rect data-map-id="WH-W-GATE" x="120" y="444" width="70" height="28" class="shutter-gate inactive"/>${text(155,464,'倉庫西SH','shutter-label')}${text(200,464,'通常不使用・異常時迂回は未確定','map-small')}</g>
-      <g data-acceptance="G10">${temps}${text(807,268,'出口東隣・南壁沿い','map-small')}</g>
+      <g data-acceptance="G10">${temps}${text(807,251,'出口東隣・南壁沿い','map-small')}</g>
       <g data-acceptance="G11">${aisleXs.map((x,i)=>`<path data-map-id="WH-${i<2?'W':'E'}-MAIN-${i%2+1}" d="M${x} 500 V915" class="provisional-path"/>${text(x,495,(i<2?'西':'東')+(i%2+1),'aisle-label')}`).join('')}</g>
       <g data-acceptance="G12"><path data-map-id="CENTRAL-WALL" d="M550 490 V545 M550 580 V752 M550 787 V915" class="center-wall"/><rect data-map-id="FIRE-NORTH" x="530" y="545" width="40" height="35" rx="3" class="fire-gate"/><rect data-map-id="FIRE-SOUTH" x="530" y="752" width="40" height="35" rx="3" class="fire-gate"/>${text(550,568,'北防火SH','shutter-label')}${text(550,775,'南防火SH','shutter-label')}<text x="558" y="650" class="map-small" transform="rotate(90 558 650)">中央壁・横断不可</text></g>
-      <g data-acceptance="G13">${blocks}${text(710,632,'EB第10列：パレットなし・通行可否未確定','map-small')}${text(1040,487,'概念保管位置 802 PL','map-small align-end')}</g>
-      <g data-acceptance="G14">${WAREHOUSE_SERVICE.waitingPlaces.map((p,i)=>equipment(p.id,'待機 '+(i+1)+' ↔',720,765+i*31,125,27)).join('')}${WAREHOUSE_SERVICE.chargePlaces.map((p,i)=>equipment(p.id,'充電 '+(i+1)+' ↔',720,829+i*31,125,27)).join('')}</g>
+      <g data-acceptance="G13">${blocks}${text(710,640,'EB第10列：パレットなし・通行可否未確定','map-small')}${text(1040,487,'概念保管位置 802 PL','map-small align-end')}</g>
+      <g data-acceptance="G14">${[...WAREHOUSE_SERVICE.waitingPlaces,...WAREHOUSE_SERVICE.chargePlaces].map((p,i)=>{
+        const y=i<2?765+i*31:829+(i-2)*31;
+        return `<g data-equipment="${p.id}" class="equipment">${rect(720,y,125,27,'equipment-body')}${text(725,y+13.5,i<2?p.id:'充電'+(i-1),'map-small')}</g>`;
+      }).join('')}</g>
       <g data-acceptance="G15">${Object.values(snapshot.aligners).map((a,i)=>equipment(a.id,'AL'+(i+1),858+i*38,765,34,40,a.ready?'OK':'')).join('')}<rect data-map-id="EMPTY-PALLET-STORE" x="858" y="825" width="192" height="73" rx="7" fill="url(#gap)" stroke="#b45353" stroke-width="1.5"/>${text(870,849,'空パレ置き場（有人供給）','map-small')}</g>
-      <g data-acceptance="G16"><rect data-map-id="PILLAR-WAIT-W" aria-label="柱前待機候補 西（通常HPへの代用は未確定）" x="470" y="616" width="63" height="26" class="waiting-candidate"/><rect data-map-id="PILLAR-WAIT-E" aria-label="柱前待機候補 東（通常HPへの代用は未確定）" x="568" y="616" width="63" height="26" class="waiting-candidate"/>${text(501,634,'柱前候補 西','map-small align-center')}${text(599,634,'柱前候補 東','map-small align-center')}</g>
+      <g data-acceptance="G16"><rect data-map-id="PILLAR-WAIT-W" aria-label="柱前待機候補 西（WB2とWB3間の東寄り・使用条件未確定）" x="286" y="720" width="20" height="10" class="waiting-candidate"><title>柱前待機候補 西：位置のみ確認済み・通常HPへの代用は未確定</title></rect><path d="M306 725 H318" class="waiting-candidate"/>${text(320,730,'柱前候補 西','map-small')}<rect data-map-id="PILLAR-WAIT-E" aria-label="柱前待機候補 東（EB1とEB2間の西寄り・使用条件未確定）" x="715" y="603" width="20" height="12" class="waiting-candidate"><title>柱前待機候補 東：位置のみ確認済み・通常HPへの代用は未確定</title></rect>${text(742,616,'柱前候補 東','map-small')}</g>
       <g data-acceptance="G17">${text(870,876,'× AGF進入禁止','forbidden-label')}</g>
       ${text(48,930,'概念図・実寸ではありません。未承認経路から実距離・確定ETAを生成しません。','map-small')}${routeOverlay}${agfs}</g>`;
     updateView();
