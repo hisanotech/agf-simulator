@@ -6,7 +6,7 @@ A development harness for a deterministic, event-driven AGF logistics simulator 
 
 ## 実装計画・現在の進捗
 
-- **[全体進捗ボード（Issue #2）](https://github.com/zony21/agf-simulator/issues/2)**：M0～M8の状態、完了済み／未完了チェック、次に着手する項目。進捗更新はこちらを正本とする。
+- **[全体進捗ボード（Issue #2）](https://github.com/zony21/agf-simulator/issues/2)**：M0～M8の状態、完了済み／未完了チェック、次に着手する項目。公開更新先。2026-09-28にmain・PRマージ済みの記述へ更新済み。未公開のローカル検証結果とは区別する。
 - **[全体実装計画](docs/implementation-plan.md)**：各工程の依存関係、受入条件、検証方法。
 - **[実装PR #1](https://github.com/zony21/agf-simulator/pull/1)**：2026-09-25にmainへマージ済み。M0の合成シミュレーター実装済みを示すもので、実図面での経路承認やM1～M8の完了を意味しない。
 
@@ -20,7 +20,7 @@ A development harness for a deterministic, event-driven AGF logistics simulator 
 
 ## Current scope
 
-This repository initially contains a **development harness**, not a finished logistics simulator. It establishes trace validation, AGF dispatch selection, synthetic test fixtures, agent instructions, and CI. The later UI can use Vue 3 + TypeScript + SVG; do not interpret the synthetic fixture as facility data.
+This repository initially contains a **development harness**, not a finished logistics simulator. It establishes trace validation, AGF dispatch selection, synthetic test fixtures, agent instructions, and CI. The current dashboard uses native JavaScript modules and SVG. Do not interpret synthetic fixtures as facility data.
 
 ## Run
 
@@ -120,3 +120,9 @@ The script binds the draft to the exact SVG SHA-256 and viewBox, keeps guide cla
 ## ローカルUIレビュー
 
 Industrial Simulation Dashboardの5画面（搬送モニター・設定・タスク・結果・比較）、倉庫の行列段表示、独立したCADレビューを用意しています。範囲・仮定・集計定義は[UI実装ノート](docs/ui-dashboard.md)、最新版の倉庫構造は[概念契約](docs/warehouse-layout-contract.md)を参照してください。今回の変更はローカルレビュー用で、GitHubへの反映は行いません。
+
+## 追加仕様のローカル統合（2026-09-29）
+
+系列／特注行割当、満載・端数と2段積み、種別別搬出、HP復帰・充電優先を既存エンジンへ追加。新しい「倉庫配置・HP復帰 · 要設定」シナリオを選び、明示設定して実行します。実際の割当は未設定です。[追加契約](docs/warehouse-product-wait-contract.md)に入力、根拠、制限、再現手順を記載しています。1400×850の概念図と4区分の設定画面を使用します。
+
+`node scripts/check-integrated-acceptance.mjs` で180分の正常・復旧・充電境界と同一入力比較を検証できます。出力はGit除外のprivate配下です。現場スループット・確定ETA・M8完了を表しません。

@@ -7,10 +7,17 @@ import {WAREHOUSE_BLOCKS} from '../src/map/warehouse-layout.mjs';
 import {readFileSync} from 'node:fs';
 
 // Inspect the actual rendered SVG, not a parallel model of its expected layout.
-const svg={innerHTML:'',setAttribute(){},addEventListener(){}};
+const svg={innerHTML:'',attributes:{},setAttribute(key,value){this.attributes[key]=value;},addEventListener(){}};
 const map=initMap({svg,onSelectAgf(){},onSelectBlock(){}});
 map.render(simulate(createDemoScenario('manual')).final,'AGF1');
 const html=svg.innerHTML;
+test('landscape display fills a 1400 by 850 canvas while preserving the shared schematic projection',()=>{
+  assert.equal(svg.attributes.viewBox,'0 0 1400 850');
+  const [,sx,sy]=html.match(/data-schematic="landscape" transform="scale\(([^ ]+) ([^)]+)\)"/);
+  assert.equal(1100*Number(sx),1400);assert.equal(970*Number(sy),850);
+  assert.ok(1050*Number(sx)/1400>.95); // building bands use the available width
+  map.zoom(.8);map.fit();assert.equal(svg.attributes.viewBox,'0 0 1400 850');
+});
 const attrs=tag=>Object.fromEntries([...tag.matchAll(/([\w-]+)="([^"]*)"/g)].map(([,k,v])=>[k,v]));
 const tags=[...html.matchAll(/<(rect|path|g)\b[^>]*>/g)].map(m=>({tag:m[1],...attrs(m[0])}));
 const item=id=>{const value=tags.find(t=>t['data-map-id']===id);assert.ok(value,id);return value;};

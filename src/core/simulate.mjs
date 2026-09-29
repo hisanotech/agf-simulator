@@ -143,6 +143,7 @@ export function simulate(rawScenario) {
   const hold = (task, reason) => {
     if (task.waitReason !== reason) {
       task.waitReason=reason;
+      if(['02','05'].includes(task.kind))task.storageResult='held';
       record('TASK_WAITING',{taskId:task.id,kind:task.kind,palletId:task.palletId ?? null,reason});
     }
   };
@@ -185,9 +186,12 @@ export function simulate(rawScenario) {
   };
   const request = (kind, fields) => {
     const p=pallets.get(fields.palletId);
+    const location=slots.get(fields.destinationId);
     const t = {id:'T' + String(++nextTask).padStart(5,'0'),kind,status:'queued',
       requestedAt:now,assignedAt:null,pickupAt:null,completedAt:null,waitReason:null,
-      ...(p?{sourceLineId:p.sourceLineId??p.lineId??null,productType:p.productType??null,loadType:p.loadType??null}:{}),...fields};
+      ...(p?{sourceLineId:p.sourceLineId??p.lineId??null,productType:p.productType??null,loadType:p.loadType??null}:{}),
+      ...(['02','05'].includes(kind)?{storageResult:location?'reserved':'pending'}:{}),
+      ...(location?{storageLocationId:location.id,blockId:location.blockId,row:location.row,column:location.column,tier:location.tier}:{}),...fields};
     tasks.set(t.id,t); pending.push(t.id);
     record('TASK_REQUESTED',{taskId:t.id,kind,palletId:t.palletId ?? null});
     return t;
@@ -273,7 +277,7 @@ export function simulate(rawScenario) {
       s.reserved.splice(s.reserved.indexOf(t.palletId),1); s.palletIds.push(t.palletId);
       dirtySlots.add(s.id);
       rowBusy.delete(s.rowId); pallets.get(t.palletId).stage='stored'; stats.stored++;
-      record('STORE_COMPLETED',{taskId:t.id,palletId:t.palletId,locationId:s.id});
+      t.storageResult='stored';record('STORE_COMPLETED',{taskId:t.id,palletId:t.palletId,locationId:s.id,storageResult:'stored'});
     } else if (t.kind === '03') {
       const m=magazines.get(t.magazineId);
       if (m.permission === false) { t.status='wait_drop'; hold(t,'MAGAZINE_PERMISSION'); return false; }
@@ -303,6 +307,8 @@ export function simulate(rawScenario) {
         if(!choice.location){hold(t,choice.reason);continue;}
         required(reserveSlot(choice.location.id,p.palletId),'05 automatic destination reservation failed');
         t.destinationId=choice.location.id;p.destinationLocationId=choice.location.id;
+        Object.assign(t,{storageLocationId:choice.location.id,blockId:choice.location.blockId,row:choice.location.row,
+          column:choice.location.column,tier:choice.location.tier,storageResult:'reserved'});
         record('WAREHOUSE_LOCATION_RESERVED',{taskId:t.id,palletId:p.palletId,locationId:choice.location.id});
       }
       if (t.kind === '03' && !t.alignerId) {
@@ -651,7 +657,8 @@ export function simulate(rawScenario) {
     now=durationMs;
     record('RUN_ENDED',{batteryModel:'active_time'});
   }
-  return {scenario,events:history,snapshots,final:snapshot(),metrics:{
+  // Final state remains an independent, editable result for existing consumers.
+  return {scenario,events:history,snapshots,final:{...snapshot(),warehouse:clone(snapshotWarehouse())},metrics:{
     ...stats,pendingTasks:[...tasks.values()].filter(t=>t.status!=='completed').length,
     elapsedMin:scenario.durationMin,scenarioTiming:graphMode?'synthetic-graph-assumption':'assumption-not-measured',
     taskWaitMin:[...tasks.values()].filter(t=>t.assignedAt!==null)

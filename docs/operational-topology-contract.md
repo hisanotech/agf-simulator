@@ -20,7 +20,7 @@
 | --- | --- |
 | `validateOperationalTopology(graph)` | ノード、方向別レーン、距離、移動種別別速度、資源、シャッター、公開可能な合成根拠を検証する。 |
 | `resolveInterfaceNode(graph, interfaceId)` | 完全一致を優先し、次に最長のワイルドカード一致で設備インターフェースをノードへ対応付ける。 |
-| `findOperationalPath(graph, from, to, options)` | 空走・積載・充電とタスク種別に適合する方向付き最短モデル時間経路を返す。 |
+| `findOperationalPath(graph, from, to, options)` | 空走・積載・充電・HP復帰とタスク種別に適合する方向付き最短モデル時間経路を返す。 |
 
 探索時間は各区間について `ceil(distanceMm * 1000 / speedMmPerSec)`。同時間の候補はエッジID列の辞書順で決定し、JSON配列順に依存しない。戻り値は`modelDistanceMm`と`modelDurationMs`であり、`measuredDistanceMm`は常に`null`、`etaStatus`は`synthetic-assumption`とする。
 
@@ -39,10 +39,14 @@
 
 合成グラフを指定したシナリオだけが`ROUTE_PLANNED`、`SEGMENT_REQUEST`、`SEGMENT_WAITING`、`SEGMENT_ENTERED`、`SEGMENT_EXITED`、`ROUTE_COMPLETED`等を生成する。既存の固定時間シナリオは従来語彙と結果を維持する。
 
-AGF位置は保存済みの`movement.current`、`enteredAt`、`exitAt`から線形補間する。UIは再探索、予約、状態変更を行わない。経路・位置・交通待ち分析・CSVは同じイベント／スナップショットを根拠とする。
+AGF位置は保存済みの`movement.current`、`enteredAt`、`exitAt`から区間の表示用折れ線に沿って補間する。`displayPath`は描画専用であり、長さを距離や時間へ転用しない。UIは再探索、予約、状態変更を行わない。経路・位置・交通待ち分析・CSVは同じイベント／スナップショットを根拠とする。
 
 ## 5. 公開合成フィクスチャと受入範囲
 
-`examples/synthetic-operational-topology.json`は架空の13ノード・13エッジを持つ。01～05、空走／積載、充電、1／2車線、交差点資源、合成シャッターを自動テストするためのもので、現場形状・距離・速度・設備位置を表さない。
+`examples/synthetic-operational-topology.json`は架空の15ノード・15エッジを持つ。01～05、空走／積載、充電、1／2車線、交差点資源、合成シャッターを自動テストするためのもので、現場形状・距離・速度・設備位置を表さない。
 
 自動テストの受入範囲は、決定性、方向・移動種別制限、到達不能、原子的予約、対向競合、交差点排他、シャッター待ち、充電移動、イベント由来の位置投影である。実CADへの対応、実寸距離、車体幅・旋回、信号I/O、安全認証、現場性能は受入範囲外とする。
+
+## 6. ローカル追加契約
+
+`wait`移動種別とHP1／HP2を追加。`postTaskPolicy`を指定すると搬送・充電完了後に同じ交通制御でHPへ復帰する。[製品・HP契約](warehouse-product-wait-contract.md)参照。`permissionEvents`のwarehouse/magazine対象は合成入力の許可変更で、荷下ろし前の不許可を保留し復旧で再開する。実PLC信号ではない。`SHUTTER_STATE_CHANGED`は`shutterId`・`passable`、全合成運行イベントは`etaStatus: synthetic-assumption`をCSVにも保持する。

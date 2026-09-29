@@ -27,3 +27,5 @@
 
 仕様が確定していない項目は各仕様書に明記する。実経路の伝達方法は[AGF走行経路の指定ガイド](route-annotation-guide.md)を参照する。走行可否と車線条件は[AGF通行・車線仕様書](specs/09-traffic.md)で段階確認する。[未確定事項一覧](open-decisions.md)も参照。
 2026-09-25改訂：最新の[倉庫概念構造](warehouse-layout-contract.md)（802PL・主通路4本・待機2＋充電2・AGF進入禁止区画）と[ローカルUI実装範囲](ui-dashboard.md)を参照。実CAD照合と物理走行の完了を意味しない。
+
+2026-09-29追加：[製品属性・倉庫配置・HP復帰契約](warehouse-product-wait-contract.md)。普通／特注・満載／端数、系列別連続行、奥詰め、実配置下段の支持条件、搬出頻度、HP復帰と充電終了後制御を規定する。実際の行割当・HP運用は未確定のまま保持。

@@ -7,6 +7,7 @@ const rowIds=WAREHOUSE_BLOCKS.flatMap(b=>Array.from({length:b.rows},(_,i)=>`${b.
 const label=(type,load)=>(type==='normal'?'普通銘柄':'特注銘柄')+'・'+(load==='full'?'満載':'端数');
 export function populateExtendedSettings(s){
   const root=document.getElementById('extended-settings');root.hidden=!s.warehousePolicy;
+  document.querySelectorAll('[data-extended-setting]').forEach(el=>el.hidden=!s.warehousePolicy);
   document.getElementById('legacy-settings-note').hidden=!!s.warehousePolicy;
   document.getElementById('line-fields').parentElement.hidden=!!s.productStreams;
   if(!s.warehousePolicy)return;
@@ -22,6 +23,29 @@ export function populateExtendedSettings(s){
       <td><input type="number" min="1" step="1" data-row-priority="${rowId}" value="${priority<0?'':priority+1}" aria-label="${rowId} 同用途内の優先順位" placeholder="未設定"></td></tr>`;
   }).join('');
   document.getElementById('hp-target-fields').innerHTML=s.agfs.map(a=>`<label>${a.id}の復帰先（今回のシナリオ）<select data-hp-target="${a.id}"><option value="">未設定・選択待ち</option>${['HP1','HP2'].map(id=>`<option ${s.postTaskPolicy.waitTargets[a.id]===id?'selected':''}>${id}</option>`).join('')}</select></label>`).join('');
+}
+
+/** Move existing controls into four disclosure groups; no field values are replaced. */
+export function organizeSettings(){
+  const form=document.getElementById('settings-form'),grid=form.querySelector('.settings-grid');
+  const section=id=>document.getElementById(id).closest('section');
+  const extended=[...document.getElementById('extended-settings').children];
+  extended.forEach(el=>el.dataset.extendedSetting='true');
+  const groups=[
+    ['基本設定','時間・設備・容量',[section('duration'),section('time-fields')]],
+    ['搬出設定','8系列・4種別・発生頻度',[section('line-fields'),extended[0]]],
+    ['倉庫設定','行割当・入庫順位',[extended[1]]],
+    ['AGF・充電設定','初期状態・電池・HP復帰',[section('agf-fields'),section('battery-fields'),extended[2]]]
+  ];
+  for(const [index,[name,description,sections]] of groups.entries()){
+    const details=document.createElement('details');details.className='panel settings-category';details.open=index===0;
+    const summary=document.createElement('summary');summary.textContent=name;
+    const small=document.createElement('small');small.textContent=description;summary.append(small);
+    const body=document.createElement('div');body.className='settings-grid';
+    for(const section of sections){section.classList.add('wide');body.append(section);}
+    details.append(summary,body);form.append(details);
+  }
+  grid.remove();
 }
 export function readExtendedSettings(s){
   if(!s.warehousePolicy)return;

@@ -6,7 +6,7 @@ import {snapshotIndexAt,replayTime,analyzeRun,compareRuns,effectiveStatus,workin
 import {initMap,renderWarehouseBlock,describeSlot} from './map-view.mjs';
 import {renderAnalysis,renderComparison,metric} from './analysis-view.mjs';
 import {initCadPanel} from './cad-panel.mjs';
-import {populateExtendedSettings,readExtendedSettings,loadSyntheticSettingsExample} from './extended-settings.mjs';
+import {populateExtendedSettings,readExtendedSettings,loadSyntheticSettingsExample,organizeSettings} from './extended-settings.mjs';
 import {eventCsv} from './export.mjs';
 import {WAREHOUSE_BLOCKS} from '../map/warehouse-layout.mjs';
 import {escapeHtml as esc,clock,states,stateLabel,taskNames,reasons,eventNames,areaName,locationName,badge,productLabel} from './format.mjs';
@@ -23,6 +23,7 @@ let base=createDemoScenario(),result=null,analysis=null,comparison=null,runId=''
 let timeMs=0,currentIndex=-1,batterySecond=-1,selectedAgf='AGF1',activeView='monitor',dirty=false,frame=null,anchor=null;
 let selectedBlock='WB1',reservationKind='05';
 const map=initMap({svg:$('map'),onSelectAgf:selectAgf,onSelectBlock:openWarehouse});
+organizeSettings();
 
 function populateSettings(scenario) {
   populateExtendedSettings(scenario);
@@ -43,6 +44,7 @@ function syncBatteryFields(){const active=$('battery-model').value==='active_tim
 }
 function scenarioFromSettings() {
   if(!$('settings-form').checkValidity()) {
+    $('settings-form').querySelectorAll('details').forEach(el=>el.open=true);
     showView('settings');$('settings-form').reportValidity();throw new Error('設定値の入力範囲・単位を確認してください。');
   }
   const scenario=structuredClone(base);
@@ -78,7 +80,11 @@ function friendlyError(error) {
   if(/capacity|overflow|underflow/.test(message))return '設備容量または在荷条件を満たせません。搬出間隔・バッファ容量・手動使用回数を確認してください。';
   return message;
 }
-function showError(error){$('error').textContent=friendlyError(error);$('error').hidden=false;}
+function showError(error){$('error').textContent=friendlyError(error);$('error').hidden=false;
+  if(/WAREHOUSE_CONFIG|PRODUCTION_CONFIG/.test(error.message??'')){
+    showView('settings');$('settings-form').querySelectorAll('details').forEach(el=>el.open=true);
+  }
+}
 function clearError(){$('error').hidden=true;$('notification').hidden=true;}
 function notify(message){$('notification').textContent=message;$('notification').hidden=false;}
 function showView(view) {
@@ -90,6 +96,7 @@ function showView(view) {
   if(view==='tasks')renderTasks();
   if(view==='monitor')renderSnapshot();
   history.replaceState(null,'','#'+view);
+  window.scrollTo({top:0,left:0});
 }
 function adoptRun(next,at=0) {
   pause();result=next;base=structuredClone(next.scenario);analysis=analyzeRun(next);
@@ -144,11 +151,11 @@ function renderSnapshot(){if(!result)return;const snap=snapshot();
       <div class="agf-card-head"><span class="agf-id"><span class="vehicle-number">${i+1}</span>${esc(a.id)}</span>${badge(status,stateLabel(status,result.scenario.motionModel==='synthetic_graph'))}</div>
       <div class="battery-line"><span>電池</span><span class="battery-track"><i data-battery-bar="${a.id}" class="${a.batteryPct<=result.scenario.battery.chargeStartPct?'low':''}" style="width:${a.batteryPct}%"></i></span><b data-battery-text="${a.id}">${a.batteryPct.toFixed(1)}%</b></div>
       <dl class="agf-details"><dt>タスク</dt><dd>${task?esc(task.id)+' / '+task.kind:'—'}</dd><dt>搬送元 → 先</dt><dd>${task?esc(locationName(task.originId))+' → '+esc(locationName(task.destinationId)):'—'}</dd>
-      <dt>積載</dt><dd>${esc(a.carriedPalletId??'なし')}</dd><dt>現在位置</dt><dd>${esc(a.currentNodeId??areaName(a.area)+'（概念エリア）')}</dd><dt>方向</dt><dd>${esc(a.heading??'未確定')}</dd></dl></button>`;
+      <dt>積載</dt><dd>${esc(a.carriedPalletId??'なし')}</dd><dt>現在位置</dt><dd>${esc(a.currentNodeId??areaName(a.area)+'（概念エリア）')}</dd><dt>方向</dt><dd>${esc(({north:'北 ↑',south:'南 ↓',east:'東 →',west:'西 ←'})[a.heading]??'未確定')}</dd></dl></button>`;
   }).join('');
   const selected=snap.agfs.find(a=>a.id===selectedAgf),task=snap.tasks.find(t=>t.id===selected?.taskId);
   const movement=selected?.movement,current=movement?.current;
-  $('route-detail').innerHTML=`<b>${esc(selectedAgf)}</b> ${task?`${esc(task.id)} · ${task.kind} ｜ ${esc(locationName(task.originId))} → ${esc(locationName(task.destinationId))}<br>`:'｜ 実行中タスクなし · '}<span class="muted">${current?`合成区間 ${esc(current.edgeId)} / ${esc(current.fromNodeId)} → ${esc(current.toNodeId)} / ${esc(selected.heading??'方向未定')}`:'実CAD経路・確定ETAは未承認'}</span>`;
+  $('route-detail').innerHTML=`<b>${esc(selectedAgf)}</b> ${task?`${esc(task.id)} · ${task.kind} ｜ ${esc(locationName(task.originId))} → ${esc(locationName(task.destinationId))}<br>`:'｜ 実行中タスクなし · '}<span class="muted">${current?`合成区間 ${esc(current.edgeId)} / ${esc(current.fromNodeId)} → ${esc(current.toNodeId)} / ${esc(({north:'北 ↑',south:'南 ↓',east:'東 →',west:'西 ←'})[selected.heading]??'方向未定')}`:'実CAD経路・確定ETAは未承認'}</span>`;
   $('charger-list').innerHTML=Object.entries(snap.chargers).map(([id,agf],i)=>`<div class="charger-row"><span>ϟ 充電器 ${i+1}</span><b>${agf?esc(agf)+' · 充電中':'○ 空き'}</b></div>`).join('');
   const chip=(label,ready=false)=>`<span class="equipment-chip${ready?' ready':''}">${esc(label)}</span>`;
   $('equipment-list').innerHTML=[

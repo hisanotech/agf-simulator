@@ -19,3 +19,11 @@ Full customer/site requirements and CAD layouts remain outside this public repos
 - Dispatch mode `area_first` now prioritizes eligible AGFs at the **destination/drop-off area** by lowest battery. Fallback when no eligible AGF is in that area and equal-battery tie handling need confirmation; the engine already implements destination-area priority; ID tie breaks and optional cross-area fallback remain explicit model assumptions.
 
 Use an explicit scenario schema and synthetic values until confirmed. Never silently resolve these by guessing.
+
+## 2026-09-29 追加指示の未確定事項
+
+- 各系列およびSPECIALの実際の初期行割当、ブロックを跨ぐ連続判定、複数行の入庫順位。入力未設定を現場の初期値へ置き換えない。
+- AGFごとの固定HP、HP1／HP2の優先順位、HP満杯時の待機先、柱前候補を通常HPとして使う条件。合成例の復帰先は明示したテスト入力に限る。
+- 充電完了後にHPも次タスクも成立しない場合の安全な退避・充電位置解放。現実の出発先が不明なため、合成モデルでも占有保持と理由付き保留にする。
+- 実車の減速・加減速・車体離隔、同一行占有の実信号境界、個別棚停止点。現在の合成倉庫は代表荷下ろしノードであり、802個の実座標経路ではない。
+- UIのレイヤー切替、CADレビューの詳細ツールへの追加分離は次段階。今回の画面構造は維持する。
