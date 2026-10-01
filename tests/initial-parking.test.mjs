@@ -29,7 +29,7 @@ test('extended initial positions are four distinct explicit sample stops, never 
 });
 test('initial charging-place parking occupies stops only and accounts no charging or travel time',()=>{
   const r=simulate(quiet()),initial=r.snapshots[0];
-  assert.deepEqual(initial.waitingPlaces,{HP1:'AGF1',HP2:'AGF2'});
+  assert.deepEqual(initial.waitingPlaces,{HP1:'AGF1',HP2:'AGF2','PILLAR-WAIT-W':null,'PILLAR-WAIT-E':null});
   assert.deepEqual(initial.chargePlaces,{'CHARGE-PLACE1':'AGF3','CHARGE-PLACE2':'AGF4'});
   assert.ok(r.snapshots.every(s=>Object.values(s.chargers).every(v=>v===null)));
   assert.ok(r.final.agfs.every(a=>a.status==='idle'&&a.chargerId===null));
@@ -87,7 +87,7 @@ test('occupied charging stops block arrival until departure, without overbooking
   }
   assert.ok(r.events.some(e=>e.type==='SEGMENT_WAITING'&&e.reason==='CHARGE_PLACE_OCCUPIED'));
   assert.ok(analyzeRun(r).agfs.some(a=>a.durations.waiting_charge>0));
-  assert.ok(r.events.filter(e=>e.type==='WAIT_RETURN_REQUESTED').every(e=>['HP1','HP2'].includes(e.hpId)));
-  assert.ok(r.final.agfs.filter(a=>a.status==='waiting_hp_capacity').length>0);
+  assert.ok(r.events.filter(e=>e.type==='WAIT_RETURN_REQUESTED').every(e=>['HP1','HP2','PILLAR-WAIT-W','PILLAR-WAIT-E'].includes(e.hpId)));
+  assert.ok(r.final.agfs.every(a=>a.status==='idle'));
   assert.deepEqual(simulate(s).events,r.events);
 });

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {WAREHOUSE_BLOCKS,warehouseLocations,WAREHOUSE_RULES,WAREHOUSE_SERVICE,WAREHOUSE_MAIN_AISLES} from '../src/map/warehouse-layout.mjs';
-import {snapshotIndexAt,replayTime,analyzeRun,compareRuns,durationTenths} from '../src/ui/replay-model.mjs';
+import {snapshotIndexAt,replayTime,replayFrameTime,analyzeRun,compareRuns,durationTenths} from '../src/ui/replay-model.mjs';
 import {createDemoScenario} from '../src/ui/scenario.mjs';
 import {simulate} from '../src/core/simulate.mjs';
 import {eventCsv} from '../src/ui/export.mjs';
@@ -24,12 +24,12 @@ test('warehouse contains 802 logical tier locations without inventing an east ga
 test('south service has separate waiting, parking and chargers without a forbidden storage route',()=>{
   assert.equal(WAREHOUSE_MAIN_AISLES.length,4);
   assert.ok(WAREHOUSE_MAIN_AISLES.every(a=>a.direction==='unresolved'&&a.laneCount===null));
-  assert.equal(WAREHOUSE_SERVICE.waitingPlaces.length,2);
+  assert.equal(WAREHOUSE_SERVICE.waitingPlaces.length,4);
   assert.equal(WAREHOUSE_SERVICE.waitingCandidates.totalCount,4);
-  assert.equal(WAREHOUSE_SERVICE.waitingCandidates.groups.find(group=>group.kind==='fire-shutter-pillars').count,2);
+  assert.equal(WAREHOUSE_SERVICE.waitingCandidates.groups.find(group=>group.kind==='rack-gap-pillars').count,2);
   assert.equal(WAREHOUSE_SERVICE.waitingCandidates.wsIdMapping,'unresolved');
   assert.equal(WAREHOUSE_SERVICE.chargePlaces.length,2);
-  assert.equal(new Set([...WAREHOUSE_SERVICE.waitingPlaces,...WAREHOUSE_SERVICE.chargePlaces].map(p=>p.id)).size,4);
+  assert.equal(new Set([...WAREHOUSE_SERVICE.waitingPlaces,...WAREHOUSE_SERVICE.chargePlaces].map(p=>p.id)).size,6);
   assert.equal(WAREHOUSE_SERVICE.chargers.length,2);
   assert.ok(WAREHOUSE_SERVICE.chargePlaces.every(p=>p.chargerId===null));
   assert.equal(WAREHOUSE_SERVICE.aligners.length,5);
@@ -50,6 +50,21 @@ test('time seeking uses the final same-time event and never a future snapshot',(
   assert.equal(replayTime(100,250,2,1000),600);
   assert.equal(replayTime(100,250,4,1000),1000);
   assert.throws(()=>replayTime(0,100,-1,1000));
+});
+
+test('replay resume and speed changes anchor to the first animation frame',()=>{
+  // A requestAnimationFrame timestamp can precede performance.now() at the
+  // click handler. It belongs to the start of that rendering frame.
+  const first={sim:0,wall:null,speed:1};
+  assert.equal(replayFrameTime(first,100,10000),0);
+  assert.equal(replayFrameTime(first,600,10000),500);
+  const resume={sim:500,wall:null,speed:2};
+  assert.equal(replayFrameTime(resume,1200,10000),500);
+  assert.equal(replayFrameTime(resume,1700,10000),1500);
+  const faster={sim:1500,wall:null,speed:4};
+  assert.equal(replayFrameTime(faster,1700,10000),1500);
+  assert.equal(replayFrameTime(faster,2200,10000),3500);
+  assert.equal(replayFrameTime(faster,5000,10000),10000);
 });
 
 test('analysis integrates snapshot durations including the horizon tail and zero-time events',()=>{

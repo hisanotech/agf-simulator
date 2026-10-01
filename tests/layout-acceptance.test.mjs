@@ -130,11 +130,11 @@ test('G15 five aligners are above the forbidden empty-pallet storage on the righ
   assert.ok(criterion('G15'));
 });
 
-test('G16 four waiting candidates retain two south-service and two fire-shutter pillar candidates',()=>{
+test('G16 four normal waiting places retain two south-service and two rack-gap pillar places',()=>{
   assert.equal(WAREHOUSE_SERVICE.waitingCandidates.totalCount,4);
   assert.deepEqual(WAREHOUSE_SERVICE.waitingCandidates.groups,[
     {kind:'south-service',count:2,placeIds:['HP1','HP2']},
-    {kind:'fire-shutter-pillars',count:2,sides:['west','east'],placeIds:'unresolved'}
+    {kind:'rack-gap-pillars',count:2,sides:['west','east'],placeIds:['PILLAR-WAIT-W','PILLAR-WAIT-E']}
   ]);
   assert.equal(WAREHOUSE_SERVICE.waitingCandidates.wsIdMapping,'unresolved');
   assert.ok(criterion('G16'));

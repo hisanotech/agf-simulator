@@ -11,6 +11,12 @@ export function replayTime(anchorMs,elapsedWallMs,speed,durationMs) {
     throw new Error('Invalid replay clock');
   return Math.min(Math.round(durationMs),Math.floor(anchorMs+elapsedWallMs*speed));
 }
+export function replayFrameTime(anchor,frameMs,durationMs) {
+  // Use one clock domain. A frame's timestamp may precede performance.now()
+  // in the input handler that requested it, especially on speed changes.
+  anchor.wall??=frameMs;
+  return replayTime(anchor.sim,frameMs-anchor.wall,anchor.speed,durationMs);
+}
 export function effectiveStatus(agf,snapshot) {
   if(agf.status==='waiting_traffic'&&agf.movement?.waitingReason==='CHARGE_PLACE')return 'waiting_charge';
   if(agf.status==='idle'&&snapshot.waitingPlaces?.[agf.currentNodeId]===agf.id)return 'hp_wait';

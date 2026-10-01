@@ -147,6 +147,22 @@
       "x": 782,
       "y": 873.5,
       "approvalState": "synthetic-validated"
+    },
+    {
+      "id": "PILLAR-WAIT-W",
+      "type": "wait",
+      "areaId": "WH",
+      "x": 296,
+      "y": 725,
+      "approvalState": "synthetic-validated"
+    },
+    {
+      "id": "PILLAR-WAIT-E",
+      "type": "wait",
+      "areaId": "WH",
+      "x": 725,
+      "y": 609,
+      "approvalState": "synthetic-validated"
     }
   ],
   "edges": [
@@ -1242,11 +1258,158 @@
           "y": 873.5
         }
       ]
+    },
+    {
+      "id": "E18",
+      "fromNodeId": "WH-HOME",
+      "toNodeId": "PILLAR-WAIT-W",
+      "distanceMm": 9000,
+      "speedMmPerSec": {
+        "empty": 900,
+        "loaded": 700,
+        "charge": 800,
+        "wait": 900
+      },
+      "lanes": [
+        {
+          "id": "E18-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WH-J1"
+      ],
+      "shutterId": "SH-FIRE-NORTH",
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 745
+        },
+        {
+          "x": 682.5,
+          "y": 562.5
+        },
+        {
+          "x": 435,
+          "y": 562.5
+        },
+        {
+          "x": 435,
+          "y": 725
+        },
+        {
+          "x": 296,
+          "y": 725
+        }
+      ]
+    },
+    {
+      "id": "E19",
+      "fromNodeId": "WH-HOME",
+      "toNodeId": "PILLAR-WAIT-E",
+      "distanceMm": 9000,
+      "speedMmPerSec": {
+        "empty": 900,
+        "loaded": 700,
+        "charge": 800,
+        "wait": 900
+      },
+      "lanes": [
+        {
+          "id": "E19-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WH-J1"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 745
+        },
+        {
+          "x": 682.5,
+          "y": 609
+        },
+        {
+          "x": 725,
+          "y": 609
+        }
+      ]
     }
   ],
   "shutters": [
     {
       "id": "SH-EAST",
+      "initiallyPassable": true,
+      "permissionSource": "synthetic-scenario"
+    },
+    {
+      "id": "SH-FIRE-NORTH",
       "initiallyPassable": true,
       "permissionSource": "synthetic-scenario"
     }
@@ -1303,6 +1466,14 @@
     {
       "pattern": "CHARGE-PLACE2",
       "nodeId": "CHARGE-PLACE2"
+    },
+    {
+      "pattern": "PILLAR-WAIT-W",
+      "nodeId": "PILLAR-WAIT-W"
+    },
+    {
+      "pattern": "PILLAR-WAIT-E",
+      "nodeId": "PILLAR-WAIT-E"
     }
   ],
   "displayEvidence": "schematic-synthetic-only; representative interfaces, not individual site stops; display length is never used for duration"

@@ -2,7 +2,7 @@ import {simulate} from '../core/simulate.mjs';
 import {projectBatteryPct,batteryModel} from '../core/battery-model.mjs';
 import {projectAgfPosition} from '../core/motion-projection.mjs';
 import {createDemoScenario,initialAgfFromSettings} from './scenario.mjs';
-import {snapshotIndexAt,replayTime,analyzeRun,compareRuns,effectiveStatus,workingStatuses} from './replay-model.mjs';
+import {snapshotIndexAt,replayFrameTime,analyzeRun,compareRuns,effectiveStatus,workingStatuses} from './replay-model.mjs';
 import {initMap,renderWarehouseBlock,describeSlot} from './map-view.mjs';
 import {renderAnalysis,renderComparison,metric} from './analysis-view.mjs';
 import {initCadPanel} from './cad-panel.mjs';
@@ -18,6 +18,7 @@ const batteryFields=[['reservePct','選定残量下限（%）'],['chargeStartPct
   ['activeReferenceMin','基準稼働時間（分）'],['activeReferenceConsumptionPct','基準時間での消費（ポイント）'],
   ['consumptionPct','旧方式：1タスク消費（ポイント）'],['chargeMinPerPct','1ポイント充電に要する時間（分）']];
 const numeric=id=>Number($(id).value);
+const headingLabel=heading=>({north:'北 ↑',south:'南 ↓',east:'東 →',west:'西 ←'})[heading]??'未確定';
 const input=(id,label,value,min=0,step=.1,max='')=>`<label>${esc(label)}<input id="${id}" type="number" min="${min}" step="${step}" ${max!==''?`max="${max}"`:''} value="${value}" required></label>`;
 let base=createDemoScenario(),result=null,analysis=null,comparison=null,runId='',runNumber=0;
 let timeMs=0,currentIndex=-1,batterySecond=-1,selectedAgf='AGF1',activeView='monitor',dirty=false,frame=null,anchor=null;
@@ -48,7 +49,9 @@ function syncBatteryFields(){const active=$('battery-model').value==='active_tim
 function scenarioFromSettings() {
   if(!$('settings-form').checkValidity()) {
     $('settings-form').querySelectorAll('details').forEach(el=>el.open=true);
-    showView('settings');$('settings-form').reportValidity();throw new Error('設定値の入力範囲・単位を確認してください。');
+    showView('settings');$('settings-form').reportValidity();
+    const missing=[...$('settings-form').querySelectorAll('[data-hp-target]:enabled')].filter(el=>!el.value).map(el=>el.dataset.hpTarget);
+    throw new Error(missing.length?`${missing.join('・')}の復帰先が未設定です。AGF・充電設定でHP1・HP2・柱前西・柱前東へ重複なく指定してください。`:'設定値の入力範囲・単位を確認してください。');
   }
   const scenario=structuredClone(base);
   scenario.durationMin=numeric('duration');scenario.mode=$('mode').value;scenario.fallback=$('fallback').value;
@@ -71,6 +74,7 @@ function scenarioFromSettings() {
 function markDirty(value=true) {dirty=value;$('dirty-state').hidden=!value;}
 function friendlyError(error) {
   const message=error.message??String(error);
+  if(/waiting return target|normal waiting place|explicit HP return target/.test(message))return '4台の復帰先をHP1・HP2・柱前西・柱前東へ重複なく指定してください。各場所への合成経路が接続されている必要があります。';
   if(/initial parking|initial HP capacity/.test(message))return '初期停止位置が重複しています。HP1・HP2・充電場所1・充電場所2へ4台を重複なく配置してください。';
   if(/duplicate|already reserved|reserved temporary/.test(message))return '二重予約です。同じパレットの既存予約を確認してください。';
   if(/temporary pallet|location mismatch|unreserved pallet at specified temporary/.test(message))return '対象パレットと仮置き場が一致しないか、その時刻に利用できません。';
@@ -113,8 +117,8 @@ function adoptRun(next,at=0) {
 function execute(){clearError();try{const candidate=simulate(scenarioFromSettings());adoptRun(candidate);notify('設定を反映して計算しました。再生・シークで各時刻の状態を確認できます。');}catch(error){showError(error);}}
 function pause(){if(frame!==null)cancelAnimationFrame(frame);frame=null;anchor=null;$('play').setAttribute('aria-pressed','false');}
 function play(){if(!result||frame!==null)return;if(timeMs>=analysis.durationMs)setTime(0);
-  anchor={sim:timeMs,wall:performance.now(),speed:numeric('speed')};$('play').setAttribute('aria-pressed','true');
-  const tick=now=>{setTime(replayTime(anchor.sim,now-anchor.wall,anchor.speed,analysis.durationMs));
+  anchor={sim:timeMs,wall:null,speed:numeric('speed')};$('play').setAttribute('aria-pressed','true');
+  const tick=now=>{setTime(replayFrameTime(anchor,now,analysis.durationMs));
     if(timeMs>=analysis.durationMs){pause();return;}frame=requestAnimationFrame(tick);};
   frame=requestAnimationFrame(tick);
 }
@@ -123,7 +127,9 @@ function setTime(ms,force=false){if(!result)return;timeMs=Math.max(0,Math.min(an
   const index=snapshotIndexAt(result.events,timeMs);
   if(force||index!==currentIndex){currentIndex=index;renderSnapshot();}
   else {
-    if(result.scenario.motionModel==='synthetic_graph')map.updatePositions(snapshot().agfs);
+    if(result.scenario.motionModel==='synthetic_graph'){
+      const agfs=snapshot().agfs;map.updatePositions(agfs);renderHeadings(agfs);
+    }
     if(Math.floor(timeMs/1000)!==batterySecond)renderBattery();
   }
   batterySecond=Math.floor(timeMs/1000);
@@ -140,6 +146,11 @@ function renderBattery(){for(const a of snapshot().agfs){
   document.querySelectorAll(`[data-battery-text="${a.id}"]`).forEach(el=>{el.textContent=a.batteryPct.toFixed(1)+'%';});
   document.querySelectorAll(`[data-battery-bar="${a.id}"]`).forEach(el=>{el.style.width=a.batteryPct+'%';el.classList.toggle('low',a.batteryPct<=result.scenario.battery.chargeStartPct);});
 }}
+function renderHeadings(agfs){for(const a of agfs){
+  document.querySelectorAll(`[data-heading-text="${a.id}"]`).forEach(el=>{
+    const label=headingLabel(a.heading);if(el.textContent!==label)el.textContent=label;
+  });
+}}
 function selectAgf(id){selectedAgf=id;renderSnapshot();}
 function renderSnapshot(){if(!result)return;const snap=snapshot();
   const completed=snap.tasks.filter(t=>t.status==='completed').length;
@@ -154,11 +165,11 @@ function renderSnapshot(){if(!result)return;const snap=snapshot();
       <div class="agf-card-head"><span class="agf-id"><span class="vehicle-number">${i+1}</span>${esc(a.id)}</span>${badge(status,stateLabel(status,result.scenario.motionModel==='synthetic_graph'))}</div>
       <div class="battery-line"><span>電池</span><span class="battery-track"><i data-battery-bar="${a.id}" class="${a.batteryPct<=result.scenario.battery.chargeStartPct?'low':''}" style="width:${a.batteryPct}%"></i></span><b data-battery-text="${a.id}">${a.batteryPct.toFixed(1)}%</b></div>
       <dl class="agf-details"><dt>タスク</dt><dd>${task?esc(task.id)+' / '+task.kind:'—'}</dd><dt>搬送元 → 先</dt><dd>${task?esc(locationName(task.originId))+' → '+esc(locationName(task.destinationId)):'—'}</dd>
-      <dt>積載</dt><dd>${esc(a.carriedPalletId??'なし')}</dd><dt>現在位置</dt><dd>${esc(a.currentNodeId?locationName(a.currentNodeId):areaName(a.area)+'（概念エリア）')}</dd><dt>方向</dt><dd>${esc(({north:'北 ↑',south:'南 ↓',east:'東 →',west:'西 ←'})[a.heading]??'未確定')}</dd></dl></button>`;
+      <dt>積載</dt><dd>${esc(a.carriedPalletId??'なし')}</dd><dt>現在位置</dt><dd>${esc(a.currentNodeId?locationName(a.currentNodeId):areaName(a.area)+'（概念エリア）')}</dd><dt>方向</dt><dd data-heading-text="${esc(a.id)}">${esc(headingLabel(a.heading))}</dd></dl></button>`;
   }).join('');
   const selected=snap.agfs.find(a=>a.id===selectedAgf),task=snap.tasks.find(t=>t.id===selected?.taskId);
   const movement=selected?.movement,current=movement?.current;
-  $('route-detail').innerHTML=`<b>${esc(selectedAgf)}</b> ${task?`${esc(task.id)} · ${task.kind} ｜ ${esc(locationName(task.originId))} → ${esc(locationName(task.destinationId))}<br>`:'｜ 実行中タスクなし · '}<span class="muted">${current?`合成区間 ${esc(current.edgeId)} / ${esc(current.fromNodeId)} → ${esc(current.toNodeId)} / ${esc(({north:'北 ↑',south:'南 ↓',east:'東 →',west:'西 ←'})[selected.heading]??'方向未定')}`:'実CAD経路・確定ETAは未承認'}</span>`;
+  $('route-detail').innerHTML=`<b>${esc(selectedAgf)}</b> ${task?`${esc(task.id)} · ${task.kind} ｜ ${esc(locationName(task.originId))} → ${esc(locationName(task.destinationId))}<br>`:'｜ 実行中タスクなし · '}<span class="muted">${current?`合成区間 ${esc(current.edgeId)} / ${esc(current.fromNodeId)} → ${esc(current.toNodeId)} / <span data-heading-text="${esc(selectedAgf)}">${esc(headingLabel(selected.heading))}</span>`:'実CAD経路・確定ETAは未承認'}</span>`;
   $('charger-list').innerHTML=Object.entries(snap.chargers).map(([id,agf],i)=>`<div class="charger-row"><span>ϟ 充電器 ${i+1}</span><b>${agf?esc(agf)+' · 充電中':'○ 空き'}</b></div>`).join('');
   const chip=(label,ready=false)=>`<span class="equipment-chip${ready?' ready':''}">${esc(label)}</span>`;
   $('equipment-list').innerHTML=[
@@ -200,7 +211,7 @@ function openReservation(kind){clearError();try{requireSavedSettings();pause();r
   $('temp-pallet').replaceChildren(...temps.map(p=>new Option(p.palletId+' / '+productLabel(p)+(p.reservedTaskId?'（予約済み）':''),p.palletId)));
   $('manual-slot').replaceChildren(...result.scenario.warehouse.map(s=>new Option(s.id,s.id)));
   $('manual-destination').hidden=kind==='04'||!!result.scenario.warehousePolicy;
-  if(result.scenario.warehousePolicy)$('reservation-time').textContent+=' 入庫先は系列／特注・奥詰め規則から予約します。';syncTemporary();$('reservation-dialog').showModal();
+  if(kind==='05'&&result.scenario.warehousePolicy)$('reservation-time').textContent+=' 入庫先は系列／特注・奥詰め規則から予約します。';syncTemporary();$('reservation-dialog').showModal();
  }catch(error){showError(error);}}
 function syncTemporary(){const temp=snapshot().temporaryPallets.find(p=>p.palletId===$('temp-pallet').value);
   if(temp){$('temp-location').value=temp.locationId;$('manual-slot').value=temp.destinationLocationId;}}

@@ -1,13 +1,17 @@
-import {WAREHOUSE_BLOCKS} from '../map/warehouse-layout.mjs';
+import {WAREHOUSE_BLOCKS,NORMAL_WAITING_PLACES} from '../map/warehouse-layout.mjs';
 import {productVariants} from '../core/production-streams.mjs';
 import {syntheticWarehousePolicy} from '../../examples/synthetic-warehouse-policy.mjs';
-import {escapeHtml as esc} from './format.mjs';
+import {escapeHtml as esc,locationName} from './format.mjs';
 
 const rowIds=WAREHOUSE_BLOCKS.flatMap(b=>Array.from({length:b.rows},(_,i)=>`${b.id}-R${String(i+1).padStart(2,'0')}`));
 const label=(type,load)=>(type==='normal'?'普通銘柄':'特注銘柄')+'・'+(load==='full'?'満載':'端数');
 export function populateExtendedSettings(s){
   const root=document.getElementById('extended-settings');root.hidden=!s.warehousePolicy;
-  document.querySelectorAll('[data-extended-setting]').forEach(el=>el.hidden=!s.warehousePolicy);
+  document.querySelectorAll('[data-extended-setting]').forEach(el=>{
+    el.hidden=!s.warehousePolicy;
+    // Hidden controls still participate in browser constraint validation.
+    el.querySelectorAll('input,select,button').forEach(input=>input.disabled=!s.warehousePolicy);
+  });
   document.getElementById('legacy-settings-note').hidden=!!s.warehousePolicy;
   document.getElementById('line-fields').parentElement.hidden=!!s.productStreams;
   if(!s.warehousePolicy)return;
@@ -22,7 +26,7 @@ export function populateExtendedSettings(s){
     return `<tr><th>${rowId}</th><td><select data-row-owner="${rowId}" aria-label="${rowId} 用途">${[['','未設定'],...Array.from({length:8},(_,i)=>['L'+(i+1),'系列 '+(i+1)]),['SPECIAL','共通・特注銘柄']].map(([v,t])=>`<option value="${v}" ${v===owner?'selected':''}>${t}</option>`).join('')}</select></td>
       <td><input type="number" min="1" step="1" data-row-priority="${rowId}" value="${priority<0?'':priority+1}" aria-label="${rowId} 同用途内の優先順位" placeholder="未設定"></td></tr>`;
   }).join('');
-  document.getElementById('hp-target-fields').innerHTML=s.agfs.map(a=>`<label>${a.id}の復帰先（今回のシナリオ）<select data-hp-target="${a.id}"><option value="">未設定・選択待ち</option>${['HP1','HP2'].map(id=>`<option ${s.postTaskPolicy.waitTargets[a.id]===id?'selected':''}>${id}</option>`).join('')}</select></label>`).join('');
+  document.getElementById('hp-target-fields').innerHTML=s.agfs.map(a=>`<label>${a.id}の復帰先（今回のシナリオ）<select data-hp-target="${a.id}" required><option value="">未設定・実行前に指定</option>${NORMAL_WAITING_PLACES.map(({id})=>`<option value="${id}" ${s.postTaskPolicy.waitTargets[a.id]===id?'selected':''}>${esc(locationName(id))}</option>`).join('')}</select></label>`).join('');
 }
 
 /** Move existing controls into four disclosure groups; no field values are replaced. */
@@ -35,7 +39,7 @@ export function organizeSettings(){
     ['基本設定','時間・設備・容量',[section('duration'),section('time-fields')]],
     ['搬出設定','8系列・4種別・発生頻度',[section('line-fields'),extended[0]]],
     ['倉庫設定','行割当・入庫順位',[extended[1]]],
-    ['AGF・充電設定','初期状態・電池・HP復帰',[section('agf-fields'),section('battery-fields'),extended[2]]]
+    ['AGF・充電設定','初期状態・電池・倉庫待機',[section('agf-fields'),section('battery-fields'),extended[2]]]
   ];
   for(const [index,[name,description,sections]] of groups.entries()){
     const details=document.createElement('details');details.className='panel settings-category';details.open=index===0;
@@ -78,6 +82,6 @@ export function loadSyntheticSettingsExample(s){
     intervalMin:Number(document.querySelector(`[data-stream-interval="${i}"]`).value),
     startOffsetMin:Number(document.querySelector(`[data-stream-offset="${i}"]`).value)}));
   s.warehousePolicy=syntheticWarehousePolicy();
-  s.postTaskPolicy={evidence:'synthetic-explicit-example',waitTargets:{AGF1:'HP1',AGF2:'HP2',AGF3:'HP1',AGF4:'HP2'}};
+  s.postTaskPolicy={evidence:'synthetic-explicit-example',waitTargets:{AGF1:'HP1',AGF2:'HP2',AGF3:'PILLAR-WAIT-W',AGF4:'PILLAR-WAIT-E'}};
   populateExtendedSettings(s);
 }

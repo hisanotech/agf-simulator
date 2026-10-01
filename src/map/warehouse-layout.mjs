@@ -22,13 +22,16 @@ export const WAREHOUSE_MAIN_AISLES=Object.freeze(['W','E'].flatMap(side=>[1,2].m
 const places=(prefix,count)=>Object.freeze(Array.from({length:count},(_,i)=>Object.freeze({
   id:prefix+(i+1),positionEvidence:'relative-only',stopNodeId:null,...(prefix==='CHARGE-PLACE'?{chargerId:null}:{})
 })));
+export const NORMAL_WAITING_PLACES=Object.freeze([...places('HP',2),
+  Object.freeze({id:'PILLAR-WAIT-W',positionEvidence:'relative-only',stopNodeId:null,relativeTo:'WB2-WB3-gap-east'}),
+  Object.freeze({id:'PILLAR-WAIT-E',positionEvidence:'relative-only',stopNodeId:null,relativeTo:'EB1-EB2-gap-west'})]);
 export const WAREHOUSE_SERVICE=Object.freeze({
   relativeTo:'south-of-EB2',accessFrom:'east-main-aisles',accessEvidence:'user-confirmed',branchAssignment:'unresolved',
-  waitingCandidates:Object.freeze({totalCount:4,groups:Object.freeze([
+  waitingCandidates:Object.freeze({totalCount:4,normalUse:true,groups:Object.freeze([
     Object.freeze({kind:'south-service',count:2,placeIds:Object.freeze(['HP1','HP2'])}),
-    Object.freeze({kind:'fire-shutter-pillars',count:2,sides:Object.freeze(['west','east']),placeIds:'unresolved'})
+    Object.freeze({kind:'rack-gap-pillars',count:2,sides:Object.freeze(['west','east']),placeIds:Object.freeze(['PILLAR-WAIT-W','PILLAR-WAIT-E'])})
   ]),wsIdMapping:'unresolved'}),
-  waitingPlaces:places('HP',2),chargePlaces:places('CHARGE-PLACE',2),chargers:places('CHARGER',2),aligners:places('AL',5),
+  waitingPlaces:NORMAL_WAITING_PLACES,chargePlaces:places('CHARGE-PLACE',2),chargers:places('CHARGER',2),aligners:places('AL',5),
   arrangement:Object.freeze({left:['waiting-1','waiting-2','charge-1','charge-2'],rightTop:'five-aligners',rightBottom:'empty-pallet-storage'}),
   emptyPalletStorage:Object.freeze({agfAccess:'forbidden',supplyBy:'operator',routeNodes:Object.freeze([]),capacity:null})
 });

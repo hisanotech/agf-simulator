@@ -6,7 +6,7 @@ export function integratedAcceptanceScenario(kind='normal'){
   if(!['normal','recovery','charging-boundary'].includes(kind))throw new Error('Unknown acceptance case');
   const s=createDemoScenario('extended');
   s.warehousePolicy=syntheticWarehousePolicy();
-  s.postTaskPolicy={evidence:'synthetic-explicit-example',waitTargets:{AGF1:'HP1',AGF2:'HP2',AGF3:'HP1',AGF4:'HP2'}};
+  s.postTaskPolicy={evidence:'synthetic-explicit-example',waitTargets:{AGF1:'HP1',AGF2:'HP2',AGF3:'PILLAR-WAIT-W',AGF4:'PILLAR-WAIT-E'}};
   s.evidence.acceptanceCase=kind;
   const partial=s.productStreams.find(p=>p.sourceLineId==='L1'&&p.productType==='normal'&&p.loadType==='partial');
   Object.assign(partial,{enabled:true,intervalMin:80,startOffsetMin:15});

@@ -9,7 +9,7 @@ import {analyzeRun} from '../src/ui/replay-model.mjs';
 function scenario(){
   const s=createDemoScenario('physical');s.durationMin=180;s.lineIntervalsMin=Array(8).fill(0);
   s.agfs.forEach((a,i)=>{a.blocked=i!==0;a.area='WH';a.currentNodeId='WH-HOME';a.batteryPct=90;});
-  s.postTaskPolicy={waitTargets:{AGF1:'HP1',AGF2:'HP2'},evidence:'synthetic-explicit-test'};
+  s.postTaskPolicy={waitTargets:{AGF1:'HP1',AGF2:'HP2',AGF3:'PILLAR-WAIT-W',AGF4:'PILLAR-WAIT-E'},evidence:'synthetic-explicit-test'};
   s.manualRequests=[{timeMs:0,kind:'05',palletId:'SIM-TEMP-1',locationId:'OT1',storagePermission:true,
     destinationLocationId:s.generatedDestinationIds[0]}];
   return s;
@@ -50,10 +50,9 @@ for(const pending of [false,true])test(`H27/H34-H37 charging wins; after target 
   assert.ok(r.events.some(e=>e.type==='CHARGER_RELEASED'&&e.timeMs>=charged.timeMs));
   assert.ok(Object.values(r.final.chargers).every(a=>a===null));
 });
-test('unconfigured HP selection never invents a fixed HP or a pillar fallback',()=>{
-  const s=scenario();s.postTaskPolicy.waitTargets={};const r=simulate(s),a=r.final.agfs[0];
-  assert.equal(a.status,'waiting_hp_instruction');assert.equal(a.taskId,null);
-  assert.ok(!r.events.some(e=>e.type==='WAIT_RETURN_REQUESTED'));
+test('unconfigured return selection rejects the run instead of leaving an AGF in PZ',()=>{
+  const s=scenario();s.postTaskPolicy.waitTargets={};
+  assert.throws(()=>simulate(s),/normal waiting return targets/);
 });
 
 test('battery crossing the charge threshold on HP return starts charging after arrival',()=>{
@@ -91,7 +90,8 @@ test('full or unreachable HP holds without a fallback, overlapping occupancy or 
     const s=scenario();
     if(cause==='full')s.agfs[1].currentNodeId='HP1';
     else s.operationalTopology.edges=s.operationalTopology.edges.filter(e=>e.toNodeId!=='HP1'&&e.fromNodeId!=='HP1');
-    const r=simulate(s);assert.equal(r.final.agfs[0].status,cause==='full'?'waiting_hp_capacity':'waiting_hp_route');
+    if(cause==='unreachable'){assert.throws(()=>simulate(s),/unreachable normal waiting/);continue;}
+    const r=simulate(s);assert.equal(r.final.agfs[0].status,'waiting_hp_capacity');
     assert.ok(!r.events.some(e=>e.type==='WAIT_ARRIVED'));
     if(cause==='full')assert.equal(r.final.waitingPlaces.HP1,'AGF2');
   }
@@ -147,8 +147,8 @@ for(const kind of ['01','03','04']){
   });
 }
 
-test('neither charging places nor pillar candidates can become normal HP targets',()=>{
-  for(const id of ['CHARGE-PLACE1','CHARGE-PLACE2','PILLAR-WAIT-W','PILLAR-WAIT-E','WH-HOME','PZ-HOME']){
+test('neither charging places nor internal junctions can become normal waiting targets',()=>{
+  for(const id of ['CHARGE-PLACE1','CHARGE-PLACE2','WH-HOME','PZ-HOME']){
     const s=scenario();s.postTaskPolicy.waitTargets.AGF1=id;
     assert.throws(()=>simulate(s),/invalid explicit HP return target/);
   }

@@ -37,3 +37,4 @@ dialog{background:#1e293b;border:1px solid #4b627c;border-radius:14px;color:#f8f
 .settings-category>.settings-grid{margin-top:20px}.settings-category .panel{background:#192638}
 .settings-category .panel.section{margin-top:0}.settings-category .table-scroll{max-height:480px}
 @media(max-width:900px){.map-canvas{overflow:auto}#map{min-width:1050px}.map-stamp{display:none}.slot-counts{flex-wrap:wrap;gap:12px}}
+@media(max-width:480px){.fleet-panel>#agf-list{grid-template-columns:1fr}.agf-details{grid-template-columns:80px minmax(0,1fr)}.agf-card-head{flex-wrap:nowrap}}

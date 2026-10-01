@@ -134,16 +134,17 @@ export function validateLogicalMap(map) {
   requireThat(corridors.get('WH-ROW').laneCount===1&&corridors.get('WH-ROW').direction==='both'&&
     corridors.get('WH-ROW').simultaneousPassing==='no-alternating','Warehouse rows cannot allow side-by-side passing');
   const service=layout.service;
-  requireThat(service?.waitingPlaces?.length===2&&service.chargePlaces?.length===2&&service.chargers?.length===2&&
-    service.aligners?.length===5&&new Set([...service.waitingPlaces,...service.chargePlaces].map(p=>p.id)).size===4&&
+  requireThat(service?.waitingPlaces?.length===4&&service.chargePlaces?.length===2&&service.chargers?.length===2&&
+    service.aligners?.length===5&&new Set([...service.waitingPlaces,...service.chargePlaces].map(p=>p.id)).size===6&&
     service.chargePlaces.every(p=>p.chargerId===null)&&service.accessFrom==='east-main-aisles'&&
     service.accessEvidence==='user-confirmed'&&service.branchAssignment==='unresolved',
     'Service waiting and charging places must be separate; east group access is confirmed, branches unresolved');
   requireThat(service.waitingCandidates?.totalCount===4&&service.waitingCandidates?.groups?.length===2&&
     service.waitingCandidates.groups.find(group=>group.kind==='south-service')?.count===2&&
-    service.waitingCandidates.groups.find(group=>group.kind==='fire-shutter-pillars')?.count===2&&
+    service.waitingCandidates.groups.find(group=>group.kind==='rack-gap-pillars')?.count===2&&
+    service.waitingCandidates.normalUse===true&&
     service.waitingCandidates.wsIdMapping==='unresolved',
-    'Four waiting candidates must retain two south-service and two fire-shutter pillar candidates');
+    'Four normal waiting places retain two south-service and two rack-gap pillar places');
   requireThat(service.emptyPalletStorage?.agfAccess==='forbidden'&&service.emptyPalletStorage.routeNodes?.length===0,
     'Empty pallet storage is forbidden and must not contain route nodes');
   return {

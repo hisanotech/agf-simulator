@@ -109,7 +109,7 @@ test('latest warehouse structure separates four main aisles from rows and servic
   assert.equal(map.warehouseLayout.capacity,802);
   assert.equal(map.corridors.find(c=>c.id==='WH-ROW').simultaneousPassing,'no-alternating');
   assert.equal(map.corridors.find(c=>c.id==='WH-E-V').laneCount,null);
-  assert.equal(map.warehouseLayout.service.waitingPlaces.length,2);
+  assert.equal(map.warehouseLayout.service.waitingPlaces.length,4);
   assert.equal(map.warehouseLayout.service.chargePlaces.length,2);
   assert.equal(map.warehouseLayout.service.emptyPalletStorage.agfAccess,'forbidden');
   const changed=copy();changed.warehouseLayout.mainAisles[0].direction='both';

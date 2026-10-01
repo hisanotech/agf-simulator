@@ -59,7 +59,7 @@ test('concept map renders G01-G17 semantic markers without claiming CAD coordina
   assert.match(svg.innerHTML,/data-band="PZ"[\s\S]*data-band="INTER"[\s\S]*data-band="WH"/);
   assert.match(svg.innerHTML,/パレタイズ西SH/);
   assert.match(svg.innerHTML,/パレタイズ出口SH/);
-  assert.match(svg.innerHTML,/柱前待機候補/);
+  assert.match(svg.innerHTML,/柱前待機/);
   assert.match(svg.innerHTML,/AGF進入禁止/);
   assert.match(svg.innerHTML,/概念図・実寸ではありません/);
 });

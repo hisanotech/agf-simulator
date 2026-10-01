@@ -4,6 +4,7 @@ import {validateOperationalTopology,findOperationalPath,resolveInterfaceNode} fr
 import {createTrafficController} from './traffic-controller.mjs';
 import {validateWarehousePolicy,validateProduct,validateStoredPallets,chooseWarehouseLocation,canUseUpper} from './warehouse-policy.mjs';
 import {generateProductionEvents} from './production-streams.mjs';
+import {NORMAL_WAITING_PLACES} from '../map/warehouse-layout.mjs';
 
 const minute = value => Math.round(value * 60_000);
 const required = (test, message) => { if (!test) throw new Error(message); };
@@ -60,7 +61,7 @@ export function simulate(rawScenario) {
   const batteryLedger = batteryModel(battery) === 'active_time' ? createBatteryLedger(agfs,battery) : null;
   const chargers = new Map((scenario.chargerIds ?? []).map(id => [id,null]));
   required(chargers.size === 2 && new Set(scenario.chargerIds).size === 2, 'two chargers required');
-  const waitingPlaces=new Map([['HP1',null],['HP2',null]]);
+  const waitingPlaces=new Map(NORMAL_WAITING_PLACES.map(p=>[p.id,null]));
   // Stop occupancy is independent of electrical charger occupancy. The optional
   // ordered places are explicit synthetic scenario input, never a place/charger pair.
   const chargePlaces=new Map((scenario.chargePlaceIds??[]).map(id=>[id,null]));
@@ -70,7 +71,7 @@ export function simulate(rawScenario) {
       'two explicit synthetic charging stops required');
   }
   if(scenario.initialParking){
-    const allowed=new Set([...waitingPlaces.keys(),...chargePlaces.keys()]);
+    const allowed=new Set(['HP1','HP2',...chargePlaces.keys()]);
     required(postTaskPolicy&&allowed.size===4&&scenario.initialParking.evidence&&
       scenario.initialParking.placeIds?.length===4&&new Set(scenario.initialParking.placeIds).size===4&&
       scenario.initialParking.placeIds.every(id=>allowed.has(id))&&
@@ -83,8 +84,18 @@ export function simulate(rawScenario) {
     chargePlaces.set(a.currentNodeId,a.id);
   }
   if(postTaskPolicy){
+    required(agfs.every(a=>postTaskPolicy.waitTargets?.[a.id])&&
+      new Set(Object.values(postTaskPolicy.waitTargets??{})).size===4,
+      'normal waiting return targets must specify four distinct places for all four AGFs');
     for(const [agfId,hpId] of Object.entries(postTaskPolicy.waitTargets??{}))required(
       agfs.some(a=>a.id===agfId)&&waitingPlaces.has(hpId),'invalid explicit HP return target');
+    for(const target of Object.values(postTaskPolicy.waitTargets)){
+      required(graphNodes.get(target)?.type==='wait'&&resolveInterfaceNode(topology,target)===target,
+        'normal waiting place needs an explicit synthetic node');
+      const starts=topology.nodes.filter(n=>['home','pickup','dropoff','charge'].includes(n.type));
+      for(const start of starts)required(findOperationalPath(topology,start.id,target,{movement:'wait',taskType:'WAIT'}),
+        'unreachable normal waiting return target: '+target);
+    }
     for(const a of agfs)if(waitingPlaces.has(a.currentNodeId)){
       required(!waitingPlaces.get(a.currentNodeId),'initial HP capacity exceeded');waitingPlaces.set(a.currentNodeId,a.id);
     }
@@ -441,10 +452,10 @@ export function simulate(rawScenario) {
       const holdReturn=(status,reason)=>{
         if(a.status!==status){a.status=status;record('WAIT_RETURN_HELD',{agfId:a.id,hpId:target??null,reason});}
       };
-      if(!target){holdReturn('waiting_hp_instruction','HP_TARGET_UNRESOLVED');continue;}
+      required(target,'normal waiting return target is required');
       if(waitingPlaces.get(target)&&waitingPlaces.get(target)!==a.id){holdReturn('waiting_hp_capacity','HP_CAPACITY_UNRESOLVED');continue;}
       const path=routeFor(a.currentNodeId,target,'wait','WAIT');
-      if(!path){holdReturn('waiting_hp_route','UNREACHABLE_WAIT_ROUTE');continue;}
+      required(path,'unreachable normal waiting return target: '+target);
       releasePlaces(a);waitingPlaces.set(target,a.id);a.waitTarget=target;
       record('WAIT_RETURN_REQUESTED',{agfId:a.id,hpId:target});
       beginRoute(null,a,'wait',path,'WAIT_ARRIVED');
@@ -654,7 +665,7 @@ export function simulate(rawScenario) {
           if(chargePlaces.get(step.fromNodeId)===a.id){
             chargePlaces.set(step.fromNodeId,null);
             record('PARKING_RELEASED',{agfId:a.id,placeId:step.fromNodeId});
-            releaseCharger(a);wakeTraffic();
+            releaseCharger(a);
           }
           if(chargePlaces.has(step.toNodeId))chargePlaces.set(step.toNodeId,a.id);
           if(movement.waitingReason)record('TRAFFIC_WAIT_ENDED',{taskId:movement.taskId,agfId:a.id,
@@ -670,6 +681,9 @@ export function simulate(rawScenario) {
             laneId:entered.laneId,fromNodeId:step.fromNodeId,toNodeId:step.toNodeId,
             movement:movement.movement,heading:a.heading,modelDurationMs:step.durationMs});
           schedule(now+step.durationMs,'SEGMENT_EXITED',{agfId:a.id});
+          // Resume other waiters only after this AGF has its moving status/current
+          // segment. Waking it while still waiting would queue a duplicate entry.
+          if(chargePlaces.has(step.fromNodeId))wakeTraffic();
         }
       }
     } else if(e.type==='SEGMENT_EXITED'){

@@ -119,23 +119,91 @@
       "serviceVehicleOrientation": "east-west"
     },
     "criteria": [
-      {"id": "G01", "scope": "schematic-relative", "physicalCoordinateCheck": false},
-      {"id": "G02", "scope": "schematic-relative", "physicalCoordinateCheck": false},
-      {"id": "G03", "scope": "schematic-relative", "physicalCoordinateCheck": false},
-      {"id": "G04", "scope": "schematic-relative", "physicalCoordinateCheck": false},
-      {"id": "G05", "scope": "schematic-relative", "physicalCoordinateCheck": false},
-      {"id": "G06", "scope": "schematic-relative", "physicalCoordinateCheck": false},
-      {"id": "G07", "scope": "schematic-relative", "physicalCoordinateCheck": false},
-      {"id": "G08", "scope": "schematic-relative", "physicalCoordinateCheck": false},
-      {"id": "G09", "scope": "schematic-relative", "physicalCoordinateCheck": false},
-      {"id": "G10", "scope": "schematic-relative", "physicalCoordinateCheck": false},
-      {"id": "G11", "scope": "schematic-relative", "physicalCoordinateCheck": false},
-      {"id": "G12", "scope": "schematic-relative", "physicalCoordinateCheck": false},
-      {"id": "G13", "scope": "schematic-relative", "physicalCoordinateCheck": false},
-      {"id": "G14", "scope": "schematic-relative", "physicalCoordinateCheck": false},
-      {"id": "G15", "scope": "schematic-relative", "physicalCoordinateCheck": false},
-      {"id": "G16", "scope": "schematic-relative", "physicalCoordinateCheck": false},
-      {"id": "G17", "scope": "schematic-relative", "physicalCoordinateCheck": false}
+      {
+        "id": "G01",
+        "scope": "schematic-relative",
+        "physicalCoordinateCheck": false
+      },
+      {
+        "id": "G02",
+        "scope": "schematic-relative",
+        "physicalCoordinateCheck": false
+      },
+      {
+        "id": "G03",
+        "scope": "schematic-relative",
+        "physicalCoordinateCheck": false
+      },
+      {
+        "id": "G04",
+        "scope": "schematic-relative",
+        "physicalCoordinateCheck": false
+      },
+      {
+        "id": "G05",
+        "scope": "schematic-relative",
+        "physicalCoordinateCheck": false
+      },
+      {
+        "id": "G06",
+        "scope": "schematic-relative",
+        "physicalCoordinateCheck": false
+      },
+      {
+        "id": "G07",
+        "scope": "schematic-relative",
+        "physicalCoordinateCheck": false
+      },
+      {
+        "id": "G08",
+        "scope": "schematic-relative",
+        "physicalCoordinateCheck": false
+      },
+      {
+        "id": "G09",
+        "scope": "schematic-relative",
+        "physicalCoordinateCheck": false
+      },
+      {
+        "id": "G10",
+        "scope": "schematic-relative",
+        "physicalCoordinateCheck": false
+      },
+      {
+        "id": "G11",
+        "scope": "schematic-relative",
+        "physicalCoordinateCheck": false
+      },
+      {
+        "id": "G12",
+        "scope": "schematic-relative",
+        "physicalCoordinateCheck": false
+      },
+      {
+        "id": "G13",
+        "scope": "schematic-relative",
+        "physicalCoordinateCheck": false
+      },
+      {
+        "id": "G14",
+        "scope": "schematic-relative",
+        "physicalCoordinateCheck": false
+      },
+      {
+        "id": "G15",
+        "scope": "schematic-relative",
+        "physicalCoordinateCheck": false
+      },
+      {
+        "id": "G16",
+        "scope": "schematic-relative",
+        "physicalCoordinateCheck": false
+      },
+      {
+        "id": "G17",
+        "scope": "schematic-relative",
+        "physicalCoordinateCheck": false
+      }
     ]
   },
   "areas": [
@@ -302,8 +370,16 @@
         "evidence": "user-confirmed"
       },
       "lanes": [
-        {"id": "WH-X-U-LANE-1", "direction": "unresolved", "evidence": "unresolved"},
-        {"id": "WH-X-U-LANE-2", "direction": "unresolved", "evidence": "unresolved"}
+        {
+          "id": "WH-X-U-LANE-1",
+          "direction": "unresolved",
+          "evidence": "unresolved"
+        },
+        {
+          "id": "WH-X-U-LANE-2",
+          "direction": "unresolved",
+          "evidence": "unresolved"
+        }
       ]
     },
     {
@@ -323,8 +399,16 @@
         "evidence": "user-confirmed"
       },
       "lanes": [
-        {"id": "WH-X-L-LANE-1", "direction": "unresolved", "evidence": "unresolved"},
-        {"id": "WH-X-L-LANE-2", "direction": "unresolved", "evidence": "unresolved"}
+        {
+          "id": "WH-X-L-LANE-1",
+          "direction": "unresolved",
+          "evidence": "unresolved"
+        },
+        {
+          "id": "WH-X-L-LANE-2",
+          "direction": "unresolved",
+          "evidence": "unresolved"
+        }
       ]
     },
     {
@@ -929,6 +1013,7 @@
       "branchAssignment": "unresolved",
       "waitingCandidates": {
         "totalCount": 4,
+        "normalUse": true,
         "groups": [
           {
             "kind": "south-service",
@@ -939,13 +1024,16 @@
             ]
           },
           {
-            "kind": "fire-shutter-pillars",
+            "kind": "rack-gap-pillars",
             "count": 2,
             "sides": [
               "west",
               "east"
             ],
-            "placeIds": "unresolved"
+            "placeIds": [
+              "PILLAR-WAIT-W",
+              "PILLAR-WAIT-E"
+            ]
           }
         ],
         "wsIdMapping": "unresolved"
@@ -960,6 +1048,18 @@
           "id": "HP2",
           "positionEvidence": "relative-only",
           "stopNodeId": null
+        },
+        {
+          "id": "PILLAR-WAIT-W",
+          "positionEvidence": "relative-only",
+          "stopNodeId": null,
+          "relativeTo": "WB2-WB3-gap-east"
+        },
+        {
+          "id": "PILLAR-WAIT-E",
+          "positionEvidence": "relative-only",
+          "stopNodeId": null,
+          "relativeTo": "EB1-EB2-gap-west"
         }
       ],
       "chargePlaces": [
