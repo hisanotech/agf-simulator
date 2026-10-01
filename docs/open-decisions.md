@@ -2,7 +2,7 @@
 
 Full customer/site requirements and CAD layouts remain outside this public repository pending publication approval.
 
-- Each of the 8 lines has an individually editable discharge interval (minutes) on the settings screen; default interval, fractional precision, and persistence across sessions are unresolved. Input generated from intervals must not be represented as actual PLC history.
+- Each of the 8 lines has an individually editable discharge interval (minutes) on the settings screen. The initial defaults are now confirmed as theoretical equipment-capacity takt values: GWI 17.2, GWII 36.5, GWIII 36.5, GWIV 22.9, GWV 25.3, GWVI 21.5, GWVII 36.5, GWVIII 36.5 min/PL. They are not PLC history. Fractional precision beyond the supplied one-decimal values and persistence across sessions remain unresolved.
 - The uploaded DXF has `$INSUNITS=0`; the user considers its model units likely mm. The display-only private preview can use an explicit mm assumption, but physical scale remains unverified until compared with a known length. The reference origin, relevant layer semantics, and unresolved INSERTs remain open. Do not derive approved mm distances or ETA from this preview.
 - Per-line pickup points and georeferenced equipment coordinates.
 - Physical route graph, actual turn/stop points, individual slot-to-row map, shutter-specific stopping points and transit times. The [abstract logical map](logical-map.md) records confirmed corridor relationships but is not measured physical routing. Use the [route annotation guide](route-annotation-guide.md); do not silently promote provisional paths to confirmed geometry.
@@ -15,7 +15,7 @@ Full customer/site requirements and CAD layouts remain outside this public repos
 - The upper and lower fire-shutter corridor groups remain confirmed as bidirectional, two-lane and simultaneous-passing-capable. The direction of each individual lane is unresolved and must be checked without weakening the confirmed group-level attributes.
 - Normal warehouse access uses the east shutter and excludes the west shutter. The east-shutter-failure detour through the west shutter and the required palletizing entry/exit reversal are retained requirements; activation conditions, operator procedure, stops and physical route remain unresolved and non-routable.
 - South of EB2: two waiting places and two distinct charging places, two charger devices, five aligners; east-main-aisle access is confirmed. Initial placement may use the two waiting places and the two charging places as four distinct AGF stopping positions. An AGF merely stopped at a charging place is not charging and does not occupy a charger device. Individual branches, exact stops, charger mapping, and the fixed AGF-to-position assignment remain unresolved. Empty-pallet storage below the aligners is AGF-forbidden, never a route/retreat/pickup point.
-- Four normal warehouse waiting places are retained: two south of EB2 (HP1/HP2) and two pillar-front places. The west pillar-front place is in the open area below WB2, between WB2 and WB3, toward the east side; the east place is in the open area below EB1, between EB1 and EB2, toward the west side. These are normal waiting places; palletizing has no normal waiting place. WS1-WS4 naming/mapping, exact stop geometry, AGF fixed assignment and priority remain unresolved.
+- Four normal warehouse waiting places are retained: HP1, HP2, east pillar-front, west pillar-front. They are shared resources rather than AGF-dedicated places. Return priority is confirmed as HP1 → HP2 → east pillar-front → west pillar-front, selecting the first unoccupied and unreserved place. Palletizing has no normal waiting place. WS1-WS4 naming/mapping and exact physical stop geometry remain unresolved.
 - Dispatch mode `area_first` now prioritizes eligible AGFs at the **destination/drop-off area** by lowest battery. Fallback when no eligible AGF is in that area and equal-battery tie handling need confirmation; the engine already implements destination-area priority; ID tie breaks and optional cross-area fallback remain explicit model assumptions.
 
 Use an explicit scenario schema and synthetic values until confirmed. Never silently resolve these by guessing.
@@ -23,7 +23,6 @@ Use an explicit scenario schema and synthetic values until confirmed. Never sile
 ## 2026-09-29 追加指示の未確定事項
 
 - 各系列およびSPECIALの実際の初期行割当、ブロックを跨ぐ連続判定、複数行の入庫順位。入力未設定を現場の初期値へ置き換えない。
-- AGFごとの4待機場所への固定割当、待機場所間の優先順位、WS1～WS4の正式対応。柱前西・柱前東を通常待機場所として使うこと自体は確定。合成例の割当は明示したテスト入力に限る。
-- 4待機場所への固定割当・優先順位は未確定。合成モデルでは実行前に4台分の復帰先を明示し、未設定のままPZや充電場所に通常待機させない。
+- WS1～WS4の正式対応と各待機場所の実停止座標。AGF固定割当は行わず、帰還優先順位は `HP1 → HP2 → 柱前東 → 柱前西` で確定。PZや充電場所を通常待機先にはしない。
 - 実車の減速・加減速・車体離隔、同一行占有の実信号境界、個別棚停止点。現在の合成倉庫は代表荷下ろしノードであり、802個の実座標経路ではない。
 - UIのレイヤー切替、CADレビューの詳細ツールへの追加分離は次段階。今回の画面構造は維持する。
