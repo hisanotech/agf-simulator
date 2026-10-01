@@ -1,10 +1,12 @@
 const minute=n=>Math.round(n*60000);
 const required=(ok,msg)=>{if(!ok)throw new Error('PRODUCTION_CONFIG: '+msg);};
 export const productVariants=[['normal','full'],['normal','partial'],['special','full'],['special','partial']];
-export function defaultProductStreams(intervals=Array(8).fill(41),offsets=Array(8).fill(0)){
+/** User-confirmed defaults at theoretical 100% equipment capacity, not PLC history. */
+export const THEORETICAL_LINE_INTERVALS_MIN=Object.freeze([17.2,36.5,36.5,22.9,25.3,21.5,36.5,36.5]);
+export function defaultProductStreams(intervals=THEORETICAL_LINE_INTERVALS_MIN,offsets=Array(8).fill(0)){
   return intervals.flatMap((interval,i)=>productVariants.map(([productType,loadType],index)=>({
     sourceLineId:'L'+(i+1),productType,loadType,enabled:index===0&&interval>0,
-    intervalMin:interval||41,startOffsetMin:offsets[i]??0})));
+    intervalMin:interval||THEORETICAL_LINE_INTERVALS_MIN[i],startOffsetMin:offsets[i]??0})));
 }
 export function generateProductionEvents(streams,durationMs,lineIds){
   required(Array.isArray(streams),'搬出種別設定が必要です。');

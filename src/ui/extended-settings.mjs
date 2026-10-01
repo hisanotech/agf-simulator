@@ -1,5 +1,4 @@
-import {WAREHOUSE_BLOCKS,NORMAL_WAITING_PLACES} from '../map/warehouse-layout.mjs';
-import {productVariants} from '../core/production-streams.mjs';
+import {WAREHOUSE_BLOCKS,NORMAL_WAITING_PRIORITY} from '../map/warehouse-layout.mjs';
 import {syntheticWarehousePolicy} from '../../examples/synthetic-warehouse-policy.mjs';
 import {escapeHtml as esc,locationName} from './format.mjs';
 
@@ -26,7 +25,8 @@ export function populateExtendedSettings(s){
     return `<tr><th>${rowId}</th><td><select data-row-owner="${rowId}" aria-label="${rowId} 用途">${[['','未設定'],...Array.from({length:8},(_,i)=>['L'+(i+1),'系列 '+(i+1)]),['SPECIAL','共通・特注銘柄']].map(([v,t])=>`<option value="${v}" ${v===owner?'selected':''}>${t}</option>`).join('')}</select></td>
       <td><input type="number" min="1" step="1" data-row-priority="${rowId}" value="${priority<0?'':priority+1}" aria-label="${rowId} 同用途内の優先順位" placeholder="未設定"></td></tr>`;
   }).join('');
-  document.getElementById('hp-target-fields').innerHTML=s.agfs.map(a=>`<label>${a.id}の復帰先（今回のシナリオ）<select data-hp-target="${a.id}" required><option value="">未設定・実行前に指定</option>${NORMAL_WAITING_PLACES.map(({id})=>`<option value="${id}" ${s.postTaskPolicy.waitTargets[a.id]===id?'selected':''}>${esc(locationName(id))}</option>`).join('')}</select></label>`).join('');
+  document.getElementById('hp-target-fields').innerHTML=NORMAL_WAITING_PRIORITY.map((id,i)=>
+    `<div><h3>${i+1}. ${esc(locationName(id))}</h3><span class="muted">全AGF共通・空きかつ未予約</span></div>`).join('');
 }
 
 /** Move existing controls into four disclosure groups; no field values are replaced. */
@@ -73,15 +73,14 @@ export function readExtendedSettings(s){
     rowPriority[owner]=rows.sort((a,b)=>Number(a.value)-Number(b.value)).map(r=>r.rowId);
   }
   s.warehousePolicy={evidence:'explicit-scenario-setting',rowAssignments:assignments,rowPriority};
-  s.postTaskPolicy={evidence:'explicit-scenario-setting',waitTargets:Object.fromEntries(s.agfs.map(a=>[a.id,get(`[data-hp-target="${a.id}"]`).value]).filter(([,id])=>id))};
+  s.postTaskPolicy={evidence:'user-confirmed-shared-priority',waitingPriority:[...NORMAL_WAITING_PRIORITY]};
 }
 export function loadSyntheticSettingsExample(s){
-  // This button replaces allocation and HP examples only; preserve edited streams.
+  // Replace the row-allocation example only; preserve edited production streams.
   s.productStreams=s.productStreams.map((stream,i)=>({...stream,
     enabled:document.querySelector(`[data-stream-enabled="${i}"]`).checked,
     intervalMin:Number(document.querySelector(`[data-stream-interval="${i}"]`).value),
     startOffsetMin:Number(document.querySelector(`[data-stream-offset="${i}"]`).value)}));
   s.warehousePolicy=syntheticWarehousePolicy();
-  s.postTaskPolicy={evidence:'synthetic-explicit-example',waitTargets:{AGF1:'HP1',AGF2:'HP2',AGF3:'PILLAR-WAIT-W',AGF4:'PILLAR-WAIT-E'}};
   populateExtendedSettings(s);
 }

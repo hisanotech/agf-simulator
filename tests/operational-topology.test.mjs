@@ -13,7 +13,7 @@ const copy=()=>structuredClone(graph);
 test('synthetic operational topology is explicit, metric, but never presented as CAD physical ETA',()=>{
   const result=validateOperationalTopology(graph);
   assert.equal(result.datasetKind,'synthetic');
-  assert.equal(result.nodes,19);
+  assert.equal(result.nodes,84);
   assert.deepEqual(graph.nodes.filter(n=>n.type==='wait').map(n=>n.id),['HP1','HP2','PILLAR-WAIT-W','PILLAR-WAIT-E']);
   assert.ok(result.edges>0);
   assert.equal(graph.evidence,'synthetic-assumption');
@@ -37,7 +37,7 @@ test('path calculation uses phase speed, explicit direction and stable edge tie 
 test('interface bindings resolve exact and wildcard task endpoints without inventing site nodes',()=>{
   assert.equal(resolveInterfaceNode(graph,'L8'),'PZ-LINE');
   assert.equal(resolveInterfaceNode(graph,'WRAP-INPUT'),'PZ-WRAP-IN');
-  assert.equal(resolveInterfaceNode(graph,'WB1-R01-C01-T1'),'WH-DROP');
+  assert.equal(resolveInterfaceNode(graph,'WB1-R01-C01-T1'),'WB1-R01-DROP');
   assert.equal(resolveInterfaceNode(graph,'UNKNOWN'),null);
 });
 

@@ -11,8 +11,8 @@ export const stateLabel=(status,graphMode=false)=>graphMode&&status==='moving_em
 export const taskNames={'01':'製品の包装投入','02':'製品の倉庫入庫','03':'空パレット補充','04':'仮置きから再投入','05':'仮置きから入庫'};
 export const reasons={LOCATION_PERMISSION:'入庫許可なし',SAME_ROW_ACTIVE:'同じ行の置きタスク完了待ち',LOCATION_FULL_OR_RESERVED:'入庫先が満杯または予約済み',
   NO_ASSIGNED_STORAGE:'対象用途の行なし',ROW_PRIORITY_UNRESOLVED:'同用途の行優先順位が未設定',ASSIGNED_STORAGE_FULL:'対象系列／特注領域が満杯',
-  HP_TARGET_UNRESOLVED:'復帰先が未設定',HP_CAPACITY_UNRESOLVED:'指定待機場所の解放待ち',UNREACHABLE_WAIT_ROUTE:'倉庫待機場所への経路が到達不能',
-  WRAPPER_INPUT_FULL:'包装機の投入空き待ち',NO_ELIGIBLE_AGF:'実行可能AGF待ち',NO_AREA_AGF:'目的地エリアのAGF待ち',ALIGNER_NOT_READY:'整列機の搬送OK待ち',
+  HP_TARGET_UNRESOLVED:'復帰先が未設定',HP_CAPACITY_UNRESOLVED:'待機場所の占有・予約の解放待ち',UNREACHABLE_WAIT_ROUTE:'倉庫待機場所への経路が到達不能',
+  WRAPPER_INPUT_FULL:'包装機の投入空き待ち',WRAPPER_INBOUND_LIMIT:'包装投入への同時AGF割当が上限（合成条件）',NO_ELIGIBLE_AGF:'実行可能AGF待ち',NO_AREA_AGF:'目的地エリアのAGF待ち',ALIGNER_NOT_READY:'整列機の搬送OK待ち',
   NO_READY_ALIGNER:'整列機の搬送OK待ち',MAGAZINE_PERMISSION:'マガジン許可待ち',UNREACHABLE_ROUTE:'合成グラフ上で到達不能',
   UNREACHABLE_CHARGE_ROUTE:'充電経路へ到達不能',CHARGE_PLACE_OCCUPIED:'充電停止位置の解放待ち',OCCUPIED:'区間・交差点の解放待ち',SHUTTER:'シャッター許可待ち'};
 export const eventNames={RUN_STARTED:'シミュレーション開始',RUN_ENDED:'シミュレーション終了',TASK_PICKED:'荷受け完了',TASK_DROPPED:'荷下ろし完了',CHARGE_ENDED:'充電完了',

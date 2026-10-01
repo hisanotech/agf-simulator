@@ -1,17 +1,24 @@
 import {createDemoScenario} from '../src/ui/scenario.mjs';
 import {syntheticWarehousePolicy} from './synthetic-warehouse-policy.mjs';
+import {generateProductionEvents} from '../src/core/production-streams.mjs';
 
-/** Reproducible synthetic examples only. No site allocation, HP priority or timing approval. */
+/** Reproducible synthetic inventory/geometry/timing, with confirmed waiting priority. */
 export function integratedAcceptanceScenario(kind='normal'){
   if(!['normal','recovery','charging-boundary'].includes(kind))throw new Error('Unknown acceptance case');
   const s=createDemoScenario('extended');
   s.warehousePolicy=syntheticWarehousePolicy();
-  s.postTaskPolicy={evidence:'synthetic-explicit-example',waitTargets:{AGF1:'HP1',AGF2:'HP2',AGF3:'PILLAR-WAIT-W',AGF4:'PILLAR-WAIT-E'}};
   s.evidence.acceptanceCase=kind;
-  const partial=s.productStreams.find(p=>p.sourceLineId==='L1'&&p.productType==='normal'&&p.loadType==='partial');
-  Object.assign(partial,{enabled:true,intervalMin:80,startOffsetMin:15});
-  const special=s.productStreams.filter(p=>p.sourceLineId==='L4'&&p.productType==='special');
-  special.forEach((p,i)=>Object.assign(p,{enabled:true,intervalMin:120+i*5,startOffsetMin:0}));
+  // Four variants share the same 100%-capacity theoretical production stream.
+  // Adding independent variant streams would exceed that baseline and create
+  // impossible same-line discharge bursts. These substitutions are test inputs,
+  // not observed product mix or an operational production rule.
+  s.productionEvents=generateProductionEvents(s.productStreams,180*60000,Array.from({length:8},(_,i)=>'L'+(i+1)));
+  const l1=s.productionEvents.filter(p=>p.sourceLineId==='L1');l1[1].loadType='partial';
+  const l4=s.productionEvents.filter(p=>p.sourceLineId==='L4');
+  l4[0].productType='special';l4[1].productType='special';l4[1].loadType='partial';
+  s.productionEvents.forEach((p,i)=>p.palletId='ACCEPT-'+p.sourceLineId+'-'+(i+1));
+  s.productStreams.forEach(p=>p.enabled=false);
+  s.evidence.production='synthetic-fixed-theoretical-stream-with-mixed-products';
   Object.assign(s.temporaryPallets[0],{loadType:'partial'});
   Object.assign(s.temporaryPallets[1],{productType:'special'});
   Object.assign(s.temporaryPallets[2],{productType:'special',loadType:'partial'});
@@ -32,7 +39,7 @@ export function integratedAcceptanceScenario(kind='normal'){
   if(kind==='charging-boundary'){
     s.agfs.forEach(a=>{a.batteryPct=40;});
     s.battery.chargeTargetPct=100;
-    s.productStreams.forEach(p=>p.enabled=false);s.manualRequests=[];s.magazineUses=[];
+    s.productionEvents=[];s.manualRequests=[];s.magazineUses=[];
   }
   return s;
 }

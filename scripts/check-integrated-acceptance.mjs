@@ -6,7 +6,7 @@ import {analyzeRun,durationTenths} from '../src/ui/replay-model.mjs';
 import {eventCsv} from '../src/ui/export.mjs';
 import {integratedAcceptanceScenario} from '../examples/integrated-acceptance.mjs';
 
-const out=new URL('../private/review-2026-09-28/acceptance/',import.meta.url);
+const out=new URL('../private/review-2026-10-01/acceptance/',import.meta.url);
 mkdirSync(out,{recursive:true});
 const sha=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const summaries=[];
@@ -26,6 +26,7 @@ for(const kind of ['normal','recovery','charging-boundary']){
     for(const snap of run.snapshots){
       assert.ok(Object.values(snap.chargers).filter(Boolean).length<=2);
       for(const slot of Object.values(snap.warehouse))assert.ok(slot.reserved.length+slot.palletIds.length<=slot.capacity);
+      for(const id of Object.keys(snap.waitingPlaces))assert.ok(!(snap.waitingPlaces[id]&&snap.waitingReservations[id]));
     }
     const name=kind+'-'+mode;
     writeFileSync(new URL(name+'.scenario.json',out),JSON.stringify(scenario,null,2));
@@ -36,6 +37,9 @@ for(const kind of ['normal','recovery','charging-boundary']){
       endAgfs:run.final.agfs.map(a=>({id:a.id,status:a.status,batteryPct:a.batteryPct,node:a.currentNodeId})),
       holdReasons:[...new Set(run.events.map(e=>e.reason).filter(Boolean))],
       maxChargers:Math.max(...run.snapshots.map(s=>Object.values(s.chargers).filter(Boolean).length)),
+      initialAgfs:run.snapshots[0].agfs.map(a=>({id:a.id,node:a.currentNodeId,status:a.status,chargerId:a.chargerId})),
+      initialStopOccupancy:{...run.snapshots[0].waitingPlaces,...run.snapshots[0].chargePlaces},
+      initialChargerOccupancy:run.snapshots[0].chargers,
       scope:'synthetic-only; not physical acceptance or measured throughput'};
     summaries.push(summary);
     console.log(JSON.stringify({name,created:run.metrics.created,stored:run.metrics.stored,completed:analysis.completed,

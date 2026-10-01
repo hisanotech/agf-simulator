@@ -30,6 +30,9 @@ function populateSettings(scenario) {
   populateExtendedSettings(scenario);
   $('duration').value=scenario.durationMin;$('lineCapacity').value=scenario.lineCapacity;
   $('fallback').value=scenario.fallback;$('mode').value=scenario.mode;
+  $('inbound-limit-field').hidden=scenario.motionModel!=='synthetic_graph';
+  $('inboundAgfLimit').disabled=scenario.motionModel!=='synthetic_graph';
+  $('inboundAgfLimit').value=scenario.wrapper.inboundAgfLimit??4;
   $('inputCapacity').value=scenario.wrapper.inputCapacity;$('outputCapacity').value=scenario.wrapper.outputCapacity;
   $('line-fields').innerHTML=scenario.lineIntervalsMin.map((n,i)=>`<div class="line-setting"><h3>系列 ${i+1}</h3>${input('line-'+i,'搬出間隔（分）',n)}${input('offset-'+i,'初回ずらし（分）',scenario.lineStartOffsetsMin[i],0,.001)}</div>`).join('');
   $('time-fields').innerHTML=timeFields.map(([id,label])=>input(id,label,scenario.times[id],id==='wrapMin'?.001:0,.001)).join('');
@@ -40,7 +43,7 @@ function populateSettings(scenario) {
   $('agf-fields').innerHTML=scenario.agfs.map((a,i)=>`<div><h3>${a.id}</h3>${input('initial-battery-'+i,'初期残量（%）',a.batteryPct,0,.1,100)}${scenario.initialParking?
     `<label>初期停止位置<select id="initial-position-${i}">${scenario.initialParking.placeIds.map(id=>`<option value="${id}" ${a.currentNodeId===id?'selected':''}>${esc(locationName(id))}</option>`).join('')}</select></label>`:
     `<label>初期エリア<select id="initial-area-${i}"><option value="PZ" ${a.area==='PZ'?'selected':''}>パレタイズ</option><option value="WH" ${a.area==='WH'?'selected':''}>製品倉庫</option></select></label>`}</div>`).join('')+
-    (scenario.initialParking?'<p class="muted">初期配置は合成サンプルです。4台を重複なく配置してください。充電場所への初期停車は充電・充電器占有を意味しません。</p>':'');
+    (scenario.initialParking?'<p class="muted">初期配置の既定はAGF1・2＝充電場所1・2、AGF3・4＝HP1・2です。表示座標は合成値。変更時も4台を重複なく配置してください。充電場所への初期停車は充電・充電器占有を意味しません。</p>':'');
 }
 function syncBatteryFields(){const active=$('battery-model').value==='active_time';
   for(const id of ['activeReferenceMin','activeReferenceConsumptionPct']){$(id).disabled=!active;$(id).parentElement.hidden=!active;}
@@ -50,13 +53,13 @@ function scenarioFromSettings() {
   if(!$('settings-form').checkValidity()) {
     $('settings-form').querySelectorAll('details').forEach(el=>el.open=true);
     showView('settings');$('settings-form').reportValidity();
-    const missing=[...$('settings-form').querySelectorAll('[data-hp-target]:enabled')].filter(el=>!el.value).map(el=>el.dataset.hpTarget);
-    throw new Error(missing.length?`${missing.join('・')}の復帰先が未設定です。AGF・充電設定でHP1・HP2・柱前西・柱前東へ重複なく指定してください。`:'設定値の入力範囲・単位を確認してください。');
+    throw new Error('設定値の入力範囲・単位を確認してください。');
   }
   const scenario=structuredClone(base);
   scenario.durationMin=numeric('duration');scenario.mode=$('mode').value;scenario.fallback=$('fallback').value;
   scenario.lineCapacity=numeric('lineCapacity');
   scenario.wrapper={inputCapacity:numeric('inputCapacity'),outputCapacity:numeric('outputCapacity')};
+  if(scenario.motionModel==='synthetic_graph')scenario.wrapper.inboundAgfLimit=numeric('inboundAgfLimit');
   scenario.lineIntervalsMin=Array.from({length:8},(_,i)=>numeric('line-'+i));
   scenario.lineStartOffsetsMin=Array.from({length:8},(_,i)=>numeric('offset-'+i));
   scenario.times=Object.fromEntries(timeFields.map(([id])=>[id,numeric(id)]));
@@ -74,7 +77,7 @@ function scenarioFromSettings() {
 function markDirty(value=true) {dirty=value;$('dirty-state').hidden=!value;}
 function friendlyError(error) {
   const message=error.message??String(error);
-  if(/waiting return target|normal waiting place|explicit HP return target/.test(message))return '4台の復帰先をHP1・HP2・柱前西・柱前東へ重複なく指定してください。各場所への合成経路が接続されている必要があります。';
+  if(/waiting return target|normal waiting place|shared normal waiting priority/.test(message))return '共通の帰還先はHP1 → HP2 → 柱前東 → 柱前西です。4か所すべてへの合成経路が接続されている必要があります。AGF別の固定割当は使用できません。';
   if(/initial parking|initial HP capacity/.test(message))return '初期停止位置が重複しています。HP1・HP2・充電場所1・充電場所2へ4台を重複なく配置してください。';
   if(/duplicate|already reserved|reserved temporary/.test(message))return '二重予約です。同じパレットの既存予約を確認してください。';
   if(/temporary pallet|location mismatch|unreserved pallet at specified temporary/.test(message))return '対象パレットと仮置き場が一致しないか、その時刻に利用できません。';

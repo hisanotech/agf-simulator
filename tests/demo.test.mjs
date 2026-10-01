@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { simulate } from '../src/core/simulate.mjs';
 
-test('three-hour default UI synthetic scenario is reproducible and capacity safe',()=>{
+test('legacy three-hour 41-minute synthetic input remains reproducible and capacity safe',()=>{
   const scenario={
     durationMin:180,mode:'area_first',fallback:'any',
     lineCapacity:2,lineIntervalsMin:[41,41,41,41,41,41,41,41],

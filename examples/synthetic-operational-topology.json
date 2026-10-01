@@ -163,9 +163,2450 @@
       "x": 725,
       "y": 609,
       "approvalState": "synthetic-validated"
+    },
+    {
+      "id": "WH-E-NORTH",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 682.5,
+      "y": 562.5,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 0
+    },
+    {
+      "id": "WH-E-SOUTH",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 682.5,
+      "y": 769.5,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 15000
+    },
+    {
+      "id": "WH-E-PILLAR",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 682.5,
+      "y": 609,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 4000
+    },
+    {
+      "id": "WH-E-SERVICE",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 682.5,
+      "y": 732.5,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 14000
+    },
+    {
+      "id": "WH-W-NORTH",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 562.5,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 0
+    },
+    {
+      "id": "WH-W-SOUTH",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 769.5,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 15000
+    },
+    {
+      "id": "WH-W-PILLAR",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 725,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 13000
+    },
+    {
+      "id": "WB1-R01-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 558.428571,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": -1000
+    },
+    {
+      "id": "WB1-R01-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 558.428571,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB1-R01",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "WB1-R02-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 567.285714,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 1000
+    },
+    {
+      "id": "WB1-R02-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 567.285714,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB1-R02",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "WB1-R03-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 576.142857,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 2000
+    },
+    {
+      "id": "WB1-R03-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 576.142857,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB1-R03",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "WB1-R04-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 585,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 3000
+    },
+    {
+      "id": "WB1-R04-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 585,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB1-R04",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "WB1-R05-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 593.857143,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 4000
+    },
+    {
+      "id": "WB1-R05-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 593.857143,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB1-R05",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "WB1-R06-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 602.714286,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 5000
+    },
+    {
+      "id": "WB1-R06-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 602.714286,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB1-R06",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "WB1-R07-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 611.571429,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 6000
+    },
+    {
+      "id": "WB1-R07-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 611.571429,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB1-R07",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "WB2-R01-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 687.666667,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 10000
+    },
+    {
+      "id": "WB2-R01-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 687.666667,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB2-R01",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "WB2-R02-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 695,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 11000
+    },
+    {
+      "id": "WB2-R02-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 695,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB2-R02",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "WB2-R03-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 702.333333,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 12000
+    },
+    {
+      "id": "WB2-R03-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 702.333333,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB2-R03",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "WB3-R01-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 778.692308,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 16000
+    },
+    {
+      "id": "WB3-R01-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 778.692308,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB3-R01",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "WB3-R02-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 788.076923,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 17000
+    },
+    {
+      "id": "WB3-R02-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 788.076923,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB3-R02",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "WB3-R03-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 797.461538,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 18000
+    },
+    {
+      "id": "WB3-R03-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 797.461538,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB3-R03",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "WB3-R04-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 806.846154,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 19000
+    },
+    {
+      "id": "WB3-R04-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 806.846154,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB3-R04",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "WB3-R05-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 816.230769,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 20000
+    },
+    {
+      "id": "WB3-R05-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 816.230769,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB3-R05",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "WB3-R06-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 825.615385,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 21000
+    },
+    {
+      "id": "WB3-R06-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 825.615385,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB3-R06",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "WB3-R07-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 835,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 22000
+    },
+    {
+      "id": "WB3-R07-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 835,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB3-R07",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "WB3-R08-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 844.384615,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 23000
+    },
+    {
+      "id": "WB3-R08-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 844.384615,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB3-R08",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "WB3-R09-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 853.769231,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 24000
+    },
+    {
+      "id": "WB3-R09-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 853.769231,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB3-R09",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "WB3-R10-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 863.153846,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 25000
+    },
+    {
+      "id": "WB3-R10-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 863.153846,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB3-R10",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "WB3-R11-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 872.538462,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 26000
+    },
+    {
+      "id": "WB3-R11-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 872.538462,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB3-R11",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "WB3-R12-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 881.923077,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 27000
+    },
+    {
+      "id": "WB3-R12-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 881.923077,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB3-R12",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "WB3-R13-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 417.5,
+      "y": 891.307692,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 28000
+    },
+    {
+      "id": "WB3-R13-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 311,
+      "y": 891.307692,
+      "approvalState": "synthetic-validated",
+      "rowId": "WB3-R13",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "EB1-R01-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 682.5,
+      "y": 559.333333,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": -1000
+    },
+    {
+      "id": "EB1-R01-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 710,
+      "y": 559.333333,
+      "approvalState": "synthetic-validated",
+      "rowId": "EB1-R01",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "EB1-R02-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 682.5,
+      "y": 570,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 1000
+    },
+    {
+      "id": "EB1-R02-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 710,
+      "y": 570,
+      "approvalState": "synthetic-validated",
+      "rowId": "EB1-R02",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "EB1-R03-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 682.5,
+      "y": 580.666667,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 2000
+    },
+    {
+      "id": "EB1-R03-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 710,
+      "y": 580.666667,
+      "approvalState": "synthetic-validated",
+      "rowId": "EB1-R03",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "EB2-R01-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 682.5,
+      "y": 689.333333,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 10000
+    },
+    {
+      "id": "EB2-R01-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 710,
+      "y": 689.333333,
+      "approvalState": "synthetic-validated",
+      "rowId": "EB2-R01",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "EB2-R02-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 682.5,
+      "y": 700,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 11000
+    },
+    {
+      "id": "EB2-R02-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 710,
+      "y": 700,
+      "approvalState": "synthetic-validated",
+      "rowId": "EB2-R02",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
+    },
+    {
+      "id": "EB2-R03-ACCESS",
+      "type": "junction",
+      "areaId": "WH",
+      "x": 682.5,
+      "y": 710.666667,
+      "approvalState": "synthetic-validated",
+      "modelStationMm": 12000
+    },
+    {
+      "id": "EB2-R03-DROP",
+      "type": "dropoff",
+      "areaId": "WH",
+      "x": 710,
+      "y": 710.666667,
+      "approvalState": "synthetic-validated",
+      "rowId": "EB2-R03",
+      "stopEvidence": "synthetic-row-interface-not-site-stop"
     }
   ],
   "edges": [
+    {
+      "id": "ACCESS-EB1-R01",
+      "fromNodeId": "EB1-R01-ACCESS",
+      "toNodeId": "EB1-R01-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-EB1-R01-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-EB1-R01"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 559.333333
+        },
+        {
+          "x": 710,
+          "y": 559.333333
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-EB1-R02",
+      "fromNodeId": "EB1-R02-ACCESS",
+      "toNodeId": "EB1-R02-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-EB1-R02-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-EB1-R02"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 570
+        },
+        {
+          "x": 710,
+          "y": 570
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-EB1-R03",
+      "fromNodeId": "EB1-R03-ACCESS",
+      "toNodeId": "EB1-R03-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-EB1-R03-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-EB1-R03"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 580.666667
+        },
+        {
+          "x": 710,
+          "y": 580.666667
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-EB2-R01",
+      "fromNodeId": "EB2-R01-ACCESS",
+      "toNodeId": "EB2-R01-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-EB2-R01-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-EB2-R01"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 689.333333
+        },
+        {
+          "x": 710,
+          "y": 689.333333
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-EB2-R02",
+      "fromNodeId": "EB2-R02-ACCESS",
+      "toNodeId": "EB2-R02-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-EB2-R02-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-EB2-R02"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 700
+        },
+        {
+          "x": 710,
+          "y": 700
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-EB2-R03",
+      "fromNodeId": "EB2-R03-ACCESS",
+      "toNodeId": "EB2-R03-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-EB2-R03-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-EB2-R03"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 710.666667
+        },
+        {
+          "x": 710,
+          "y": 710.666667
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB1-R01",
+      "fromNodeId": "WB1-R01-ACCESS",
+      "toNodeId": "WB1-R01-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB1-R01-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB1-R01"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 558.428571
+        },
+        {
+          "x": 311,
+          "y": 558.428571
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB1-R02",
+      "fromNodeId": "WB1-R02-ACCESS",
+      "toNodeId": "WB1-R02-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB1-R02-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB1-R02"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 567.285714
+        },
+        {
+          "x": 311,
+          "y": 567.285714
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB1-R03",
+      "fromNodeId": "WB1-R03-ACCESS",
+      "toNodeId": "WB1-R03-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB1-R03-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB1-R03"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 576.142857
+        },
+        {
+          "x": 311,
+          "y": 576.142857
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB1-R04",
+      "fromNodeId": "WB1-R04-ACCESS",
+      "toNodeId": "WB1-R04-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB1-R04-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB1-R04"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 585
+        },
+        {
+          "x": 311,
+          "y": 585
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB1-R05",
+      "fromNodeId": "WB1-R05-ACCESS",
+      "toNodeId": "WB1-R05-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB1-R05-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB1-R05"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 593.857143
+        },
+        {
+          "x": 311,
+          "y": 593.857143
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB1-R06",
+      "fromNodeId": "WB1-R06-ACCESS",
+      "toNodeId": "WB1-R06-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB1-R06-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB1-R06"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 602.714286
+        },
+        {
+          "x": 311,
+          "y": 602.714286
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB1-R07",
+      "fromNodeId": "WB1-R07-ACCESS",
+      "toNodeId": "WB1-R07-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB1-R07-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB1-R07"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 611.571429
+        },
+        {
+          "x": 311,
+          "y": 611.571429
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB2-R01",
+      "fromNodeId": "WB2-R01-ACCESS",
+      "toNodeId": "WB2-R01-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB2-R01-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB2-R01"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 687.666667
+        },
+        {
+          "x": 311,
+          "y": 687.666667
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB2-R02",
+      "fromNodeId": "WB2-R02-ACCESS",
+      "toNodeId": "WB2-R02-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB2-R02-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB2-R02"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 695
+        },
+        {
+          "x": 311,
+          "y": 695
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB2-R03",
+      "fromNodeId": "WB2-R03-ACCESS",
+      "toNodeId": "WB2-R03-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB2-R03-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB2-R03"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 702.333333
+        },
+        {
+          "x": 311,
+          "y": 702.333333
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB3-R01",
+      "fromNodeId": "WB3-R01-ACCESS",
+      "toNodeId": "WB3-R01-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB3-R01-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB3-R01"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 778.692308
+        },
+        {
+          "x": 311,
+          "y": 778.692308
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB3-R02",
+      "fromNodeId": "WB3-R02-ACCESS",
+      "toNodeId": "WB3-R02-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB3-R02-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB3-R02"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 788.076923
+        },
+        {
+          "x": 311,
+          "y": 788.076923
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB3-R03",
+      "fromNodeId": "WB3-R03-ACCESS",
+      "toNodeId": "WB3-R03-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB3-R03-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB3-R03"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 797.461538
+        },
+        {
+          "x": 311,
+          "y": 797.461538
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB3-R04",
+      "fromNodeId": "WB3-R04-ACCESS",
+      "toNodeId": "WB3-R04-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB3-R04-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB3-R04"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 806.846154
+        },
+        {
+          "x": 311,
+          "y": 806.846154
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB3-R05",
+      "fromNodeId": "WB3-R05-ACCESS",
+      "toNodeId": "WB3-R05-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB3-R05-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB3-R05"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 816.230769
+        },
+        {
+          "x": 311,
+          "y": 816.230769
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB3-R06",
+      "fromNodeId": "WB3-R06-ACCESS",
+      "toNodeId": "WB3-R06-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB3-R06-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB3-R06"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 825.615385
+        },
+        {
+          "x": 311,
+          "y": 825.615385
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB3-R07",
+      "fromNodeId": "WB3-R07-ACCESS",
+      "toNodeId": "WB3-R07-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB3-R07-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB3-R07"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 835
+        },
+        {
+          "x": 311,
+          "y": 835
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB3-R08",
+      "fromNodeId": "WB3-R08-ACCESS",
+      "toNodeId": "WB3-R08-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB3-R08-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB3-R08"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 844.384615
+        },
+        {
+          "x": 311,
+          "y": 844.384615
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB3-R09",
+      "fromNodeId": "WB3-R09-ACCESS",
+      "toNodeId": "WB3-R09-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB3-R09-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB3-R09"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 853.769231
+        },
+        {
+          "x": 311,
+          "y": 853.769231
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB3-R10",
+      "fromNodeId": "WB3-R10-ACCESS",
+      "toNodeId": "WB3-R10-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB3-R10-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB3-R10"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 863.153846
+        },
+        {
+          "x": 311,
+          "y": 863.153846
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB3-R11",
+      "fromNodeId": "WB3-R11-ACCESS",
+      "toNodeId": "WB3-R11-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB3-R11-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB3-R11"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 872.538462
+        },
+        {
+          "x": 311,
+          "y": 872.538462
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB3-R12",
+      "fromNodeId": "WB3-R12-ACCESS",
+      "toNodeId": "WB3-R12-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB3-R12-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB3-R12"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 881.923077
+        },
+        {
+          "x": 311,
+          "y": 881.923077
+        }
+      ]
+    },
+    {
+      "id": "ACCESS-WB3-R13",
+      "fromNodeId": "WB3-R13-ACCESS",
+      "toNodeId": "WB3-R13-DROP",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "ACCESS-WB3-R13-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "ROW-WB3-R13"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 891.307692
+        },
+        {
+          "x": 311,
+          "y": 891.307692
+        }
+      ]
+    },
     {
       "id": "E01",
       "fromNodeId": "PZ-HOME",
@@ -747,13 +3188,13 @@
     },
     {
       "id": "E10",
-      "fromNodeId": "WH-GATE",
+      "fromNodeId": "WH-E-SERVICE",
       "toNodeId": "WH-HOME",
-      "distanceMm": 10000,
+      "distanceMm": 1000,
       "speedMmPerSec": {
         "empty": 1000,
         "loaded": 800,
-        "charge": 900,
+        "charge": 1000,
         "wait": 1000
       },
       "lanes": [
@@ -766,19 +3207,11 @@
         "laneCount": 1,
         "simultaneousPassing": "no-alternating"
       },
-      "occupancyResourceIds": [
-        "WH-J1"
-      ],
+      "occupancyResourceIds": [],
       "shutterId": null,
       "accessScopes": [
         {
           "movement": "empty",
-          "taskTypes": [
-            "*"
-          ]
-        },
-        {
-          "movement": "loaded",
           "taskTypes": [
             "*"
           ]
@@ -794,13 +3227,19 @@
           "taskTypes": [
             "WAIT"
           ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "03"
+          ]
         }
       ],
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
           "x": 682.5,
-          "y": 475
+          "y": 732.5
         },
         {
           "x": 682.5,
@@ -810,14 +3249,14 @@
     },
     {
       "id": "E11",
-      "fromNodeId": "WH-HOME",
+      "fromNodeId": "WH-W-NORTH",
       "toNodeId": "WH-DROP",
-      "distanceMm": 9000,
+      "distanceMm": 2000,
       "speedMmPerSec": {
-        "empty": 900,
-        "loaded": 700,
-        "charge": 800,
-        "wait": 900
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
       },
       "lanes": [
         {
@@ -860,11 +3299,7 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 682.5,
-          "y": 745
-        },
-        {
-          "x": 682.5,
+          "x": 417.5,
           "y": 562.5
         },
         {
@@ -965,12 +3400,6 @@
           ]
         },
         {
-          "movement": "loaded",
-          "taskTypes": [
-            "*"
-          ]
-        },
-        {
           "movement": "charge",
           "taskTypes": [
             "CHARGE"
@@ -1025,12 +3454,6 @@
       "accessScopes": [
         {
           "movement": "empty",
-          "taskTypes": [
-            "*"
-          ]
-        },
-        {
-          "movement": "loaded",
           "taskTypes": [
             "*"
           ]
@@ -1095,12 +3518,6 @@
           ]
         },
         {
-          "movement": "loaded",
-          "taskTypes": [
-            "*"
-          ]
-        },
-        {
           "movement": "charge",
           "taskTypes": [
             "CHARGE"
@@ -1155,12 +3572,6 @@
       "accessScopes": [
         {
           "movement": "empty",
-          "taskTypes": [
-            "*"
-          ]
-        },
-        {
-          "movement": "loaded",
           "taskTypes": [
             "*"
           ]
@@ -1225,12 +3636,6 @@
           ]
         },
         {
-          "movement": "loaded",
-          "taskTypes": [
-            "*"
-          ]
-        },
-        {
           "movement": "charge",
           "taskTypes": [
             "CHARGE"
@@ -1261,14 +3666,14 @@
     },
     {
       "id": "E18",
-      "fromNodeId": "WH-HOME",
+      "fromNodeId": "WH-W-PILLAR",
       "toNodeId": "PILLAR-WAIT-W",
-      "distanceMm": 9000,
+      "distanceMm": 3000,
       "speedMmPerSec": {
-        "empty": 900,
-        "loaded": 700,
-        "charge": 800,
-        "wait": 900
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
       },
       "lanes": [
         {
@@ -1280,10 +3685,8 @@
         "laneCount": 1,
         "simultaneousPassing": "no-alternating"
       },
-      "occupancyResourceIds": [
-        "WH-J1"
-      ],
-      "shutterId": "SH-FIRE-NORTH",
+      "occupancyResourceIds": [],
+      "shutterId": null,
       "accessScopes": [
         {
           "movement": "empty",
@@ -1292,7 +3695,56 @@
           ]
         },
         {
-          "movement": "loaded",
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 725
+        },
+        {
+          "x": 296,
+          "y": 725
+        }
+      ]
+    },
+    {
+      "id": "E19",
+      "fromNodeId": "WH-E-PILLAR",
+      "toNodeId": "PILLAR-WAIT-E",
+      "distanceMm": 3000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "E19-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
           "taskTypes": [
             "*"
           ]
@@ -1314,40 +3766,28 @@
       "displayPath": [
         {
           "x": 682.5,
-          "y": 745
+          "y": 609
         },
         {
-          "x": 682.5,
-          "y": 562.5
-        },
-        {
-          "x": 435,
-          "y": 562.5
-        },
-        {
-          "x": 435,
-          "y": 725
-        },
-        {
-          "x": 296,
-          "y": 725
+          "x": 725,
+          "y": 609
         }
       ]
     },
     {
-      "id": "E19",
-      "fromNodeId": "WH-HOME",
-      "toNodeId": "PILLAR-WAIT-E",
-      "distanceMm": 9000,
+      "id": "E20",
+      "fromNodeId": "WH-GATE",
+      "toNodeId": "EB1-R01-ACCESS",
+      "distanceMm": 3000,
       "speedMmPerSec": {
-        "empty": 900,
-        "loaded": 700,
-        "charge": 800,
-        "wait": 900
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
       },
       "lanes": [
         {
-          "id": "E19-L1",
+          "id": "E20-L1",
           "direction": "both"
         }
       ],
@@ -1356,7 +3796,7 @@
         "simultaneousPassing": "no-alternating"
       },
       "occupancyResourceIds": [
-        "WH-J1"
+        "WH-GATE-J"
       ],
       "shutterId": null,
       "accessScopes": [
@@ -1389,15 +3829,2309 @@
       "displayPath": [
         {
           "x": 682.5,
-          "y": 745
+          "y": 475
         },
+        {
+          "x": 682.5,
+          "y": 559.333333
+        }
+      ]
+    },
+    {
+      "id": "E21",
+      "fromNodeId": "WH-E-NORTH",
+      "toNodeId": "WH-W-NORTH",
+      "distanceMm": 6000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "E21-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [],
+      "shutterId": "SH-FIRE-NORTH",
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 562.5
+        },
+        {
+          "x": 417.5,
+          "y": 562.5
+        }
+      ]
+    },
+    {
+      "id": "E22",
+      "fromNodeId": "WH-E-SOUTH",
+      "toNodeId": "WH-W-SOUTH",
+      "distanceMm": 6000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "E22-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [],
+      "shutterId": "SH-FIRE-SOUTH",
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 769.5
+        },
+        {
+          "x": 417.5,
+          "y": 769.5
+        }
+      ]
+    },
+    {
+      "id": "WH-E-MAIN-01",
+      "fromNodeId": "EB1-R01-ACCESS",
+      "toNodeId": "WH-E-NORTH",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-E-MAIN-01-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "EB1-R01-ACCESS-J",
+        "WH-E-NORTH-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 559.333333
+        },
+        {
+          "x": 682.5,
+          "y": 562.5
+        }
+      ]
+    },
+    {
+      "id": "WH-E-MAIN-02",
+      "fromNodeId": "WH-E-NORTH",
+      "toNodeId": "EB1-R02-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-E-MAIN-02-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WH-E-NORTH-J",
+        "EB1-R02-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 562.5
+        },
+        {
+          "x": 682.5,
+          "y": 570
+        }
+      ]
+    },
+    {
+      "id": "WH-E-MAIN-03",
+      "fromNodeId": "EB1-R02-ACCESS",
+      "toNodeId": "EB1-R03-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-E-MAIN-03-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "EB1-R02-ACCESS-J",
+        "EB1-R03-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 570
+        },
+        {
+          "x": 682.5,
+          "y": 580.666667
+        }
+      ]
+    },
+    {
+      "id": "WH-E-MAIN-04",
+      "fromNodeId": "EB1-R03-ACCESS",
+      "toNodeId": "WH-E-PILLAR",
+      "distanceMm": 2000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-E-MAIN-04-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "EB1-R03-ACCESS-J",
+        "WH-E-PILLAR-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 580.666667
+        },
+        {
+          "x": 682.5,
+          "y": 609
+        }
+      ]
+    },
+    {
+      "id": "WH-E-MAIN-05",
+      "fromNodeId": "WH-E-PILLAR",
+      "toNodeId": "EB2-R01-ACCESS",
+      "distanceMm": 6000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-E-MAIN-05-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WH-E-PILLAR-J",
+        "EB2-R01-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
         {
           "x": 682.5,
           "y": 609
         },
         {
-          "x": 725,
-          "y": 609
+          "x": 682.5,
+          "y": 689.333333
+        }
+      ]
+    },
+    {
+      "id": "WH-E-MAIN-06",
+      "fromNodeId": "EB2-R01-ACCESS",
+      "toNodeId": "EB2-R02-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-E-MAIN-06-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "EB2-R01-ACCESS-J",
+        "EB2-R02-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 689.333333
+        },
+        {
+          "x": 682.5,
+          "y": 700
+        }
+      ]
+    },
+    {
+      "id": "WH-E-MAIN-07",
+      "fromNodeId": "EB2-R02-ACCESS",
+      "toNodeId": "EB2-R03-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-E-MAIN-07-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "EB2-R02-ACCESS-J",
+        "EB2-R03-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 700
+        },
+        {
+          "x": 682.5,
+          "y": 710.666667
+        }
+      ]
+    },
+    {
+      "id": "WH-E-MAIN-08",
+      "fromNodeId": "EB2-R03-ACCESS",
+      "toNodeId": "WH-E-SERVICE",
+      "distanceMm": 2000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-E-MAIN-08-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "EB2-R03-ACCESS-J",
+        "WH-E-SERVICE-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 710.666667
+        },
+        {
+          "x": 682.5,
+          "y": 732.5
+        }
+      ]
+    },
+    {
+      "id": "WH-E-MAIN-09",
+      "fromNodeId": "WH-E-SERVICE",
+      "toNodeId": "WH-E-SOUTH",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-E-MAIN-09-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WH-E-SERVICE-J",
+        "WH-E-SOUTH-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 732.5
+        },
+        {
+          "x": 682.5,
+          "y": 769.5
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-01",
+      "fromNodeId": "WB1-R01-ACCESS",
+      "toNodeId": "WH-W-NORTH",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-01-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WB1-R01-ACCESS-J",
+        "WH-W-NORTH-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 558.428571
+        },
+        {
+          "x": 417.5,
+          "y": 562.5
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-02",
+      "fromNodeId": "WH-W-NORTH",
+      "toNodeId": "WB1-R02-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-02-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WH-W-NORTH-J",
+        "WB1-R02-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 562.5
+        },
+        {
+          "x": 417.5,
+          "y": 567.285714
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-03",
+      "fromNodeId": "WB1-R02-ACCESS",
+      "toNodeId": "WB1-R03-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-03-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WB1-R02-ACCESS-J",
+        "WB1-R03-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 567.285714
+        },
+        {
+          "x": 417.5,
+          "y": 576.142857
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-04",
+      "fromNodeId": "WB1-R03-ACCESS",
+      "toNodeId": "WB1-R04-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-04-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WB1-R03-ACCESS-J",
+        "WB1-R04-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 576.142857
+        },
+        {
+          "x": 417.5,
+          "y": 585
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-05",
+      "fromNodeId": "WB1-R04-ACCESS",
+      "toNodeId": "WB1-R05-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-05-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WB1-R04-ACCESS-J",
+        "WB1-R05-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 585
+        },
+        {
+          "x": 417.5,
+          "y": 593.857143
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-06",
+      "fromNodeId": "WB1-R05-ACCESS",
+      "toNodeId": "WB1-R06-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-06-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WB1-R05-ACCESS-J",
+        "WB1-R06-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 593.857143
+        },
+        {
+          "x": 417.5,
+          "y": 602.714286
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-07",
+      "fromNodeId": "WB1-R06-ACCESS",
+      "toNodeId": "WB1-R07-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-07-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WB1-R06-ACCESS-J",
+        "WB1-R07-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 602.714286
+        },
+        {
+          "x": 417.5,
+          "y": 611.571429
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-08",
+      "fromNodeId": "WB1-R07-ACCESS",
+      "toNodeId": "WB2-R01-ACCESS",
+      "distanceMm": 4000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-08-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WB1-R07-ACCESS-J",
+        "WB2-R01-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 611.571429
+        },
+        {
+          "x": 417.5,
+          "y": 687.666667
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-09",
+      "fromNodeId": "WB2-R01-ACCESS",
+      "toNodeId": "WB2-R02-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-09-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WB2-R01-ACCESS-J",
+        "WB2-R02-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 687.666667
+        },
+        {
+          "x": 417.5,
+          "y": 695
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-10",
+      "fromNodeId": "WB2-R02-ACCESS",
+      "toNodeId": "WB2-R03-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-10-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WB2-R02-ACCESS-J",
+        "WB2-R03-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 695
+        },
+        {
+          "x": 417.5,
+          "y": 702.333333
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-11",
+      "fromNodeId": "WB2-R03-ACCESS",
+      "toNodeId": "WH-W-PILLAR",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-11-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WB2-R03-ACCESS-J",
+        "WH-W-PILLAR-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 702.333333
+        },
+        {
+          "x": 417.5,
+          "y": 725
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-12",
+      "fromNodeId": "WH-W-PILLAR",
+      "toNodeId": "WH-W-SOUTH",
+      "distanceMm": 2000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-12-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WH-W-PILLAR-J",
+        "WH-W-SOUTH-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 725
+        },
+        {
+          "x": 417.5,
+          "y": 769.5
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-13",
+      "fromNodeId": "WH-W-SOUTH",
+      "toNodeId": "WB3-R01-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-13-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WH-W-SOUTH-J",
+        "WB3-R01-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 769.5
+        },
+        {
+          "x": 417.5,
+          "y": 778.692308
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-14",
+      "fromNodeId": "WB3-R01-ACCESS",
+      "toNodeId": "WB3-R02-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-14-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WB3-R01-ACCESS-J",
+        "WB3-R02-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 778.692308
+        },
+        {
+          "x": 417.5,
+          "y": 788.076923
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-15",
+      "fromNodeId": "WB3-R02-ACCESS",
+      "toNodeId": "WB3-R03-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-15-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WB3-R02-ACCESS-J",
+        "WB3-R03-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 788.076923
+        },
+        {
+          "x": 417.5,
+          "y": 797.461538
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-16",
+      "fromNodeId": "WB3-R03-ACCESS",
+      "toNodeId": "WB3-R04-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-16-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WB3-R03-ACCESS-J",
+        "WB3-R04-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 797.461538
+        },
+        {
+          "x": 417.5,
+          "y": 806.846154
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-17",
+      "fromNodeId": "WB3-R04-ACCESS",
+      "toNodeId": "WB3-R05-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-17-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WB3-R04-ACCESS-J",
+        "WB3-R05-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 806.846154
+        },
+        {
+          "x": 417.5,
+          "y": 816.230769
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-18",
+      "fromNodeId": "WB3-R05-ACCESS",
+      "toNodeId": "WB3-R06-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-18-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WB3-R05-ACCESS-J",
+        "WB3-R06-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 816.230769
+        },
+        {
+          "x": 417.5,
+          "y": 825.615385
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-19",
+      "fromNodeId": "WB3-R06-ACCESS",
+      "toNodeId": "WB3-R07-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-19-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WB3-R06-ACCESS-J",
+        "WB3-R07-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 825.615385
+        },
+        {
+          "x": 417.5,
+          "y": 835
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-20",
+      "fromNodeId": "WB3-R07-ACCESS",
+      "toNodeId": "WB3-R08-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-20-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WB3-R07-ACCESS-J",
+        "WB3-R08-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 835
+        },
+        {
+          "x": 417.5,
+          "y": 844.384615
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-21",
+      "fromNodeId": "WB3-R08-ACCESS",
+      "toNodeId": "WB3-R09-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-21-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WB3-R08-ACCESS-J",
+        "WB3-R09-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 844.384615
+        },
+        {
+          "x": 417.5,
+          "y": 853.769231
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-22",
+      "fromNodeId": "WB3-R09-ACCESS",
+      "toNodeId": "WB3-R10-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-22-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WB3-R09-ACCESS-J",
+        "WB3-R10-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 853.769231
+        },
+        {
+          "x": 417.5,
+          "y": 863.153846
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-23",
+      "fromNodeId": "WB3-R10-ACCESS",
+      "toNodeId": "WB3-R11-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-23-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WB3-R10-ACCESS-J",
+        "WB3-R11-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 863.153846
+        },
+        {
+          "x": 417.5,
+          "y": 872.538462
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-24",
+      "fromNodeId": "WB3-R11-ACCESS",
+      "toNodeId": "WB3-R12-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-24-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WB3-R11-ACCESS-J",
+        "WB3-R12-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 872.538462
+        },
+        {
+          "x": 417.5,
+          "y": 881.923077
+        }
+      ]
+    },
+    {
+      "id": "WH-W-MAIN-25",
+      "fromNodeId": "WB3-R12-ACCESS",
+      "toNodeId": "WB3-R13-ACCESS",
+      "distanceMm": 1000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "WH-W-MAIN-25-L1",
+          "direction": "both"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "WB3-R12-ACCESS-J",
+        "WB3-R13-ACCESS-J"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 417.5,
+          "y": 881.923077
+        },
+        {
+          "x": 417.5,
+          "y": 891.307692
         }
       ]
     }
@@ -1410,6 +6144,11 @@
     },
     {
       "id": "SH-FIRE-NORTH",
+      "initiallyPassable": true,
+      "permissionSource": "synthetic-scenario"
+    },
+    {
+      "id": "SH-FIRE-SOUTH",
       "initiallyPassable": true,
       "permissionSource": "synthetic-scenario"
     }
@@ -1440,14 +6179,6 @@
       "nodeId": "WH-ALIGN"
     },
     {
-      "pattern": "WB*",
-      "nodeId": "WH-DROP"
-    },
-    {
-      "pattern": "EB*",
-      "nodeId": "WH-DROP"
-    },
-    {
       "pattern": "CHARGE-PLACE",
       "nodeId": "WH-CHARGE"
     },
@@ -1474,7 +6205,133 @@
     {
       "pattern": "PILLAR-WAIT-E",
       "nodeId": "PILLAR-WAIT-E"
+    },
+    {
+      "pattern": "WB1-R01-*",
+      "nodeId": "WB1-R01-DROP"
+    },
+    {
+      "pattern": "WB1-R02-*",
+      "nodeId": "WB1-R02-DROP"
+    },
+    {
+      "pattern": "WB1-R03-*",
+      "nodeId": "WB1-R03-DROP"
+    },
+    {
+      "pattern": "WB1-R04-*",
+      "nodeId": "WB1-R04-DROP"
+    },
+    {
+      "pattern": "WB1-R05-*",
+      "nodeId": "WB1-R05-DROP"
+    },
+    {
+      "pattern": "WB1-R06-*",
+      "nodeId": "WB1-R06-DROP"
+    },
+    {
+      "pattern": "WB1-R07-*",
+      "nodeId": "WB1-R07-DROP"
+    },
+    {
+      "pattern": "WB2-R01-*",
+      "nodeId": "WB2-R01-DROP"
+    },
+    {
+      "pattern": "WB2-R02-*",
+      "nodeId": "WB2-R02-DROP"
+    },
+    {
+      "pattern": "WB2-R03-*",
+      "nodeId": "WB2-R03-DROP"
+    },
+    {
+      "pattern": "WB3-R01-*",
+      "nodeId": "WB3-R01-DROP"
+    },
+    {
+      "pattern": "WB3-R02-*",
+      "nodeId": "WB3-R02-DROP"
+    },
+    {
+      "pattern": "WB3-R03-*",
+      "nodeId": "WB3-R03-DROP"
+    },
+    {
+      "pattern": "WB3-R04-*",
+      "nodeId": "WB3-R04-DROP"
+    },
+    {
+      "pattern": "WB3-R05-*",
+      "nodeId": "WB3-R05-DROP"
+    },
+    {
+      "pattern": "WB3-R06-*",
+      "nodeId": "WB3-R06-DROP"
+    },
+    {
+      "pattern": "WB3-R07-*",
+      "nodeId": "WB3-R07-DROP"
+    },
+    {
+      "pattern": "WB3-R08-*",
+      "nodeId": "WB3-R08-DROP"
+    },
+    {
+      "pattern": "WB3-R09-*",
+      "nodeId": "WB3-R09-DROP"
+    },
+    {
+      "pattern": "WB3-R10-*",
+      "nodeId": "WB3-R10-DROP"
+    },
+    {
+      "pattern": "WB3-R11-*",
+      "nodeId": "WB3-R11-DROP"
+    },
+    {
+      "pattern": "WB3-R12-*",
+      "nodeId": "WB3-R12-DROP"
+    },
+    {
+      "pattern": "WB3-R13-*",
+      "nodeId": "WB3-R13-DROP"
+    },
+    {
+      "pattern": "EB1-R01-*",
+      "nodeId": "EB1-R01-DROP"
+    },
+    {
+      "pattern": "EB1-R02-*",
+      "nodeId": "EB1-R02-DROP"
+    },
+    {
+      "pattern": "EB1-R03-*",
+      "nodeId": "EB1-R03-DROP"
+    },
+    {
+      "pattern": "EB2-R01-*",
+      "nodeId": "EB2-R01-DROP"
+    },
+    {
+      "pattern": "EB2-R02-*",
+      "nodeId": "EB2-R02-DROP"
+    },
+    {
+      "pattern": "EB2-R03-*",
+      "nodeId": "EB2-R03-DROP"
     }
   ],
-  "displayEvidence": "schematic-synthetic-only; representative interfaces, not individual site stops; display length is never used for duration"
+  "displayEvidence": "schematic-synthetic-only; per-row interfaces are synthetic, not individual site stops; display length is never used for duration",
+  "modelEvidence": {
+    "kind": "synthetic-unmeasured",
+    "mainStationUnit": "mm",
+    "mainStationOrigin": "north-fire-crossing",
+    "crossingDistanceMm": 6000,
+    "rowAccessDistanceMm": 3000,
+    "serviceBranchDistanceMm": 1000,
+    "timingBasis": "explicit-synthetic-model-stations-and-speeds-independent-of-drawing",
+    "fireLanePolicy": "conservative-synthetic-one-lane; actual-individual-lane-directions-unresolved"
+  }
 }

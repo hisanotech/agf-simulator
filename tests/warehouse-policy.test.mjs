@@ -101,7 +101,9 @@ for(const [type,load] of [['normal','partial'],['special','full'],['special','pa
   test(`W20-W23 enabled ${type}/${load} is generated while disabled variants are absent`,()=>{
     const streams=defaultProductStreams().map(s=>({...s,enabled:s.sourceLineId==='L1'&&s.productType===type&&s.loadType===load}));
     const events=generateProductionEvents(streams,180*60000,lineIds);
-    assert.equal(events.length,4);assert.ok(events.every(e=>e.sourceLineId==='L1'&&e.productType===type&&e.loadType===load));
+    assert.equal(events.length,10);
+    assert.deepEqual(events.map(e=>e.timeMs),Array.from({length:10},(_,i)=>(i+1)*1032000));
+    assert.ok(events.every(e=>e.sourceLineId==='L1'&&e.productType===type&&e.loadType===load));
   });
 test('W24/W25 frequency changes exact event times; same conditions and reordered settings are deterministic',()=>{
   const s=defaultProductStreams().map(s=>({...s,enabled:s.enabled&&s.sourceLineId==='L1',intervalMin:20,startOffsetMin:0}));

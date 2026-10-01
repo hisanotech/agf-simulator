@@ -23,8 +23,10 @@ const places=(prefix,count)=>Object.freeze(Array.from({length:count},(_,i)=>Obje
   id:prefix+(i+1),positionEvidence:'relative-only',stopNodeId:null,...(prefix==='CHARGE-PLACE'?{chargerId:null}:{})
 })));
 export const NORMAL_WAITING_PLACES=Object.freeze([...places('HP',2),
-  Object.freeze({id:'PILLAR-WAIT-W',positionEvidence:'relative-only',stopNodeId:null,relativeTo:'WB2-WB3-gap-east'}),
-  Object.freeze({id:'PILLAR-WAIT-E',positionEvidence:'relative-only',stopNodeId:null,relativeTo:'EB1-EB2-gap-west'})]);
+  Object.freeze({id:'PILLAR-WAIT-E',positionEvidence:'relative-only',stopNodeId:null,relativeTo:'EB1-EB2-gap-west'}),
+  Object.freeze({id:'PILLAR-WAIT-W',positionEvidence:'relative-only',stopNodeId:null,relativeTo:'WB2-WB3-gap-east'})]);
+/** User-confirmed return priority, shared by every AGF; unrelated to initial parking. */
+export const NORMAL_WAITING_PRIORITY=Object.freeze(NORMAL_WAITING_PLACES.map(p=>p.id));
 export const WAREHOUSE_SERVICE=Object.freeze({
   relativeTo:'south-of-EB2',accessFrom:'east-main-aisles',accessEvidence:'user-confirmed',branchAssignment:'unresolved',
   waitingCandidates:Object.freeze({totalCount:4,normalUse:true,groups:Object.freeze([

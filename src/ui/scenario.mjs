@@ -1,18 +1,19 @@
-import {warehouseLocations} from '../map/warehouse-layout.mjs';
+import {warehouseLocations,NORMAL_WAITING_PRIORITY} from '../map/warehouse-layout.mjs';
 import syntheticTopology from '../../examples/synthetic-operational-topology.json' with {type:'json'};
-import {defaultProductStreams} from '../core/production-streams.mjs';
+import {defaultProductStreams,THEORETICAL_LINE_INTERVALS_MIN} from '../core/production-streams.mjs';
 
 /** All inventory, input streams and timing here are explicit, reproducible sample assumptions. */
 export function createDemoScenario(preset='standard') {
   if(preset==='extended'){
     const s=createDemoScenario('physical');s.preset=preset;
     s.lineIntervalsMin=Array(8).fill(0);
-    s.lineStartOffsetsMin=Array.from({length:8},(_,i)=>Number((i*41/8).toFixed(3)));
-    s.productStreams=defaultProductStreams(Array(8).fill(41),s.lineStartOffsetsMin);
+    s.lineStartOffsetsMin=productionOffsets();
+    s.productStreams=defaultProductStreams(undefined,s.lineStartOffsetsMin);
+    s.evidence.production='theoretical-pallet-discharge-100pct';
     s.warehousePolicy={evidence:'unconfigured',rowAssignments:[],rowPriority:{}};
-    s.postTaskPolicy={evidence:'unconfigured',waitTargets:{}};
-    // A configurable synthetic allocation, not a fixed site assignment or charger mapping.
-    s.initialParking={evidence:'synthetic-explicit-example',placeIds:['HP1','HP2','CHARGE-PLACE1','CHARGE-PLACE2']};
+    s.postTaskPolicy={evidence:'user-confirmed-shared-priority',waitingPriority:[...NORMAL_WAITING_PRIORITY]};
+    // User-confirmed startup only. The actual stop coordinates remain synthetic.
+    s.initialParking={evidence:'user-confirmed-initial-placement',placeIds:['CHARGE-PLACE1','CHARGE-PLACE2','HP1','HP2']};
     s.chargePlaceIds=['CHARGE-PLACE1','CHARGE-PLACE2'];
     s.agfs.forEach((a,i)=>{a.currentNodeId=s.initialParking.placeIds[i];a.area='WH';});
     s.warehouse.forEach(slot=>{slot.palletIds=[];slot.permission=true;});
@@ -31,12 +32,13 @@ export function createDemoScenario(preset='standard') {
   return {
     preset,durationMin:180,mode:'area_first',fallback:'any',lineCapacity:2,
     evidence:{structure:'user-confirmed',coordinates:'unreviewed',inventory:'synthetic',
-      production:'synthetic-intervals',timing:'scenario-assumption',battery:'scenario-assumption',
+      production:preset==='standard'?'theoretical-pallet-discharge-100pct':'synthetic-intervals',
+      productionOffsets:'synthetic-phases',timing:'scenario-assumption',battery:'scenario-assumption',
       batteryConsumption:'supplier-assumption-user-relayed',batteryScope:'user-confirmed-driving-and-handling'},
-    lineIntervalsMin:Array.from({length:8},(_,i)=>preset==='manual'?0:preset==='charge'?(i<4?60:0):preset==='physical'?(i<2?45:0):41),
-    lineStartOffsetsMin:Array.from({length:8},(_,i)=>preset==='standard'?Number((i*41/8).toFixed(3)):0),
+    lineIntervalsMin:Array.from({length:8},(_,i)=>preset==='manual'?0:preset==='charge'?(i<4?60:0):preset==='physical'?(i<2?45:0):THEORETICAL_LINE_INTERVALS_MIN[i]),
+    lineStartOffsetsMin:preset==='standard'?productionOffsets():Array(8).fill(0),
     generatedDestinationIds,
-    wrapper:{inputCapacity:1,outputCapacity:2},
+    wrapper:{inputCapacity:1,outputCapacity:2,...(preset==='physical'?{inboundAgfLimit:3}:{})},
     agfs:Array.from({length:4},(_,i)=>({id:'AGF'+(i+1),area:i<2?'PZ':'WH',
       batteryPct:preset==='charge'?41:100,status:'idle',...(preset==='physical'?{currentNodeId:i<2?'PZ-HOME':'WH-HOME'}:{})})),
     chargerIds:['CHARGER1','CHARGER2'],
@@ -53,6 +55,10 @@ export function createDemoScenario(preset='standard') {
       shutterEvents:[]}:{})
   };
 }
+
+// Stagger only the first release as an explicit synthetic phase, independently of
+// the confirmed theoretical intervals. User-entered offsets/intervals supersede it.
+const productionOffsets=()=>THEORETICAL_LINE_INTERVALS_MIN.map((interval,i)=>Number((interval*i/8).toFixed(3)));
 
 /** Preserve explicit parking selections when the settings form builds a run. */
 export function initialAgfFromSettings(scenario,agf,{batteryPct,position}){
