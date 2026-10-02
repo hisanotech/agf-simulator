@@ -30,7 +30,7 @@ export function effectiveStatus(agf,snapshot) {
 }
 export const workingStatuses=['moving_empty','moving_loaded','handling_pickup','handling_dropoff'];
 export const durationStatuses=['idle','moving_empty','handling_pickup','moving_loaded','handling_dropoff',
-  'waiting_traffic','wait_drop','moving_to_wait','hp_wait','moving_to_charge','charging','waiting_charge',
+  'waiting_traffic','wait_drop','waiting_pickup','moving_to_wait','hp_wait','moving_to_charge','charging','waiting_charge',
   'waiting_hp_instruction','waiting_hp_capacity','waiting_hp_route'];
 
 /** Round the table together so displayed tenths sum to the displayed run duration.
@@ -90,7 +90,7 @@ export function analyzeRun(run) {
     utilizationPct:agfs.length?agfs.reduce((n,a)=>n+a.utilizationPct,0)/agfs.length:0,
     idleMs:sum('idle')+sum('hp_wait'),hpWaitMs:sum('hp_wait'),waitReturnMs:sum('moving_to_wait'),
     hpBlockedMs:sum('waiting_hp_instruction')+sum('waiting_hp_capacity')+sum('waiting_hp_route'),
-    dropWaitMs:sum('wait_drop'),chargeMs:sum('charging'),
+    dropWaitMs:sum('wait_drop'),pickupWaitMs:sum('waiting_pickup'),chargeMs:sum('charging'),
     trafficWaitMs:sum('waiting_traffic'),
     chargeWaitMs:sum('waiting_charge'),chargeTravelMs:sum('moving_to_charge'),
     requestWaitMs:tasks.reduce((n,t)=>n+Math.max(0,(t.assignedAt??durationMs)-t.requestedAt),0)};

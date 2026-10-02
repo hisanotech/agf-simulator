@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {WAREHOUSE_BLOCKS,warehouseLocations,WAREHOUSE_RULES,WAREHOUSE_SERVICE,WAREHOUSE_MAIN_AISLES} from '../src/map/warehouse-layout.mjs';
 import {snapshotIndexAt,replayTime,replayFrameTime,analyzeRun,compareRuns,durationTenths} from '../src/ui/replay-model.mjs';
-import {createDemoScenario} from '../src/ui/scenario.mjs';
+import {createDemoScenario,createLegacyScenario} from '../src/ui/scenario.mjs';
 import {simulate} from '../src/core/simulate.mjs';
 import {eventCsv} from '../src/ui/export.mjs';
 
@@ -137,7 +137,7 @@ test('displayed time categories sum to the horizon despite independent rounding 
 });
 
 test('dashboard scenario uses explicit sample inventory and compares the same production input',()=>{
-  const scenario=createDemoScenario('standard');
+  const scenario=createLegacyScenario('standard');
   const original=structuredClone(scenario);
   const [left,right]=compareRuns(scenario);
   const production=run=>run.events.filter(event=>event.type==='PALLET_EXITED')

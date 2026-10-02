@@ -4,7 +4,7 @@ export const minutes=ms=>(ms/60000).toFixed(1);
 export const states={idle:'待機',moving_empty:'空走・荷受け',moving_loaded:'積載・荷下ろし',wait_drop:'荷下ろし待ち',
   moving_to_wait:'倉庫待機場所へ復帰',hp_wait:'倉庫内待機',dispatch_pending:'次動作判定',
   waiting_hp_instruction:'HP選択待ち',waiting_hp_capacity:'HP満杯・復帰保留',waiting_hp_route:'HP経路保留',
-  handling_pickup:'荷受け',handling_dropoff:'荷下ろし',
+  handling_pickup:'荷受け',handling_dropoff:'荷下ろし',waiting_pickup:'荷受け許可待ち',
   waiting_traffic:'交通待ち',waiting_charge:'充電待ち',moving_to_charge:'充電場所へ移動',charging:'充電中',queued:'割当待ち',completed:'完了'};
 export const stateLabel=(status,graphMode=false)=>graphMode&&status==='moving_empty'?'空走':
   graphMode&&status==='moving_loaded'?'積載走行':states[status]??status;
@@ -28,6 +28,14 @@ Object.assign(eventNames,{ROUTE_PLANNED:'合成経路決定',SEGMENT_WAITING:'�
   EQUIPMENT_PERMISSION_CHANGED:'設備受入許可変更',
   ROUTE_COMPLETED:'合成経路到着',SHUTTER_WAITING:'シャッター前停止',SHUTTER_STATE_CHANGED:'シャッター許可変更',
   TRAFFIC_WAIT_ENDED:'交通待ち解除',DEADLOCK_DETECTED:'デッドロック検出',CHARGE_ROUTE_WAITING:'充電経路保留'});
+Object.assign(eventNames,{PRODUCTION_DUE:'生産タイミング到来',EMPTY_PALLET_DISCHARGED:'空パレット払い出し',
+  PALLETIZED:'製品パレット化',PRODUCTION_BLOCKED_EMPTY_PALLET:'空パレット待ち',
+  PRODUCTION_BLOCKED_RECOVERY_POLICY:'再開方式未設定・生産保留',PRODUCTION_RECOVERY_UNRESOLVED:'再開方式未設定',
+  MAGAZINE_REFILL_NEEDED:'マガジン補充必要',ALIGNER_STACK_PICKED:'整列機10枚荷受け',ALIGNER_RESERVED:'整列機03予約',
+  ALIGNER_REFILLED:'整列機手動補充',ALIGNER_REFILL_OPERATED:'整列機補充操作',
+  PRODUCTION_RECOVERY_WAIT_NEXT_TAKT:'補充済み・次タクト待ち',PRODUCTION_RETRY_WAITING_BUFFER:'再生産・系列バッファ空き待ち',
+  PICKUP_PERMISSION_GRANTED:'荷受け許可・再開'});
+Object.assign(reasons,{EMPTY_PALLET:'空パレット待ち',RECOVERY_POLICY_UNSET:'再開方式未設定・生産保留',LINE_BUFFER_FULL:'系列バッファ空き待ち'});
 export const areaName=id=>id==='PZ'?'パレタイズ':id==='WH'?'製品倉庫':id;
 export const locationName=id=>({ 'WRAP-INPUT':'包装機 投入','WRAP-OUTPUT':'包装機 回収',OT1:'仮置き1',OT2:'仮置き2',OT3:'仮置き3',
   'PILLAR-WAIT-W':'柱前西','PILLAR-WAIT-E':'柱前東',

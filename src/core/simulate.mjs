@@ -119,12 +119,40 @@ export function simulate(rawScenario) {
   for (const s of slots.values()) required(s.id && s.rowId && Number.isInteger(s.capacity) &&
     s.capacity > 0 && s.palletIds.length <= s.capacity, 'invalid warehouse location');
   const magazineCfg = scenario.magazines ?? [];
-  const magazines = new Map(magazineCfg.map(m => [m.id,{...m,pending:false}]));
-  for (const m of magazines.values()) required(Number.isInteger(m.quantity) && m.quantity >= 0 &&
+  const magazines = new Map(magazineCfg.map(m => [m.id,{...m,refillNeeded:false,pending:false}]));
+  required(magazines.size===magazineCfg.length,'duplicate magazine ID');
+  for (const m of magazines.values()) required(typeof m.id==='string'&&m.id&&Number.isInteger(m.quantity) && m.quantity >= 0 &&
     Number.isInteger(m.capacity) && m.capacity >= m.quantity &&
     Number.isInteger(m.trigger) && m.trigger >= 0 &&
     Number.isInteger(m.refillBatch) && m.refillBatch > 0, 'invalid magazine settings');
-  const aligners = new Map((scenario.aligners ?? []).map(a => [a.id,{...a,reservedTaskId:null}]));
+  // Legacy regression fixtures can provide ready only. Quantity is the single
+  // mutable inventory value; ready is always derived and never independently set.
+  const alignerCfg=scenario.aligners??[];
+  const aligners = new Map(alignerCfg.map(a=>{
+    const quantity=a.quantity??(a.ready===true?10:0);
+    required(typeof a.id==='string'&&a.id&&[0,10].includes(quantity)&&(a.ready===undefined||a.ready===(quantity>=10)),
+      'invalid aligner quantity/ready configuration');
+    return [a.id,{...a,quantity,get ready(){return this.quantity>=10;},reservedTaskId:null}];
+  }));
+  required(aligners.size===alignerCfg.length,'duplicate aligner ID');
+  const coupledProduction=scenario.productionModel==='empty_pallet_supply';
+  required(scenario.productionModel===undefined||['empty_pallet_supply','legacy_external_pallets'].includes(scenario.productionModel),
+    'PRODUCTION_CONFIG: unknown productionModel');
+  const recoveryPolicy=scenario.magazineEmptyRecoveryPolicy??null;
+  required([null,'immediate_retry','next_takt'].includes(recoveryPolicy),
+    'PRODUCTION_CONFIG: invalid magazineEmptyRecoveryPolicy');
+  if(coupledProduction){
+    const mapping=scenario.lineMagazineMap;
+    required(mapping&&typeof mapping==='object'&&!Array.isArray(mapping)&&
+      Object.keys(mapping).length===lines.size&&[...lines.keys()].every(id=>magazines.has(mapping[id])),
+      'PRODUCTION_CONFIG: lineMagazineMap must assign every L1–L8 to an existing magazine');
+    required(!(scenario.magazineUses??[]).length,
+      'PRODUCTION_CONFIG: magazineUses is legacy/test-only and cannot be combined with empty_pallet_supply');
+    required(!(scenario.alignerReadyEvents??[]).length,
+      'PRODUCTION_CONFIG: alignerReadyEvents is legacy/test-only; use explicit manual alignerRefillEvents');
+  }
+  const blockedProduction=new Map(),retryScheduled=new Set(),
+    productionStatus=new Map([...lines.keys()].map(id=>[id,{state:'ready',reason:null}]));
   const temps = new Map((scenario.temporaryPallets ?? []).map(p => [p.palletId,{...p,reservedTaskId:null}]));
   required(temps.size === (scenario.temporaryPallets ?? []).length, 'duplicate temporary pallet');
   for (const p of temps.values()) required(['OT1','OT2','OT3'].includes(p.locationId), 'unknown temporary location');
@@ -186,6 +214,7 @@ export function simulate(rawScenario) {
     chargers:Object.fromEntries(chargers),
     magazines:Object.fromEntries([...magazines].map(([k,v]) => [k,clone(v)])),
     aligners:Object.fromEntries([...aligners].map(([k,v]) => [k,clone(v)])),
+    ...(coupledProduction?{productionStatus:Object.fromEntries([...productionStatus].map(([k,v])=>[k,clone(v)]))}:{}),
     temporaryPallets:clone([...temps.values()]),
     warehouse:snapshotWarehouse(),
     tasks:[...tasks.values()].map(saveEntity), pallets:[...pallets.values()].map(saveEntity),
@@ -263,6 +292,72 @@ export function simulate(rawScenario) {
     tasks.set(t.id,t); pending.push(t.id);
     record('TASK_REQUESTED',{taskId:t.id,kind,palletId:t.palletId ?? null});
     return t;
+  };
+  const issue03=()=>{
+    // ID ordering is a deterministic model tie-break, not a facility priority.
+    for(const m of [...magazines.values()].sort(byId)){
+      if(!m.refillNeeded||m.pending)continue;
+      required(m.refillBatch===10,'03 refill batch must match one ten-pallet aligner stack');
+      const source=[...aligners.values()].filter(a=>a.quantity===10&&!a.reservedTaskId&&
+        a.permission!==false&&!a.blocked).sort(byId)[0];
+      if(!source)continue;
+      const taskId='T'+String(nextTask+1).padStart(5,'0');
+      source.reservedTaskId=taskId;m.pending=true;
+      const task=request('03',{palletId:null,magazineId:m.id,alignerId:source.id,
+        originArea:'WH',destinationArea:'PZ',originId:source.id,destinationId:m.id,
+        quantityAtRequest:m.quantity,refillBatch:m.refillBatch,
+        sourceSelectionEvidence:'deterministic model tie-break: ID order'});
+      required(task.id===taskId,'03 source reservation/task ID mismatch');
+      record('ALIGNER_RESERVED',{taskId:task.id,alignerId:source.id,magazineId:m.id,quantity:source.quantity,
+        evidence:'deterministic model tie-break: ID order'});
+    }
+  };
+  const flagRefillNeeded=m=>{
+    if(m.quantity!==m.trigger||m.refillNeeded)return;
+    m.refillNeeded=true;
+    record('MAGAZINE_REFILL_NEEDED',{magazineId:m.id,quantity:m.quantity});
+    // Retain the legacy inventory history name. This does not issue a03 task.
+    record('MAGAZINE_REFILL_REQUESTED',{magazineId:m.id,quantity:m.quantity,requestStatus:'refill-needed'});
+  };
+  const scheduleBlockedRetries=()=>{
+    if(!coupledProduction||recoveryPolicy!=='immediate_retry')return;
+    // Explicit model: retain supplied, missed input opportunities in input order.
+    // Retry only when both physical inventories have room/supply. Existing pickup
+    // events wake the queue; no artificial time or additional capacity is added.
+    for(const [lineId,attempts] of blockedProduction){
+      if(!attempts.length||retryScheduled.has(lineId))continue;
+      const m=magazines.get(scenario.lineMagazineMap[lineId]);
+      if(m.quantity===0)continue;
+      if(lines.get(lineId).length>=scenario.lineCapacity){
+        if(productionStatus.get(lineId).reason!=='LINE_BUFFER_FULL'){
+          productionStatus.set(lineId,{state:'blocked',reason:'LINE_BUFFER_FULL',magazineId:m.id});
+          record('PRODUCTION_RETRY_WAITING_BUFFER',{lineId,magazineId:m.id,blockedAttemptCount:attempts.length,
+            recoveryPolicy,evidence:'explicit immediate_retry model: retained input order, capacity-constrained'});
+        }
+        continue;
+      }
+      const attempt=attempts.shift();if(!attempts.length)blockedProduction.delete(lineId);
+      retryScheduled.add(lineId);
+      schedule(now,'PRODUCTION_DUE',{...attempt,timeMs:now,retry:true,originalDueAt:attempt.originalDueAt??attempt.timeMs});
+    }
+  };
+  const resumeBlockedProduction=magazineId=>{
+    for(const [lineId,attempts] of blockedProduction){
+      if(scenario.lineMagazineMap[lineId]!==magazineId||!attempts.length)continue;
+      if(recoveryPolicy==='immediate_retry'){
+        productionStatus.set(lineId,{state:'ready',reason:null});
+      }else if(recoveryPolicy==='next_takt'){
+        blockedProduction.delete(lineId);
+        productionStatus.set(lineId,{state:'ready',reason:null});
+        record('PRODUCTION_RECOVERY_WAIT_NEXT_TAKT',{lineId,magazineId,discardedAttemptCount:attempts.length,
+          recoveryPolicy,evidence:'explicit scenario recovery policy'});
+      }else{
+        productionStatus.set(lineId,{state:'blocked',reason:'RECOVERY_POLICY_UNSET',magazineId});
+        record('PRODUCTION_RECOVERY_UNRESOLVED',{lineId,magazineId,blockedAttemptCount:attempts.length,
+          recoveryPolicy:null,evidence:'unresolved: recovery policy not selected'});
+      }
+    }
+    scheduleBlockedRetries();
   };
   const canReserveSlot = s => s && s.permission !== false &&
     s.palletIds.length + s.reserved.length < s.capacity && !rowBusy.has(s.rowId);
@@ -353,8 +448,11 @@ export function simulate(rawScenario) {
       const m=magazines.get(t.magazineId);
       if (m.permission === false) { t.status='wait_drop'; hold(t,'MAGAZINE_PERMISSION'); return false; }
       required(m.pending && m.quantity+m.refillBatch <= m.capacity,'magazine refill exceeds capacity');
-      m.quantity+=m.refillBatch; m.pending=false;
-      record('MAGAZINE_REFILLED',{taskId:t.id,magazineId:m.id,quantity:m.quantity,sourceReady:true});
+      const quantityBefore=m.quantity;
+      m.quantity+=m.refillBatch; m.pending=false;m.refillNeeded=false;
+      record('MAGAZINE_REFILLED',{taskId:t.id,agfId:a.id,magazineId:m.id,quantity:m.quantity,
+        quantityBefore,quantityAfter:m.quantity,refillBatch:m.refillBatch,sourceReady:true});
+      if(coupledProduction)resumeBlockedProduction(m.id);
     }
     record('TASK_DROPPED',{taskId:t.id,kind:t.kind,agfId:a.id,palletId:t.palletId ?? null});
     finishTask(t,a);
@@ -389,11 +487,6 @@ export function simulate(rawScenario) {
           column:choice.location.column,tier:choice.location.tier,storageResult:'reserved'});
         record('WAREHOUSE_LOCATION_RESERVED',{taskId:t.id,palletId:p.palletId,locationId:choice.location.id});
       }
-      if (t.kind === '03' && !t.alignerId) {
-        const source=[...aligners.values()].filter(a => a.ready === true && !a.reservedTaskId).sort(byId)[0];
-        if (!source) {hold(t,'ALIGNER_NOT_READY'); continue;}
-        t.alignerId=source.id; t.originId=source.id;
-      }
       const available=a=>(a.status==='idle'||(postTaskPolicy&&a.status==='dispatch_pending'))&&
         (!postTaskPolicy||a.batteryPct>battery.chargeStartPct);
       const choose=values=>{
@@ -405,7 +498,8 @@ export function simulate(rawScenario) {
       if (!a) {hold(t,'NO_ELIGIBLE_AGF'); continue;}
       if (t.kind === '03') {
         const source=aligners.get(t.alignerId);
-        if (!source?.ready || source.reservedTaskId) {t.alignerId=null;hold(t,'ALIGNER_NOT_READY');continue;}
+        required(source?.quantity===10&&source.reservedTaskId===t.id,'03 source must remain loaded and reserved');
+        if(source.permission===false||source.blocked){hold(t,'ALIGNER_PERMISSION');continue;}
       }
       let selected=a,routePair=null;
       if(graphMode){
@@ -421,7 +515,6 @@ export function simulate(rawScenario) {
         routePair=candidates.find(item=>item.candidate===selected)??null;
         if(!selected||!routePair){hold(t,'UNREACHABLE_ROUTE');continue;}
       }
-      if(t.kind==='03')aligners.get(t.alignerId).reservedTaskId=t.id;
       if(postTaskPolicy)releasePlaces(selected);
       t.status='moving_empty'; t.assignedAt=now; t.agfId=selected.id; t.waitReason=null;
       t.emptyRoute=graphMode?saveRoute(routePair.empty):null;t.loadedRoute=graphMode?saveRoute(routePair.loaded):null;
@@ -457,6 +550,17 @@ export function simulate(rawScenario) {
       const chargerId=a.chargerId;chargers.set(chargerId,null);a.chargerId=null;
       record('CHARGER_RELEASED',{agfId:a.id,chargerId});
       if(chargeQueue.length)startCharge(chargeQueue.shift());
+    }
+  };
+  const wakePickups=()=>{
+    for(const t of tasks.values()){
+      if(t.status!=='wait_pickup')continue;
+      const source=aligners.get(t.alignerId),a=agfs.find(a=>a.taskId===t.id);
+      if(!a||source?.permission===false||source?.blocked)continue;
+      required(source?.quantity===10&&source.reservedTaskId===t.id,'held 03 pickup lost its reserved stack');
+      t.status='moving_empty';t.waitReason=null;a.status='moving_empty';
+      record('PICKUP_PERMISSION_GRANTED',{taskId:t.id,agfId:a.id,alignerId:source.id});
+      schedule(now,'PICKUP',{taskId:t.id});
     }
   };
   const releasePlaces=a=>{
@@ -512,7 +616,7 @@ export function simulate(rawScenario) {
       beginRoute(null,a,'wait',path,'WAIT_ARRIVED');
     }
   };
-  const permissionTargets={warehouse:slots,magazine:magazines};
+  const permissionTargets={warehouse:slots,magazine:magazines,aligner:aligners};
   for(const event of scenario.permissionEvents??[]){
     required(Number.isInteger(event.timeMs)&&event.timeMs>=0&&typeof event.permitted==='boolean'&&
       permissionTargets[event.target]?.has(event.targetId),'invalid equipment permission event');
@@ -520,6 +624,7 @@ export function simulate(rawScenario) {
       target:event.target,targetId:event.targetId,permitted:event.permitted});
   }
   const production=scenario.productionEvents ?? [];
+  required(new Set(production.map(x=>x.palletId)).size===production.length,'duplicate production pallet ID');
   required(!(production.length && ((scenario.lineIntervalsMin ?? []).some(n => n > 0)||scenario.productStreams?.some(s=>s.enabled))),
     'productionEvents and lineIntervalsMin are mutually exclusive');
   if (production.length) {
@@ -528,11 +633,12 @@ export function simulate(rawScenario) {
         lines.has(x.lineId) && x.palletId && (warehousePolicy||slots.has(x.destinationLocationId)),
         'invalid external production event');
       required(x.sourceLineId===undefined||x.sourceLineId===x.lineId,'sourceLineId must match production lineId');
-      schedule(x.timeMs,'PALLET_EXITED',{...x,inputKind:'external'});
+      schedule(x.timeMs,coupledProduction?'PRODUCTION_DUE':'PALLET_EXITED',{...x,inputKind:'external'});
     }
   } else if(scenario.productStreams){
     required(warehousePolicy,'product streams require warehouse policy');
-    for(const event of generateProductionEvents(scenario.productStreams,durationMs,lineIds))schedule(event.timeMs,'PALLET_EXITED',event);
+    for(const event of generateProductionEvents(scenario.productStreams,durationMs,lineIds))
+      schedule(event.timeMs,coupledProduction?'PRODUCTION_DUE':'PALLET_EXITED',event);
   } else {
     required(Array.isArray(scenario.lineIntervalsMin) && scenario.lineIntervalsMin.length===8,
       'eight independent lineIntervalsMin required');
@@ -549,7 +655,7 @@ export function simulate(rawScenario) {
       const step=minute(interval), start=step+minute(offsets[i]);
       required(step>0,'line interval is below millisecond precision');
       for (let t=start,k=1;t<=durationMs;t+=step,k++) {
-        schedule(t,'PALLET_EXITED',{timeMs:t,lineId:'L'+(i+1),
+        schedule(t,coupledProduction?'PRODUCTION_DUE':'PALLET_EXITED',{timeMs:t,lineId:'L'+(i+1),
           palletId:'SIM-L'+(i+1)+'-'+k,
           destinationLocationId:destinations[n++%destinations.length],inputKind:'synthetic-interval'});
       }
@@ -565,6 +671,11 @@ export function simulate(rawScenario) {
       'invalid aligner-ready event');
     schedule(x.timeMs,'ALIGNER_READY',x);
   }
+  for(const x of scenario.alignerRefillEvents??[]){
+    required(Number.isInteger(x.timeMs)&&x.timeMs>=0&&['individual','all'].includes(x.operationType)&&
+      (x.operationType==='all'||aligners.has(x.alignerId)),'invalid aligner refill event');
+    schedule(x.timeMs,'ALIGNER_REFILL_OPERATED',x);
+  }
   for (const x of scenario.manualRequests ?? []) {
     required(['04','05'].includes(x.kind) && Number.isInteger(x.timeMs) && x.timeMs>=0,
       'invalid manual task');
@@ -576,25 +687,62 @@ export function simulate(rawScenario) {
     schedule(x.timeMs,'SHUTTER_STATE_CHANGED',x);
   }
   record('RUN_STARTED',{inputKind:production.length?'external':'synthetic-interval',mode:scenario.mode,
+    productionModel:coupledProduction?'empty_pallet_supply':'legacy_external_pallets',
     mapStatus:graphMode?'synthetic-operational':'conceptual-only',
     timingStatus:graphMode?'synthetic-graph-assumption':'scenario-assumption'});
   chargeIdleAgfs();
+  const operatorPhase=e=>e.type==='ALIGNER_REFILL_OPERATED'?1:0;
   while(queue.length) {
-    queue.sort((a,b)=>a.timeMs-b.timeMs || a.order-b.order);
+    // A displayed-time operator input follows endogenous events already visible
+    // at that instant, including dynamically scheduled pickup/drop events. This
+    // is an ordering phase only: it adds no invented elapsed processing time.
+    queue.sort((a,b)=>a.timeMs-b.timeMs || operatorPhase(a)-operatorPhase(b) || a.order-b.order);
     const e=queue.shift();
     if (e.timeMs>durationMs) break;
     batteryLedger?.advance(now,e.timeMs,tasks);
     now=e.timeMs;
-    if (e.type === 'PALLET_EXITED') {
+    if (e.type === 'PRODUCTION_DUE'||e.type==='PALLET_EXITED') {
       const l=lines.get(e.lineId);
       required(l && !pallets.has(e.palletId),'unknown line or duplicate pallet');
-      required(l.length<scenario.lineCapacity,'line buffer overflow at '+e.lineId+' / '+now);
       required(warehousePolicy||slots.has(e.destinationLocationId),'destination unknown');
       const attributes={sourceLineId:e.sourceLineId??e.lineId,productType:e.productType??'normal',loadType:e.loadType??'full'};
       validateProduct(attributes,lineIds);
-      l.push(e.palletId);
+      if(e.type==='PRODUCTION_DUE'){
+        if(e.retry)retryScheduled.delete(e.lineId);
+        const m=magazines.get(scenario.lineMagazineMap[e.lineId]);
+        record('PRODUCTION_DUE',{lineId:e.lineId,palletId:e.palletId,magazineId:m.id,inputKind:e.inputKind,
+          palletStatus:'planned-input',retry:e.retry===true,originalDueAt:e.originalDueAt??now,
+          ...(e.retry?{evidence:'explicit immediate_retry model: retained input order, capacity-constrained'}:{})});
+        if(m.quantity===0||(recoveryPolicy===null&&blockedProduction.has(e.lineId))){
+          const reason=m.quantity===0?'EMPTY_PALLET':'RECOVERY_POLICY_UNSET';
+          productionStatus.set(e.lineId,{state:'blocked',reason,magazineId:m.id});
+          if(!blockedProduction.has(e.lineId))blockedProduction.set(e.lineId,[]);
+          blockedProduction.get(e.lineId)[e.retry?'unshift':'push']({...e});
+          record(reason==='EMPTY_PALLET'?'PRODUCTION_BLOCKED_EMPTY_PALLET':'PRODUCTION_BLOCKED_RECOVERY_POLICY',
+            {lineId:e.lineId,magazineId:m.id,plannedPalletId:e.palletId,quantity:m.quantity,reason,
+              recoveryPolicy,evidence:recoveryPolicy===null?'unresolved: recovery policy not selected':'explicit scenario recovery policy'});
+          wakeDrops();wakePickups();issue02();issue03();chargeIdleAgfs();dispatch();settleWaiting();scheduleBlockedRetries();
+          continue;
+        }
+        if(e.retry&&l.length>=scenario.lineCapacity){
+          if(!blockedProduction.has(e.lineId))blockedProduction.set(e.lineId,[]);
+          blockedProduction.get(e.lineId).unshift({...e});
+          scheduleBlockedRetries();continue;
+        }
+        required(l.length<scenario.lineCapacity,'line buffer overflow at '+e.lineId+' / '+now);
+        const quantityBefore=m.quantity;m.quantity--;
+        productionStatus.set(e.lineId,{state:'ready',reason:null});
+        record('EMPTY_PALLET_DISCHARGED',{magazineId:m.id,lineId:e.lineId,palletId:e.palletId,
+          quantityBefore,quantityAfter:m.quantity,quantity:m.quantity,...attributes});
+        flagRefillNeeded(m);
+      }else required(l.length<scenario.lineCapacity,'line buffer overflow at '+e.lineId+' / '+now);
       pallets.set(e.palletId,{palletId:e.palletId,lineId:e.lineId,...attributes,
-        destinationLocationId:warehousePolicy?null:e.destinationLocationId,stage:'line',inputKind:e.inputKind});
+        destinationLocationId:warehousePolicy?null:e.destinationLocationId,
+        stage:coupledProduction?'palletized':'line',inputKind:e.inputKind});
+      if(e.type==='PRODUCTION_DUE')record('PALLETIZED',{lineId:e.lineId,palletId:e.palletId,
+        magazineId:scenario.lineMagazineMap[e.lineId],inputKind:e.inputKind,
+        processingTimeStatus:'unresolved: no added processing delay'});
+      l.push(e.palletId);pallets.get(e.palletId).stage='line';
       stats.created++;
       record('PALLET_EXITED',{lineId:e.lineId,palletId:e.palletId,inputKind:e.inputKind});
       request('01',{palletId:e.palletId,originArea:'PZ',destinationArea:'PZ',
@@ -617,15 +765,22 @@ export function simulate(rawScenario) {
       const m=magazines.get(e.magazineId);
       required(m.quantity>0,'magazine empty');
       m.quantity--; record('MAGAZINE_USED',{magazineId:m.id,quantity:m.quantity});
-      if (m.quantity===m.trigger && !m.pending) {
-        m.pending=true; record('MAGAZINE_REFILL_REQUESTED',{magazineId:m.id,quantity:m.quantity});
-        request('03',{palletId:null,magazineId:m.id,originArea:'WH',destinationArea:'PZ',
-          originId:null,destinationId:m.id});
-      }
+      flagRefillNeeded(m);
     } else if (e.type === 'ALIGNER_READY') {
       const a=aligners.get(e.alignerId);
       required(!a.ready && !a.reservedTaskId,'aligner supply already ready or reserved');
-      a.ready=true; record('ALIGNER_READY',{alignerId:a.id});
+      a.quantity=10; record('ALIGNER_READY',{alignerId:a.id,quantityBefore:0,quantityAfter:10,
+        evidence:'legacy/test-only explicit aligner supply input'});
+    } else if(e.type==='ALIGNER_REFILL_OPERATED'){
+      const targets=e.operationType==='all'?[...aligners.values()].sort(byId):[aligners.get(e.alignerId)];
+      record('ALIGNER_REFILL_OPERATED',{alignerId:e.alignerId??null,operationType:e.operationType,
+        operatedAt:now,targetIds:targets.map(a=>a.id)});
+      for(const a of targets){
+        if(a.quantity===10)continue;
+        required(a.quantity===0&&!a.reservedTaskId,'aligner refill requires an empty unreserved aligner');
+        const quantityBefore=a.quantity;a.quantity=10;
+        record('ALIGNER_REFILLED',{alignerId:a.id,operationType:e.operationType,quantityBefore,quantityAfter:10,operatedAt:now});
+      }
     } else if (e.type === 'PICKUP') {
       const t=tasks.get(e.taskId), a=agfs.find(a=>a.id===t?.agfId);
       required(t?.status==='moving_empty' && a?.taskId===t.id && a.status==='moving_empty',
@@ -641,8 +796,13 @@ export function simulate(rawScenario) {
         releaseWrap();
       } else if (t.kind==='03') {
         const source=aligners.get(t.alignerId);
-        required(source.ready && source.reservedTaskId===t.id,'03 pickup before aligner ready');
-        source.ready=false; source.reservedTaskId=null;
+        required(source.quantity===10 && source.reservedTaskId===t.id,'03 pickup before aligner ready');
+        if(source.permission===false||source.blocked){
+          t.status='wait_pickup';a.status='waiting_pickup';hold(t,'ALIGNER_PERMISSION');continue;
+        }
+        source.quantity=0;source.reservedTaskId=null;
+        record('ALIGNER_STACK_PICKED',{alignerId:source.id,taskId:t.id,agfId:a.id,
+          quantityBefore:10,quantityAfter:0,pickedAt:now});
       } else {
         const temp=temps.get(t.palletId);
         required(temp?.reservedTaskId===t.id,'04/05 pallet not reserved');
@@ -775,7 +935,7 @@ export function simulate(rawScenario) {
       record('CHARGE_ENDED',{agfId:a.id,chargerId:e.chargerId,batteryPct:a.batteryPct});
       if (!postTaskPolicy&&chargeQueue.length) startCharge(chargeQueue.shift());
     } else throw new Error('unsupported event '+e.type);
-    wakeDrops(); issue02(); chargeIdleAgfs(); dispatch(); settleWaiting();
+    wakeDrops(); wakePickups(); issue02(); issue03(); chargeIdleAgfs(); dispatch(); settleWaiting(); scheduleBlockedRetries();
   }
   if (batteryLedger) {
     batteryLedger.advance(now,durationMs,tasks);

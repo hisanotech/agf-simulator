@@ -1,11 +1,26 @@
+import {buildRunConditions} from './run-conditions.mjs';
+
+const csvCell=value=>{const s=typeof value==='object'&&value!==null?JSON.stringify(value):String(value??'');
+  return /[",\r\n]/.test(s)?'"'+s.replaceAll('"','""')+'"':s;};
+
+/** Separate human-readable conditions file; source is the saved Run only. */
+export function conditionCsv(run,runId=run.runId){
+  const columns=['category','key','subkey','value','evidence'];
+  const rows=buildRunConditions(run,{runId}).map(row=>columns.map(key=>csvCell(key==='value'&&row[key]===null?'UNSET':row[key])).join(','));
+  return '\ufeff'+[columns.join(','),...rows].join('\r\n');
+}
+export const conditionCsvFilename=runId=>String(runId??'run')+'-conditions.csv';
+
 /** A complete reproducible scenario is retained in the first event row. */
 export function eventCsv(run,runId) {
   const columns=['runId','mode','timeMs','sequence','type','kind','taskId','palletId','agfId','originId','destinationId',
     'status','lineId','magazineId','locationId','reason','inputKind','edgeId','laneId','fromNodeId','toNodeId','nodeId','movement','heading','modelDurationMs',
     'shutterId','passable','etaStatus','target','targetId','permitted','permissionEvidence','hpId','placeId','chargePlaceId','chargerId',
     'sourceLineId','productType','loadType','storageLocationId','blockId','row','column','tier','storageResult',
+    'alignerId','quantityBefore','quantityAfter','quantity','refillBatch','refillNeeded','pickedAt','operatedAt','operationType',
+    'originalDueAt','retry','recoveryPolicy','policy','count','sourceSelectionEvidence','evidence','plannedPalletId','palletStatus','processingTimeStatus','targetIds',
     'timingStatus','inventoryStatus','batteryModel','batteryConsumptionBasis','batteryScope','scenarioJson'];
-  const cell=value=>{const s=String(value??'');return /[",\r\n]/.test(s)?'"'+s.replaceAll('"','""')+'"':s;};
+  const cell=csvCell;
   const rows=run.events.map((event,index)=>{
     const task=run.snapshots[index].tasks.find(t=>t.id===event.taskId);
     const row={runId,mode:run.scenario.mode,originId:task?.originId,destinationId:task?.destinationId,

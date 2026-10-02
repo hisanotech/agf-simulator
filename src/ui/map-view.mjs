@@ -1,5 +1,6 @@
 import {WAREHOUSE_BLOCKS,warehouseLocations,slotStatus,displayedSlotStatus,WAREHOUSE_SERVICE} from '../map/warehouse-layout.mjs';
 import {escapeHtml as esc,stateLabel,locationName,productLabel} from './format.mjs';
+import {warehouseRowStyle,warehouseOwnerLegend} from './warehouse-colors.mjs';
 
 import {effectiveStatus} from './replay-model.mjs';
 
@@ -74,11 +75,18 @@ export function initMap({svg,onSelectAgf,onSelectBlock}) {
       const count=blockSlots.length;
       const active=[selectedTask?.originId,selectedTask?.destinationId].some(id=>id?.startsWith(block.id+'-'));
       let cells='';
-      for(let r=1;r<=block.rows;r++)for(let c=1;c<=block.columns;c++) {
-        if(block.emptyColumns.includes(c)){cells+=`<rect data-row="${r}" data-column="${c}" data-tiers="2" x="${x+16+(c-1)*bw}" y="${y+40+(r-1)*bh}" width="${bw-2}" height="${bh-2}" fill="url(#gap)"/>`;continue;}
-        const pair=blockSlots.filter(s=>s.row===r&&s.column===c).map(s=>displayedSlotStatus(snapshot.warehouse[s.id],snapshot));
-        const state=['occupied','reserved','unavailable','empty','unsupported'].find(s=>pair.includes(s))??'unknown';
-        cells+=`<rect data-row="${r}" data-column="${c}" data-tiers="2" x="${x+16+(c-1)*bw}" y="${y+40+(r-1)*bh}" width="${bw-2}" height="${bh-2}" rx="2" fill="${palette[state]}"/>`;
+      for(let r=1;r<=block.rows;r++){
+        const rowId=block.id+'-R'+String(r).padStart(2,'0'),owner=warehouseRowStyle(snapshot.warehouseAllocation,rowId);
+        const rowLabel=rowId+' · '+owner.label;
+        // Allocation markers sit in the existing rack margin. Cell and rack geometry stays unchanged.
+        cells+=`<rect data-warehouse-row="${rowId}" data-owner="${owner.owner}" x="${x+10}" y="${y+40+(r-1)*bh}" width="3" height="${bh-2}" fill="${owner.color}"><title>${esc(rowLabel)}</title></rect>`;
+        for(let c=1;c<=block.columns;c++) {
+          if(block.emptyColumns.includes(c)){cells+=`<rect data-row="${r}" data-column="${c}" data-tiers="2" x="${x+16+(c-1)*bw}" y="${y+40+(r-1)*bh}" width="${bw-2}" height="${bh-2}" fill="url(#gap)"><title>${esc(rowLabel)} · 第10列は配置対象外</title></rect>`;continue;}
+          const pair=blockSlots.filter(s=>s.row===r&&s.column===c).map(s=>displayedSlotStatus(snapshot.warehouse[s.id],snapshot));
+          const state=['occupied','reserved','unavailable','empty','unsupported'].find(s=>pair.includes(s))??'unknown';
+          const fill=['empty','unsupported'].includes(state)?owner.tint:palette[state];
+          cells+=`<rect data-row="${r}" data-column="${c}" data-tiers="2" data-owner="${owner.owner}" x="${x+16+(c-1)*bw}" y="${y+40+(r-1)*bh}" width="${bw-2}" height="${bh-2}" rx="2" fill="${fill}" stroke="${owner.color}" stroke-width=".65"><title>${esc(rowLabel)} · ${c}列 · ${statusNames[state]}</title></rect>`;
+        }
       }
       return `<g data-block="${block.id}" role="button" tabindex="0" aria-label="${block.id} ${block.label} ${count}保管位置の行列段を表示" class="warehouse-block${active?' target-equipment':''}">
         ${rect(x,y,w,h,'block-body')}${text(x+15,y+25,block.id+'  '+block.rows+' × '+block.columns+' × 2段')}
@@ -126,7 +134,7 @@ export function initMap({svg,onSelectAgf,onSelectBlock}) {
         const y=i<2?765+i*31:829+(i-2)*31;
         return `<g data-equipment="${p.id}" class="equipment">${rect(720,y,125,27,'equipment-body')}${text(725,y+13.5,i<2?p.id:'充電'+(i-1),'map-small')}</g>`;
       }).join('')}</g>
-      <g data-acceptance="G15">${Object.values(snapshot.aligners).map((a,i)=>equipment(a.id,'AL'+(i+1),858+i*38,765,34,40,a.ready?'OK':'')).join('')}<rect data-map-id="EMPTY-PALLET-STORE" x="858" y="825" width="192" height="73" rx="7" fill="url(#gap)" stroke="#b45353" stroke-width="1.5"/>${text(870,849,'空パレ置き場（有人供給）','map-small')}</g>
+      <g data-acceptance="G15">${Object.values(snapshot.aligners).map((a,i)=>equipment(a.id,'AL'+(i+1),858+i*38,765,34,40,(a.quantity??(a.ready?10:0))+'枚')).join('')}<rect data-map-id="EMPTY-PALLET-STORE" x="858" y="825" width="192" height="73" rx="7" fill="url(#gap)" stroke="#b45353" stroke-width="1.5"/>${text(870,849,'空パレ置き場（有人供給）','map-small')}</g>
       <g data-acceptance="G16"><rect data-map-id="PILLAR-WAIT-W" aria-label="柱前待機 西（WB2とWB3間の東寄り・実停止座標未確定）" x="286" y="720" width="20" height="10" class="waiting-candidate"><title>柱前西：通常待機場所・相対位置確認済み、実停止座標未確定</title></rect><path d="M306 725 H318" class="waiting-candidate"/>${text(320,758,'柱前待機 西','map-small')}<rect data-map-id="PILLAR-WAIT-E" aria-label="柱前待機 東（EB1とEB2間の西寄り・実停止座標未確定）" x="715" y="603" width="20" height="12" class="waiting-candidate"><title>柱前東：通常待機場所・相対位置確認済み、実停止座標未確定</title></rect>${text(815,616,'柱前待機 東','map-small')}</g>
       <g data-acceptance="G17">${text(870,876,'× AGF進入禁止','forbidden-label')}</g>
       ${text(48,930,'概念図・実寸ではありません。未承認経路から実距離・確定ETAを生成しません。','map-small')}${routeOverlay}${agfs}</g>`;
@@ -158,13 +166,19 @@ export function renderWarehouseBlock(blockId,tier,snapshot) {
   const cell=(row,column)=>{
     if(block.emptyColumns.includes(column))return '<div class="slot-gap" title="空列：配置対象外・通行可否未確定">／</div>';
     const slot=own.find(s=>s.row===row&&s.column===column&&s.tier===tier),state=displayedSlotStatus(snapshot.warehouse[slot.id],snapshot);
-    return `<button class="slot slot-${state}" data-slot="${slot.id}" aria-label="${slot.id} ${statusNames[state]}" title="${slot.id} · ${statusNames[state]}"><span>${row}-${column}</span><b>${state==='occupied'?'●':state==='reserved'?'◷':state==='unavailable'?'×':'·'}</b></button>`;
+    const owner=warehouseRowStyle(snapshot.warehouseAllocation,slot.rowId);
+    return `<button class="slot slot-${state} warehouse-owner-slot" data-slot="${slot.id}" data-owner="${owner.owner}" style="--owner-color:${owner.color}" aria-label="${slot.id} ${owner.label} ${statusNames[state]}" title="${slot.id} · ${owner.label} · ${statusNames[state]}"><span>${row}-${column}</span><b>${state==='occupied'?'●':state==='reserved'?'◷':state==='unavailable'?'×':'·'}</b></button>`;
+  };
+  const rowHeader=row=>{
+    const rowId=block.id+'-R'+String(row).padStart(2,'0'),owner=warehouseRowStyle(snapshot.warehouseAllocation,rowId);
+    return `<span class="row-number warehouse-owner-row" data-warehouse-row="${rowId}" data-owner="${owner.owner}" style="--owner-color:${owner.color}">${row}行<small>↔ 1車線</small><small class="warehouse-owner-label">${esc(owner.label)}</small></span>`;
   };
   return `<div class="block-summary"><div><span class="eyebrow">WAREHOUSE / ${block.id}</span><h2>${block.label} · ${block.id}</h2><p>${block.rows}行 × ${block.columns}列 × 2段 ${block.emptyColumns.length?'（第10列は配置対象外）':''}</p></div><strong>${own.length}<small>保管位置</small></strong></div>
     <div class="slot-counts">${Object.entries(counts).filter(([s])=>s!=='unknown').map(([s,n])=>`<span><i class="legend-dot slot-${s}"></i>${statusNames[s]} <b>${n}</b></span>`).join('')}</div>
-    <div class="notice">概念図・サンプル在庫 ／ 各行は双方向1車線、横並び通行不可。個別停止位置・主通路への接続は未確認です。</div>
+    ${warehouseOwnerLegend()}<p class="muted">行の枠・背景は系列割当、●／◷／×とマスの色は保管状態です。未割当行には入庫しません。</p>
+    <div class="notice">概念図・Runの保存済み在庫 ／ 各行は双方向1車線、横並び通行不可。個別停止位置・主通路への接続は未確認です。</div>
     <div class="warehouse-scroll"><div class="slot-grid" style="--cols:${block.columns}"><span></span>${Array.from({length:block.columns},(_,i)=>`<span class="col-number">${i+1}列</span>`).join('')}
-      ${Array.from({length:block.rows},(_,i)=>`<span class="row-number">${i+1}行<br><small>↔ 1車線</small>${snapshot.warehouseAllocation?'<br><small>'+esc((()=>{const a=snapshot.warehouseAllocation.rowAssignments.find(a=>a.rowId===block.id+'-R'+String(i+1).padStart(2,'0'));return a?.usage==='special'?'特注':a?.sourceLineId??'未割当';})())+'</small>':''}</span>${Array.from({length:block.columns},(_,c)=>cell(i+1,c+1)).join('')}`).join('')}</div></div>
+      ${Array.from({length:block.rows},(_,i)=>`${rowHeader(i+1)}${Array.from({length:block.columns},(_,c)=>cell(i+1,c+1)).join('')}`).join('')}</div></div>
     <p class="muted">${tier}段を表示中。集計は2段合計。${block.emptyColumns.length?'斜線の空列は道路を意味しません。':''}位置を選ぶとパレット・予約を確認できます。</p>`;
 }
 

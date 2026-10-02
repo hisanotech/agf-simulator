@@ -67,7 +67,9 @@ test('03 cannot pick an unready aligner',()=>{
     aligners:[{id:'AL1',ready:false}],magazineUses:[{timeMs:0,magazineId:'M1'}]});
   const a=simulate(s);
   assert.equal(a.metrics.byKind['03']??0,0);
-  assert.equal(a.final.magazines.M1.pending,true);
+  assert.equal(a.final.magazines.M1.pending,false);
+  assert.equal(a.final.magazines.M1.refillNeeded,true);
+  assert.ok(!a.events.some(e=>e.type==='TASK_REQUESTED'&&e.kind==='03'));
 });
 test('04 re-enters wrapping and eventually stores same pallet',()=>{
   const s=fixture({productionEvents:[],lineIntervalsMin:[0,0,0,0,0,0,0,0],

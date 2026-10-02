@@ -71,7 +71,7 @@ test('unreachable pickup stays queued and never mutates pallet or AGF load',()=>
   assert.ok(run.final.agfs.every(agf=>agf.carriedPalletId===null));
 });
 
-test('unreachable replenishment does not reserve an aligner without an AGF assignment',()=>{
+test('unreachable replenishment retains its issued aligner reservation without pickup or AGF assignment',()=>{
   const input=scenario();
   input.productionEvents=[];
   input.aligners[0].ready=true;
@@ -80,7 +80,9 @@ test('unreachable replenishment does not reserve an aligner without an AGF assig
   const run=simulate(input),task=run.final.tasks.find(item=>item.kind==='03');
   assert.equal(task.status,'queued');
   assert.equal(task.waitReason,'UNREACHABLE_ROUTE');
-  assert.equal(run.final.aligners.AL1.reservedTaskId,null);
+  assert.equal(run.final.aligners.AL1.reservedTaskId,task.id);
+  assert.equal(run.final.aligners.AL1.quantity,10);
+  assert.ok(!run.events.some(event=>event.type==='ALIGNER_PICKED'||event.type==='TASK_PICKED'&&event.taskId===task.id));
   assert.equal(run.final.aligners.AL1.ready,true);
   assert.ok(!run.events.some(event=>event.type==='TASK_ASSIGNED'&&event.taskId===task.id));
 });

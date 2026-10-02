@@ -4,12 +4,18 @@ import {defaultProductStreams,THEORETICAL_LINE_INTERVALS_MIN} from '../core/prod
 
 /** All inventory, input streams and timing here are explicit, reproducible sample assumptions. */
 export function createDemoScenario(preset='standard') {
-  if(preset==='extended'){
-    const s=createDemoScenario('physical');s.preset=preset;
-    s.lineIntervalsMin=Array(8).fill(0);
+  if(preset==='standard'||preset==='extended'){
+    const s=createLegacyScenario('physical');s.preset=preset;
+    s.lineIntervalsMin=[...THEORETICAL_LINE_INTERVALS_MIN];
     s.lineStartOffsetsMin=productionOffsets();
     s.productStreams=defaultProductStreams(undefined,s.lineStartOffsetsMin);
     s.evidence.production='theoretical-pallet-discharge-100pct';
+    s.productionModel='empty_pallet_supply';
+    s.lineMagazineMap=Object.fromEntries(Array.from({length:8},(_,i)=>['L'+(i+1),null]));
+    s.magazineEmptyRecoveryPolicy=null;
+    s.evidence.lineMagazineMap='unconfigured';
+    s.evidence.magazineEmptyRecoveryPolicy='unresolved';
+    s.evidence.inventory='user-confirmed-neutral-start';
     s.warehousePolicy={evidence:'unconfigured',rowAssignments:[],rowPriority:{}};
     s.postTaskPolicy={evidence:'user-confirmed-shared-priority',waitingPriority:[...NORMAL_WAITING_PRIORITY]};
     // User-confirmed startup only. The actual stop coordinates remain synthetic.
@@ -17,10 +23,17 @@ export function createDemoScenario(preset='standard') {
     s.chargePlaceIds=['CHARGE-PLACE1','CHARGE-PLACE2'];
     s.agfs.forEach((a,i)=>{a.currentNodeId=s.initialParking.placeIds[i];a.area='WH';});
     s.warehouse.forEach(slot=>{slot.palletIds=[];slot.permission=true;});
-    s.temporaryPallets=s.temporaryPallets.map((p,i)=>({...p,destinationLocationId:null,
-      sourceLineId:'L'+(i+1),productType:'normal',loadType:'full'}));
+    s.magazines.forEach(m=>{m.quantity=10;});
+    s.aligners=s.aligners.map(a=>({id:a.id,quantity:10}));
+    s.temporaryPallets=[];
+    s.alignerRefillEvents=[];
     return s;
   }
+  return createLegacyScenario(preset);
+}
+
+/** Explicit legacy/regression fixtures, never the neutral ordinary Run. */
+export function createLegacyScenario(preset='standard') {
   if(!['standard','charge','manual','physical'].includes(preset))throw new Error('Unknown sample scenario');
   const warehouse=warehouseLocations();
   // Exercise all status styles with declared sample state, never a claim about actual inventory.
@@ -31,6 +44,7 @@ export function createDemoScenario(preset='standard') {
       a.blockId.localeCompare(b.blockId,'en')).map(slot=>slot.id);
   return {
     preset,durationMin:180,mode:'area_first',fallback:'any',lineCapacity:2,
+    productionModel:'legacy_external_pallets',
     evidence:{structure:'user-confirmed',coordinates:'unreviewed',inventory:'synthetic',
       production:preset==='standard'?'theoretical-pallet-discharge-100pct':'synthetic-intervals',
       productionOffsets:'synthetic-phases',timing:'scenario-assumption',battery:'scenario-assumption',

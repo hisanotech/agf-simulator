@@ -6,6 +6,14 @@ import {generateProductionEvents} from '../src/core/production-streams.mjs';
 export function integratedAcceptanceScenario(kind='normal'){
   if(!['normal','recovery','charging-boundary'].includes(kind))throw new Error('Unknown acceptance case');
   const s=createDemoScenario('extended');
+  // Explicit legacy regression fixture: pre-existing stocks/inputs are NOT the
+  // ordinary neutral Run. New coupled-production acceptance uses a separate fixture.
+  s.productionModel='legacy_external_pallets';
+  s.lineIntervalsMin=Array(8).fill(0);
+  s.magazines.forEach(m=>{m.quantity=4;});
+  s.aligners=s.aligners.map(a=>({id:a.id,quantity:0}));
+  s.temporaryPallets=[1,2,3].map(i=>({palletId:'SIM-TEMP-'+i,locationId:'OT'+i,
+    destinationLocationId:null,sourceLineId:'L'+i,productType:'normal',loadType:'full'}));
   s.warehousePolicy=syntheticWarehousePolicy();
   s.evidence.acceptanceCase=kind;
   // Four variants share the same 100%-capacity theoretical production stream.
@@ -27,7 +35,7 @@ export function integratedAcceptanceScenario(kind='normal'){
     {timeMs:5*60000,kind:'05',palletId:'SIM-TEMP-2',locationId:'OT2',storagePermission:true},
     {timeMs:9*60000,kind:'05',palletId:'SIM-TEMP-3',locationId:'OT3',storagePermission:true}
   ];
-  s.aligners[0].ready=true;s.magazineUses=[{timeMs:0,magazineId:'M1'}];
+  s.aligners[0].quantity=10;s.magazineUses=[{timeMs:0,magazineId:'M1'}];
   if(kind==='recovery'){
     s.permissionEvents=[
       {timeMs:5*60000+1,target:'warehouse',targetId:'EB2-R02-C18-T1',permitted:false},

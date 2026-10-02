@@ -2,6 +2,9 @@ const requireSetting=(ok,message)=>{if(!ok)throw new Error('WAREHOUSE_CONFIG: '+
 export const PRODUCT_TYPES=['normal','special'];
 export const LOAD_TYPES=['full','partial'];
 export const productOwner=p=>p.productType==='special'?'SPECIAL':p.sourceLineId;
+/** Omitted rows and explicit unassigned entries are equally unavailable for products. */
+export const warehouseRowOwner=assignment=>assignment?.usage==='special'?'SPECIAL':
+  assignment?.usage==='normal'?assignment.sourceLineId:'UNASSIGNED';
 export function validateProduct(p,lineIds){
   requireSetting(lineIds.includes(p.sourceLineId),'搬出元系列が未設定です。');
   requireSetting(PRODUCT_TYPES.includes(p.productType)&&LOAD_TYPES.includes(p.loadType),'普通／特注・満載／端数を指定してください。');
@@ -21,8 +24,12 @@ export function validateWarehousePolicy(policy,slots,{lineIds,specialEnabled=fal
   const seen=new Set();
   for(const a of policy.rowAssignments){
     requireSetting(rows.has(a.rowId)&&!seen.has(a.rowId),'不明な行、または同じ行の重複割当です。');seen.add(a.rowId);
+    if(a.usage==='unassigned'){
+      requireSetting(!a.sourceLineId,'未割当行には系列を指定できません。');
+      continue;
+    }
     requireSetting(a.usage==='normal'||a.usage==='special','行の用途を指定してください。');
-    const owner=a.usage==='special'?'SPECIAL':a.sourceLineId;
+    const owner=warehouseRowOwner(a);
     requireSetting(owner==='SPECIAL'||lineIds.includes(owner),'行の系列が不明です。');
     const list=owners.get(owner)??[];list.push({...rows.get(a.rowId),rowId:a.rowId});owners.set(owner,list);
   }
@@ -47,7 +54,7 @@ export function canUseUpper(lower,pallets){
 
 /** Reservations never act as physical lower-tier support. Rows are ordered only by explicit input. */
 export function chooseWarehouseLocation({pallet,policy,slots,pallets,rowBusy}){
-  const owner=productOwner(pallet),assigned=policy.rowAssignments.filter(a=>(a.usage==='special'?'SPECIAL':a.sourceLineId)===owner);
+  const owner=productOwner(pallet),assigned=policy.rowAssignments.filter(a=>warehouseRowOwner(a)===owner);
   if(!assigned.length)return {location:null,reason:'NO_ASSIGNED_STORAGE'};
   const priority=assigned.length===1?[assigned[0].rowId]:policy.rowPriority?.[owner];
   if(!priority)return {location:null,reason:'ROW_PRIORITY_UNRESOLVED'};
@@ -74,7 +81,7 @@ export function validateStoredPallets(slots,pallets,policy,lineIds){
     requireSetting(!seen.has(id),'初期在庫のパレットIDが重複しています。');seen.add(id);
     const p=pallets.get(id);requireSetting(p,'初期在庫のパレット属性がありません。');validateProduct(p,lineIds);
     const assignment=policy.rowAssignments.find(a=>a.rowId===s.rowId);
-    requireSetting(assignment&&productOwner(p)===(assignment.usage==='special'?'SPECIAL':assignment.sourceLineId),'初期在庫と行用途が一致しません。');
+    requireSetting(assignment&&productOwner(p)===warehouseRowOwner(assignment),'初期在庫と行用途が一致しません。');
     if(s.tier===2)requireSetting(canUseUpper([...slots.values()].find(l=>l.rowId===s.rowId&&l.column===s.column&&l.tier===1),pallets),
       '2段目の初期在庫には配置済みの満載1段目が必要です。');
   }
@@ -83,10 +90,12 @@ export function validateStoredPallets(slots,pallets,policy,lineIds){
 /** Future capacity range: unknown future full/partial mix cannot yield one exact capacity. */
 export function warehouseAvailability(slots,pallets,policy=null){
   let occupied=0,reserved=0,blockedUpper=0,immediatelyPlaceable=0,additionalIfFull=0,additionalIfPartial=0;
+  const assignedRows=policy?new Set(policy.rowAssignments.filter(a=>warehouseRowOwner(a)!=='UNASSIGNED').map(a=>a.rowId)):null;
+  const assignedCapacity=assignedRows?[...slots.values()].filter(s=>assignedRows.has(s.rowId)).length:slots.size;
   for(const s of slots.values()){
     occupied+=s.palletIds.length;reserved+=s.reserved.length;
     if(s.tier!==1)continue;
-    if(policy&&!policy.rowAssignments.some(a=>a.rowId===s.rowId))continue;
+    if(assignedRows&&!assignedRows.has(s.rowId))continue;
     const upper=[...slots.values()].find(u=>u.rowId===s.rowId&&u.column===s.column&&u.tier===2);
     const lowerFull=canUseUpper(s,pallets),lowerPartial=s.palletIds.length&&!lowerFull;
     const available=slot=>slot&&slot.permission!==false&&!slot.palletIds.length&&!slot.reserved.length;
@@ -94,5 +103,6 @@ export function warehouseAvailability(slots,pallets,policy=null){
     if(available(s)){immediatelyPlaceable++;additionalIfFull+=1+(available(upper)?1:0);additionalIfPartial++;}
     else if(lowerFull&&available(upper)){immediatelyPlaceable++;additionalIfFull++;additionalIfPartial++;}
   }
-  return {theoretical:slots.size,occupied,reserved,blockedUpper,immediatelyPlaceable,additionalIfFull,additionalIfPartial};
+  return {theoretical:slots.size,assignedCapacity,unassignedCapacity:slots.size-assignedCapacity,
+    occupied,reserved,blockedUpper,immediatelyPlaceable,additionalIfFull,additionalIfPartial};
 }

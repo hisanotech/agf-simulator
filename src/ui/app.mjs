@@ -7,7 +7,9 @@ import {initMap,renderWarehouseBlock,describeSlot} from './map-view.mjs';
 import {renderAnalysis,renderComparison,metric} from './analysis-view.mjs';
 import {initCadPanel} from './cad-panel.mjs';
 import {populateExtendedSettings,readExtendedSettings,loadSyntheticSettingsExample,organizeSettings} from './extended-settings.mjs';
-import {eventCsv} from './export.mjs';
+import {eventCsv,conditionCsv,conditionCsvFilename} from './export.mjs';
+import {appendRunInput,createInitialPreview} from './run-input.mjs';
+import {warehouseOwnerLegend} from './warehouse-colors.mjs';
 import {WAREHOUSE_BLOCKS} from '../map/warehouse-layout.mjs';
 import {escapeHtml as esc,clock,states,stateLabel,taskNames,reasons,eventNames,areaName,locationName,badge,productLabel} from './format.mjs';
 
@@ -20,10 +22,11 @@ const batteryFields=[['reservePct','選定残量下限（%）'],['chargeStartPct
 const numeric=id=>Number($(id).value);
 const headingLabel=heading=>({north:'北 ↑',south:'南 ↓',east:'東 →',west:'西 ←'})[heading]??'未確定';
 const input=(id,label,value,min=0,step=.1,max='')=>`<label>${esc(label)}<input id="${id}" type="number" min="${min}" step="${step}" ${max!==''?`max="${max}"`:''} value="${value}" required></label>`;
-let base=createDemoScenario(),result=null,analysis=null,comparison=null,runId='',runNumber=0;
+let base=createDemoScenario(),result=null,preview=null,analysis=null,comparison=null,runId='',runNumber=0;
 let timeMs=0,currentIndex=-1,batterySecond=-1,selectedAgf='AGF1',activeView='monitor',dirty=false,frame=null,anchor=null;
 let selectedBlock='WB1',reservationKind='05';
 const map=initMap({svg:$('map'),onSelectAgf:selectAgf,onSelectBlock:openWarehouse});
+document.querySelector('.map-legend').insertAdjacentHTML('afterend',warehouseOwnerLegend());
 organizeSettings();
 
 function populateSettings(scenario) {
@@ -77,6 +80,8 @@ function scenarioFromSettings() {
 function markDirty(value=true) {dirty=value;$('dirty-state').hidden=!value;}
 function friendlyError(error) {
   const message=error.message??String(error);
+  if(/lineMagazineMap/.test(message))return 'GWI〜GWVIIIの全8系列に、存在するマガジンを指定してください。実対応は未確定のため初期値を設定していません。';
+  if(/magazineEmptyRecoveryPolicy/.test(message))return '空パレット0枚停止後の再開方式を確認してください。未設定のままでは補充後も生産を保留します。';
   if(/waiting return target|normal waiting place|shared normal waiting priority/.test(message))return '共通の帰還先はHP1 → HP2 → 柱前東 → 柱前西です。4か所すべてへの合成経路が接続されている必要があります。AGF別の固定割当は使用できません。';
   if(/initial parking|initial HP capacity/.test(message))return '初期停止位置が重複しています。HP1・HP2・充電場所1・充電場所2へ4台を重複なく配置してください。';
   if(/duplicate|already reserved|reserved temporary/.test(message))return '二重予約です。同じパレットの既存予約を確認してください。';
@@ -110,12 +115,23 @@ function showView(view) {
 }
 function adoptRun(next,at=0) {
   pause();result=next;base=structuredClone(next.scenario);analysis=analyzeRun(next);
-  runId='LOCAL-'+String(++runNumber).padStart(3,'0');timeMs=Math.min(at,next.scenario.durationMin*60000);currentIndex=-1;
+  runId='LOCAL-'+String(++runNumber).padStart(3,'0');next.runId=runId;next.executedAt=new Date().toISOString();
+  timeMs=Math.min(at,next.scenario.durationMin*60000);currentIndex=-1;
   markDirty(false);$('seek').max=String(analysis.durationMs);$('end-clock').textContent=clock(analysis.durationMs);
   $('run-state').textContent='計算済み';$('run-context').textContent=`${runId} · ${next.scenario.durationMin}分 · ${next.scenario.mode==='area_first'?'エリア優先あり':'エリア優先なし'}`;
   $('analysis-run').textContent=runId+' / 全期間の結果';$('analysis-body').innerHTML=renderAnalysis(next,analysis);
   comparison=null;$('comparison-body').innerHTML='<div class="empty-state"><span>⇄</span><h2>同一条件で選定方式を比較</h2><p>「比較実行」で現在の設定を計算します。</p></div>';
+  syncRunControls();
   setTime(timeMs,true);
+}
+function syncRunControls(){for(const id of ['play','pause','stop','seek','next-event','csv','conditions-csv','manual04','manual05'])$(id).disabled=!result;}
+function showInitialPreview(){
+  pause();result=null;analysis=null;comparison=null;runId='';timeMs=0;currentIndex=0;
+  preview=createInitialPreview(base);$('clock').textContent=clock(0);$('seek').value='0';
+  $('end-clock').textContent=clock(base.durationMin*60000);
+  $('run-state').textContent='未実行 · 初期状態';$('run-context').textContent='系列→マガジン対応と倉庫行割当を設定して実行';
+  $('analysis-run').textContent='未実行';$('analysis-body').innerHTML='<p class="notice">実行後に保存済みRunの結果と条件を表示します。</p>';
+  syncRunControls();renderSnapshot();
 }
 function execute(){clearError();try{const candidate=simulate(scenarioFromSettings());adoptRun(candidate);notify('設定を反映して計算しました。再生・シークで各時刻の状態を確認できます。');}catch(error){showError(error);}}
 function pause(){if(frame!==null)cancelAnimationFrame(frame);frame=null;anchor=null;$('play').setAttribute('aria-pressed','false');}
@@ -137,11 +153,11 @@ function setTime(ms,force=false){if(!result)return;timeMs=Math.max(0,Math.min(an
   }
   batterySecond=Math.floor(timeMs/1000);
 }
-const snapshot=()=>{if(!result)return null;const index=Math.max(0,currentIndex),saved=result.snapshots[index];
-  return {...saved,warehouseAllocation:result.scenario.warehousePolicy,agfs:saved.agfs.map(a=>{
-    const displayPosition=projectAgfPosition(a,result.scenario.operationalTopology,timeMs);
+const snapshot=()=>{const run=result??preview;if(!run)return null;const index=Math.max(0,currentIndex),saved=run.snapshots[index];
+  return {...saved,warehouseAllocation:run.scenario.warehousePolicy,agfs:saved.agfs.map(a=>{
+    const displayPosition=projectAgfPosition(a,run.scenario.operationalTopology,timeMs);
     return {...a,batteryPct:projectBatteryPct(a,saved.tasks.find(t=>t.id===a.taskId),
-      result.scenario.battery,timeMs-result.events[index].timeMs),
+      run.scenario.battery,timeMs-run.events[index].timeMs),
       displayPosition,heading:displayPosition?.heading??a.heading};
   })};
 };
@@ -155,18 +171,18 @@ function renderHeadings(agfs){for(const a of agfs){
   });
 }}
 function selectAgf(id){selectedAgf=id;renderSnapshot();}
-function renderSnapshot(){if(!result)return;const snap=snapshot();
+function renderSnapshot(){const run=result??preview;if(!run)return;const snap=snapshot();
   const completed=snap.tasks.filter(t=>t.status==='completed').length;
   const held=snap.tasks.filter(t=>t.status!=='completed'&&t.waitReason).length;
   const working=snap.agfs.filter(a=>workingStatuses.includes(effectiveStatus(a,snap))).length;
   $('metrics').innerHTML=metric('搬送要求',snap.tasks.length,'件','表示時点の累計','','↗')+metric('搬送完了',completed,'件','表示時点の累計','success','✓')+
     metric('保留タスク',held,'件',`未完了 ${snap.tasks.length-completed}件`,'warning','◷')+metric('作業中AGF',working,'/ 4台','空走・荷受け / 積載・荷下ろし','accent','▥');
-  map.render(snap,selectedAgf,{timeMs,topology:result.scenario.operationalTopology??null});
+  map.render(snap,selectedAgf,{timeMs,topology:run.scenario.operationalTopology??null});
   $('agf-list').innerHTML=snap.agfs.map((a,i)=>{
     const task=snap.tasks.find(t=>t.id===a.taskId),status=effectiveStatus(a,snap);
     return `<button class="agf-card${a.id===selectedAgf?' selected':''}" data-select-agf="${esc(a.id)}" aria-pressed="${a.id===selectedAgf}">
-      <div class="agf-card-head"><span class="agf-id"><span class="vehicle-number">${i+1}</span>${esc(a.id)}</span>${badge(status,stateLabel(status,result.scenario.motionModel==='synthetic_graph'))}</div>
-      <div class="battery-line"><span>電池</span><span class="battery-track"><i data-battery-bar="${a.id}" class="${a.batteryPct<=result.scenario.battery.chargeStartPct?'low':''}" style="width:${a.batteryPct}%"></i></span><b data-battery-text="${a.id}">${a.batteryPct.toFixed(1)}%</b></div>
+      <div class="agf-card-head"><span class="agf-id"><span class="vehicle-number">${i+1}</span>${esc(a.id)}</span>${badge(status,stateLabel(status,run.scenario.motionModel==='synthetic_graph'))}</div>
+      <div class="battery-line"><span>電池</span><span class="battery-track"><i data-battery-bar="${a.id}" class="${a.batteryPct<=run.scenario.battery.chargeStartPct?'low':''}" style="width:${a.batteryPct}%"></i></span><b data-battery-text="${a.id}">${a.batteryPct.toFixed(1)}%</b></div>
       <dl class="agf-details"><dt>タスク</dt><dd>${task?esc(task.id)+' / '+task.kind:'—'}</dd><dt>搬送元 → 先</dt><dd>${task?esc(locationName(task.originId))+' → '+esc(locationName(task.destinationId)):'—'}</dd>
       <dt>積載</dt><dd>${esc(a.carriedPalletId??'なし')}</dd><dt>現在位置</dt><dd>${esc(a.currentNodeId?locationName(a.currentNodeId):areaName(a.area)+'（概念エリア）')}</dd><dt>方向</dt><dd data-heading-text="${esc(a.id)}">${esc(headingLabel(a.heading))}</dd></dl></button>`;
   }).join('');
@@ -176,14 +192,18 @@ function renderSnapshot(){if(!result)return;const snap=snapshot();
   $('charger-list').innerHTML=Object.entries(snap.chargers).map(([id,agf],i)=>`<div class="charger-row"><span>ϟ 充電器 ${i+1}</span><b>${agf?esc(agf)+' · 充電中':'○ 空き'}</b></div>`).join('');
   const chip=(label,ready=false)=>`<span class="equipment-chip${ready?' ready':''}">${esc(label)}</span>`;
   $('equipment-list').innerHTML=[
-    ['系列バッファ',Object.entries(snap.lines).map(([id,pl])=>chip(id+' '+pl.length+'/'+result.scenario.lineCapacity)).join('')],
-    ['包装機',`<p>投入 ${snap.wrapper.input.length}/${result.scenario.wrapper.inputCapacity} · 回収 ${snap.wrapper.output.length}/${result.scenario.wrapper.outputCapacity}<br>処理中：${esc(snap.wrapper.processing??'なし')}</p>`],
-    ['マガジン',Object.values(snap.magazines).map(m=>chip(m.id+' '+m.quantity+'枚'+(m.pending?' 補充要求':''),m.pending)).join('')],
-    ['整列機・倉庫',Object.values(snap.aligners).map(a=>chip(a.id+(a.ready?' OK':' 待機'),a.ready)).join('')+`<p>倉庫内 ${Object.values(snap.warehouse).reduce((n,s)=>n+s.palletIds.length,0)} PL · サンプル在庫</p>`]
+    ['系列バッファ',Object.entries(snap.lines).map(([id,pl])=>{
+      const production=snap.productionStatus?.[id];
+      return chip(id+' '+pl.length+'/'+run.scenario.lineCapacity+(production?.state==='blocked'?
+        ' '+(reasons[production.reason]??production.reason):''));
+    }).join('')],
+    ['包装機',`<p>投入 ${snap.wrapper.input.length}/${run.scenario.wrapper.inputCapacity} · 回収 ${snap.wrapper.output.length}/${run.scenario.wrapper.outputCapacity}<br>処理中：${esc(snap.wrapper.processing??'なし')}</p>`],
+    ['マガジン',Object.values(snap.magazines).map(m=>chip(m.id+' '+m.quantity+'枚'+(m.pending?' 03搬送中':m.refillNeeded?' 補充必要':''),m.refillNeeded)).join('')],
+    ['整列機・倉庫',Object.values(snap.aligners).map(a=>chip(a.id+' '+(a.quantity??(a.ready?10:0))+'枚'+(a.reservedTaskId?' 予約済':'') ,a.ready)).join('')+`<p>倉庫内 ${Object.values(snap.warehouse).reduce((n,s)=>n+s.palletIds.length,0)} PL · Runの合成在庫</p>`]
   ].map(([title,content])=>`<div class="equipment-group"><h3>${title}</h3><div class="equipment-chips">${content}</div></div>`).join('');
   renderLog();renderTasks();if($('warehouse-dialog').open)renderWarehouse();
 }
-function renderLog(){if(!result)return;const agfFilter=$('log-agf').value,taskFilter=$('log-task').value.trim().toUpperCase();
+function renderLog(){if(!result){$('log-count').textContent='未実行';$('log').innerHTML='<tr><td colspan="7" class="empty-cell">初期状態のプレビューです。設定を反映して実行するとイベントを表示します。</td></tr>';return;}const agfFilter=$('log-agf').value,taskFilter=$('log-task').value.trim().toUpperCase();
   const rows=[];
   for(let i=0;i<=currentIndex;i++) {
     const e=result.events[i],task=result.snapshots[i].tasks.find(t=>t.id===e.taskId),agf=e.agfId??task?.agfId??'';
@@ -193,7 +213,7 @@ function renderLog(){if(!result)return;const agfFilter=$('log-agf').value,taskFi
   $('log-count').textContent=rows.length+'件'+(rows.length>250?' / 最新250件表示':'');
   $('log').innerHTML=rows.slice(-250).reverse().map(({e,task,agf})=>`<tr><td class="mono">${clock(e.timeMs)}</td><td title="${esc(e.type)}">${esc(eventNames[e.type]??e.type)}</td><td>${esc(agf||'—')}</td><td class="mono">${esc(e.taskId??'—')}</td><td>${esc(locationName(task?.originId??e.lineId))}${e.productType?'<small class="product-meta">'+esc(productLabel(e))+'</small>':''}</td><td>${esc(locationName(task?.destinationId??e.locationId))}</td><td class="reason">${esc(e.reason?(reasons[e.reason]??e.reason):task?(states[task.status]??task.status):e.type==='RUN_STARTED'?'合成入力':'記録済み')}</td></tr>`).join('')||'<tr><td class="empty-cell" colspan="7">該当するイベントはありません。</td></tr>';
 }
-function renderTasks(){if(!result)return;const snap=snapshot();
+function renderTasks(){if(!result&&!preview)return;const snap=snapshot();
   $('task-time').textContent=clock(timeMs)+' 時点';
   $('task-counts').innerHTML=['01','02','03','04','05'].map(kind=>{const own=snap.tasks.filter(t=>t.kind===kind),done=own.filter(t=>t.status==='completed').length;
     return `<div class="task-kind-card"><span class="kind">TRANSPORT ${kind}</span>${taskNames[kind]}<b>${own.length}</b><small>完了 ${done} / 未完了 ${own.length-done}</small></div>`;}).join('');
@@ -201,12 +221,14 @@ function renderTasks(){if(!result)return;const snap=snapshot();
   const tasks=snap.tasks.filter(t=>(!kind||t.kind===kind)&&(!state||(state==='completed'?t.status==='completed':t.status!=='completed')));
   $('task-list').innerHTML=tasks.toReversed().map(t=>`<tr><td class="mono">${esc(t.id)} <span class="badge">${t.kind}</span></td><td>${badge(t.status)}</td><td class="mono">${esc(t.palletId??(t.kind==='03'?'空PL '+snap.magazines[t.magazineId].refillBatch+'枚':'—'))}${t.palletId?'<small class="product-meta">'+esc(productLabel(t))+'</small>':''}</td><td>${esc(locationName(t.originId))}</td><td>${esc(locationName(t.destinationId))}</td><td>${esc(t.agfId??'未割当')}</td><td class="reason">${esc(t.waitReason?reasons[t.waitReason]??t.waitReason:'—')}</td></tr>`).join('')||'<tr><td class="empty-cell" colspan="7">この時刻・条件に該当するタスクはありません。モニターで時刻を進めるか、04・05を予約してください。</td></tr>';
   $('replenishment-status').textContent=Object.values(snap.magazines).map(m=>m.id+': '+m.quantity+'枚'+(m.pending?'（補充要求）':'')).join(' / ');
+  $('aligner-refill-controls').innerHTML=Object.values(snap.aligners).map(a=>`<div class="aligner-control"><b>${esc(a.id)} · ${a.quantity??(a.ready?10:0)}枚</b><small>${a.reservedTaskId?'03予約済み':a.ready?'在荷あり':'空'}</small><button data-refill-aligner="${a.id}" ${!result?'disabled':''}>補充</button></div>`).join('');
+  document.querySelectorAll('[data-refill-all]').forEach(b=>{b.disabled=!result;});
 }
 function openWarehouse(id){pause();selectedBlock=id;renderWarehouse();if(!$('warehouse-dialog').open)$('warehouse-dialog').showModal();}
 function renderWarehouse(){$('warehouse-body').innerHTML=renderWarehouseBlock(selectedBlock,numeric('warehouse-tier'),snapshot());
   $('block-tabs').innerHTML=WAREHOUSE_BLOCKS.map(b=>`<button data-block-tab="${b.id}" class="${b.id===selectedBlock?'tab-active':''}" aria-pressed="${b.id===selectedBlock}">${b.id}</button>`).join('');
   $('slot-detail').textContent='保管位置を選択すると詳細を表示します。';}
-function requireSavedSettings(){if(dirty)throw new Error('設定変更が未反映です。「実行」で条件を確定してから手動入力してください。');}
+function requireSavedSettings(){if(!result)throw new Error('先に設定を反映して実行してください。');if(dirty)throw new Error('設定変更が未反映です。「実行」で条件を確定してから手動入力してください。');}
 function openReservation(kind){clearError();try{requireSavedSettings();pause();reservationKind=kind;
   $('reservation-title').textContent=kind+' '+taskNames[kind]+'を予約';$('reservation-time').textContent=`${runId} / ${clock(timeMs)} に追加します。`;
   $('reservation-error').hidden=true;$('permission').checked=false;
@@ -218,8 +240,8 @@ function openReservation(kind){clearError();try{requireSavedSettings();pause();r
  }catch(error){showError(error);}}
 function syncTemporary(){const temp=snapshot().temporaryPallets.find(p=>p.palletId===$('temp-pallet').value);
   if(temp){$('temp-location').value=temp.locationId;$('manual-slot').value=temp.destinationLocationId;}}
-function addInput(listName,entry) {requireSavedSettings();const candidate=structuredClone(result.scenario);candidate[listName].push(entry);
-  const next=simulate(candidate);adoptRun(next,timeMs);notify('手動入力を追加して再計算しました。表示時刻を維持しています。');}
+function addInput(listName,entry) {requireSavedSettings();const next=appendRunInput(result,listName,entry);
+  adoptRun(next,timeMs);notify('手動入力を追加して再計算しました。表示時刻を維持しています。');}
 function reserve(event){event.preventDefault();$('reservation-error').hidden=true;try{
   if(!$('permission').checked)throw new Error('explicit permission');
   const palletId=$('temp-pallet').value;if(!palletId)throw new Error('この時刻に利用できる仮置きパレットがありません。');
@@ -236,13 +258,12 @@ function compare(){pause();clearError();try{const scenario=scenarioFromSettings(
 populateSettings(base);
 $('load-storage-example').addEventListener('click',()=>{loadSyntheticSettingsExample(base);markDirty();notify('合成検証用の例を読み込みました。現場の行割当・固定HPではありません。「実行」で反映します。');});
 for(let i=1;i<=4;i++)$('log-agf').add(new Option('AGF'+i,'AGF'+i));
-for(let i=1;i<=5;i++){$('mag-select').add(new Option('マガジン'+i,'M'+i));$('align-select').add(new Option('整列機'+i,'AL'+i));}
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
 $('settings-form').addEventListener('submit',event=>event.preventDefault());
 $('settings-form').addEventListener('input',event=>{markDirty();if(event.target.id==='battery-model')syncBatteryFields();});$('mode').addEventListener('change',()=>markDirty());
-$('scenario-select').addEventListener('change',()=>{pause();base=createDemoScenario($('scenario-select').value);populateSettings(base);markDirty();if(base.preset==='extended')showView('settings');notify('シナリオを設定欄に読み込みました。「実行」で反映します。');});
+$('scenario-select').addEventListener('change',()=>{pause();base=createDemoScenario($('scenario-select').value);populateSettings(base);markDirty();notify('シナリオを設定欄に読み込みました。「実行」で反映します。');});
 $('run').addEventListener('click',execute);$('run-settings').addEventListener('click',()=>{execute();if(!dirty)showView('monitor');});
-$('reset').addEventListener('click',()=>{pause();clearError();base=createDemoScenario($('scenario-select').value);populateSettings(base);execute();});
+$('reset').addEventListener('click',()=>{pause();clearError();base=createDemoScenario($('scenario-select').value);populateSettings(base);markDirty(false);showInitialPreview();});
 $('compare').addEventListener('click',compare);$('compare-page').addEventListener('click',compare);
 $('play').addEventListener('click',play);$('pause').addEventListener('click',pause);$('stop').addEventListener('click',()=>{pause();setTime(0);});
 $('speed').addEventListener('change',()=>{const wasPlaying=frame!==null;pause();if(wasPlaying)play();});
@@ -255,10 +276,12 @@ $('warehouse-tier').addEventListener('change',renderWarehouse);$('block-tabs').a
 $('warehouse-body').addEventListener('click',event=>{const b=event.target.closest('[data-slot]');if(b)$('slot-detail').textContent=describeSlot(b.dataset.slot,snapshot());});
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>$(b.dataset.close).close()));
 $('manual04').addEventListener('click',()=>openReservation('04'));$('manual05').addEventListener('click',()=>openReservation('05'));$('temp-pallet').addEventListener('change',syncTemporary);$('reservation-form').addEventListener('submit',reserve);
-$('mag-use').addEventListener('click',()=>{clearError();try{addInput('magazineUses',{timeMs,magazineId:$('mag-select').value});}catch(error){showError(error);}});
-$('align-ready').addEventListener('click',()=>{clearError();try{addInput('alignerReadyEvents',{timeMs,alignerId:$('align-select').value});}catch(error){showError(error);}});
-$('csv').addEventListener('click',()=>{if(!result)return;const url=URL.createObjectURL(new Blob([eventCsv(result,runId)],{type:'text/csv;charset=utf-8'}));
-  const a=document.createElement('a');a.href=url;a.download=runId+'-events.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notify(runId+' の実行条件と全イベントをCSVに出力しました。');});
+document.addEventListener('click',event=>{const target=event.target.closest('[data-refill-aligner],[data-refill-all]');if(!target)return;
+  clearError();pause();try{addInput('alignerRefillEvents',{timeMs,alignerId:target.dataset.refillAligner??null,operationType:target.hasAttribute('data-refill-all')?'all':'individual'});}catch(error){showError(error);}});
+function downloadCsv(contents,filename){const url=URL.createObjectURL(new Blob([contents],{type:'text/csv;charset=utf-8'}));
+  const a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notify(filename+' を出力しました。保存済みRunの条件を使用しています。');}
+$('csv').addEventListener('click',()=>{if(result)downloadCsv(eventCsv(result,runId),runId+'-events.csv');});
+$('conditions-csv').addEventListener('click',()=>{if(result)downloadCsv(conditionCsv(result,runId),conditionCsvFilename(runId));});
 initCadPanel({showError:error=>{$('cad-error').textContent=friendlyError(error);$('cad-error').hidden=false;},clearError:()=>{$('cad-error').hidden=true;}});
 for(const id of ['open-cad','open-cad-map'])$(id).addEventListener('click',()=>{pause();$('cad-dialog').showModal();});
-adoptRun(simulate(base));showView(location.hash.slice(1)||'monitor');
+showInitialPreview();showView(location.hash.slice(1)||'monitor');
