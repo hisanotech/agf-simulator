@@ -38,6 +38,14 @@ export function validateOperationalTopology(graph){
         'invalid '+field+' '+node.id);
     if(node.handlingGroupId!==undefined)required(typeof node.handlingGroupId==='string'&&node.handlingGroupId.length>0,
       'invalid handling group '+node.id);
+    if(node.exclusiveTraffic!==undefined)required(typeof node.exclusiveTraffic==='boolean',
+      'invalid exclusive traffic flag '+node.id);
+    if(node.localHandlingBlockedEdgeIds!==undefined){
+      required(Array.isArray(node.localHandlingBlockedEdgeIds)&&
+        node.localHandlingBlockedEdgeIds.every(id=>edges.has(id)), 'invalid local handling edges '+node.id);
+      required(node.handlingScopeEvidence==='synthetic-equipment-front-edge-declaration-not-site-boundary',
+        'synthetic local handling scope evidence required '+node.id);
+    }
   }
   for(const edge of edges.values()){
     required(nodes.has(edge.fromNodeId)&&nodes.has(edge.toNodeId)&&edge.fromNodeId!==edge.toNodeId,
@@ -101,6 +109,29 @@ export function validateOperationalTopology(graph){
       };
       checkRoute(plan.outboundEdgeIds,plan.fromNodeId,plan.viaNodeId);
       checkRoute(plan.returnEdgeIds,plan.viaNodeId,plan.fromNodeId);
+    }
+  }
+  if(graph.overtakingPlans!==undefined){
+    const plans=uniqueMap(graph.overtakingPlans,'overtaking plans');
+    for(const plan of plans.values()){
+      required(plan.evidence==='synthetic-assumption','synthetic overtaking plan evidence required '+plan.id);
+      required([plan.blockedNodeId,plan.fromNodeId,plan.rejoinNodeId].every(id=>nodes.has(id))&&
+        plan.fromNodeId!==plan.rejoinNodeId,'invalid overtaking plan stops '+plan.id);
+      required(Array.isArray(plan.resourceIds)&&plan.resourceIds.length>=4&&
+        plan.resourceIds.every(id=>typeof id==='string'&&id.length>0)&&
+        new Set(plan.resourceIds).size===plan.resourceIds.length,'four explicit overtaking clearance resources required '+plan.id);
+      required(Array.isArray(plan.edgeIds)&&plan.edgeIds.length>0&&
+        Array.isArray(plan.temporaryReverseEdgeIds)&&
+        plan.temporaryReverseEdgeIds.every(id=>plan.edgeIds.includes(id)), 'explicit overtaking edges required '+plan.id);
+      let current=plan.fromNodeId;
+      for(const id of plan.edgeIds){
+        const edge=edges.get(id);required(edge,'unknown overtaking edge '+id);
+        let traversal=traversals(edge).find(t=>t.from===current);
+        if(!traversal&&plan.temporaryReverseEdgeIds.includes(id)&&edge.toNodeId===current)
+          traversal={from:edge.toNodeId,to:edge.fromNodeId};
+        required(traversal,'disconnected or undeclared reverse overtaking edge '+id);current=traversal.to;
+      }
+      required(current===plan.rejoinNodeId,'overtaking route endpoint mismatch '+plan.id);
     }
   }
   return {datasetKind:graph.datasetKind,nodes:nodes.size,edges:edges.size,lanes:laneIds.size};
@@ -189,7 +220,7 @@ export function splitSyntheticDisplayTurns(input){
       const node={id,type:'turn',areaId:from.areaId===to.areaId?from.areaId:'INTER',...points[index],
         approvalState:'synthetic-validated',evidence:'synthetic-assumption',
         turnPositionEvidence:'derived-synthetic-display-bend-not-site-turn',
-        occupancyResourceIds:['synthetic-turn:'+id]};
+        exclusiveTraffic:true,occupancyResourceIds:['synthetic-turn:'+id]};
       graph.nodes.push(node);nodeMap.set(id,node);ids.push(id);
     }
     ids.push(source.toNodeId);
@@ -215,6 +246,8 @@ export function splitSyntheticDisplayTurns(input){
     splitMap.set(source.id,partIds);
   }
   graph.edges=output;
+  for(const node of graph.nodes)if(node.localHandlingBlockedEdgeIds)
+    node.localHandlingBlockedEdgeIds=node.localHandlingBlockedEdgeIds.flatMap(id=>splitMap.get(id)??[id]);
   for(const plan of graph.avoidancePlans??[])for(const field of ['outboundEdgeIds','returnEdgeIds']){
     let current=field==='outboundEdgeIds'?plan.fromNodeId:plan.viaNodeId;
     plan[field]=plan[field].flatMap(id=>{
@@ -222,6 +255,17 @@ export function splitSyntheticDisplayTurns(input){
       current=forward?source.toNodeId:source.fromNodeId;
       const parts=splitMap.get(id)??[id];return forward?parts:parts.toReversed();
     });
+  }
+  for(const plan of graph.overtakingPlans??[]){
+    const reverse=new Set(plan.temporaryReverseEdgeIds),newReverse=[];
+    let current=plan.fromNodeId;
+    plan.edgeIds=plan.edgeIds.flatMap(id=>{
+      const source=input.edges.find(edge=>edge.id===id),forward=source.fromNodeId===current;
+      current=forward?source.toNodeId:source.fromNodeId;
+      const parts=splitMap.get(id)??[id];if(reverse.has(id))newReverse.push(...parts);
+      return forward?parts:parts.toReversed();
+    });
+    plan.temporaryReverseEdgeIds=newReverse;
   }
   validateOperationalTopology(graph);
   return graph;

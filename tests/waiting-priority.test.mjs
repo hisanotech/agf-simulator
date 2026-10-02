@@ -8,7 +8,10 @@ function scenario(){
   const s=integratedAcceptanceScenario();delete s.initialParking;s.durationMin=20;
   s.postTaskPolicy={evidence:'user-confirmed-shared-priority',waitingPriority:[...priority]};
   s.productStreams.forEach(p=>p.enabled=false);s.productionEvents=[];s.manualRequests=[];s.magazineUses=[];
-  s.agfs.forEach((a,i)=>{a.currentNodeId='PZ-HOME';a.area='PZ';a.status='idle';a.blocked=i!==0;});
+  // Only the vehicle under test occupies the PZ departure. Other vehicles have
+  // independent branch stops; occupied-priority cases below set their own HPs.
+  const starts=['PZ-HOME','CHARGE-PLACE1','CHARGE-PLACE2','PILLAR-WAIT-W'];
+  s.agfs.forEach((a,i)=>{a.currentNodeId=starts[i];a.area=i===0?'PZ':'WH';a.status='idle';a.blocked=i!==0;});
   s.manualRequests=[{timeMs:0,kind:'04',palletId:'SIM-TEMP-1',locationId:'OT1',reentryPermission:true}];
   return s;
 }

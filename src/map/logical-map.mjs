@@ -4,9 +4,10 @@
  * No geometry or measured time is generated here. A confirmed conceptual link
  * is not a verified collision-free physical route.
  */
-import {WAREHOUSE_BLOCKS} from './warehouse-layout.mjs';
+import {WAREHOUSE_BLOCKS,WAREHOUSE_MAIN_AISLES} from './warehouse-layout.mjs';
 const accessValues = new Set(['allowed', 'forbidden', 'unresolved']);
-const directionValues = new Set(['both', 'forward', 'reverse', 'entry-only', 'exit-only', 'unresolved']);
+const directionValues = new Set(['both', 'forward', 'reverse', 'entry-only', 'exit-only', 'unresolved',
+  'west-to-east','east-to-west','north-to-south','south-to-north']);
 const passingValues = new Set(['yes', 'no-alternating', 'reported-yes', 'unresolved', 'not-applicable']);
 const linkDirections = new Set(['both', 'forward', 'reverse']);
 const linkStatuses = new Set(['confirmed', 'unresolved', 'provisional']);
@@ -38,7 +39,7 @@ export function validateLogicalMap(map) {
   const links = uniqueIdMap(map.links, 'links');
   const groups = uniqueIdMap(map.corridorGroups, 'corridorGroups');
   const interfaces = uniqueIdMap(map.interfaces, 'interfaces');
-  const required = ['PZ-A1', 'PZ-A2', 'PZ-CON-W', 'PZ-CON-E', 'PZ-DEV', 'PZ-OT',
+  const required = ['PZ-A1', 'PZ-A2', 'PZ-DEV', 'PZ-OT',
     'PZ-W-IN', 'PZ-S-OUT', 'WH-E-GATE', 'WH-E-V', 'WH-W-V', 'WH-X-U', 'WH-X-L', 'WH-ROW', 'WH-W-GATE'];
   for (const id of required) requireThat(corridors.has(id), 'Missing agreed corridor ' + id);
   for (const corridor of corridors.values()) {
@@ -119,18 +120,19 @@ export function validateLogicalMap(map) {
     'G01-G17 must remain schematic-relative acceptance criteria without invented coordinates');
   const pair = groups.get('PZ-PAIR');
   requireThat(pair && pair.aggregateLaneCount === 2 &&
-    pair.members.every(id => corridors.get(id).laneCount === 1),
-    'Palletizing 2-lane designation is the combination of the two one-lane corridors');
+    pair.members.every(id => corridors.get(id).laneCount === 1)&&
+    pair.sharedRegionId==='PZ-SHARED'&&pair.physicalSeparation===false&&
+    corridors.get('PZ-A1').direction==='east-to-west'&&corridors.get('PZ-A2').direction==='west-to-east'&&
+    !corridors.has('PZ-CON-W')&&!corridors.has('PZ-CON-E'),
+    'Palletizing shared region requires opposite logical lanes without end-only physical connectors');
   requireThat(map.accessRules?.task02?.reserveDestination === 'at-task-issue' &&
     map.accessRules?.task02?.holdIfSameRowPutTask === true,
     'Task 02 destination reservation and same-row hold must be preserved');
   const layout=map.warehouseLayout;
   requireThat(layout?.capacity===802&&JSON.stringify(layout.blocks)===JSON.stringify(WAREHOUSE_BLOCKS),
     'Warehouse block capacity and east empty column must match the reviewed structure');
-  requireThat(layout.mainAisles?.length===4&&new Set(layout.mainAisles.map(a=>a.id)).size===4&&
-    ['east','west'].every(side=>layout.mainAisles.filter(a=>a.side===side).length===2)&&
-    layout.mainAisles.every(a=>a.direction==='unresolved'&&a.laneCount===null&&a.simultaneousPassing==='unresolved'),
-    'Main aisle count is four; individual direction and lane conditions remain unresolved');
+  requireThat(JSON.stringify(layout.mainAisles)===JSON.stringify(WAREHOUSE_MAIN_AISLES),
+    'Four main aisles require the confirmed initial block-side southbound and wall-side northbound policy');
   requireThat(corridors.get('WH-ROW').laneCount===1&&corridors.get('WH-ROW').direction==='both'&&
     corridors.get('WH-ROW').simultaneousPassing==='no-alternating','Warehouse rows cannot allow side-by-side passing');
   const service=layout.service;

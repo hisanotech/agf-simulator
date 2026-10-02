@@ -12,7 +12,8 @@ function scenario(){
   value.durationMin=20;
   value.motionModel='synthetic_graph';
   value.operationalTopology=structuredClone(topology);
-  value.agfs=value.agfs.map((agf,index)=>({...agf,currentNodeId:index<2?'PZ-HOME':'WH-HOME'}));
+  const starts=['CHARGE-PLACE1','CHARGE-PLACE2','HP1','HP2'];
+  value.agfs=value.agfs.map((agf,index)=>({...agf,currentNodeId:starts[index],area:'WH'}));
   value.productionEvents=[{timeMs:0,lineId:'L1',palletId:'SYN-PHYSICAL-1',
     destinationLocationId:value.generatedDestinationIds[0]}];
   value.lineIntervalsMin=Array(8).fill(0);
@@ -46,7 +47,6 @@ test('closed shutter holds at its approach and resumes only after an explicit sy
   const input=scenario();
   input.operationalTopology.shutters[0].initiallyPassable=false;
   input.shutterEvents=[{timeMs:120000,shutterId:'SH-EAST',passable:true}];
-  input.agfs=input.agfs.map(agf=>({...agf,currentNodeId:'WH-HOME',area:'WH'}));
   const run=simulate(input);
   const wait=run.events.find(event=>event.type==='SHUTTER_WAITING');
   const opened=run.events.find(event=>event.type==='SHUTTER_STATE_CHANGED'&&event.passable);
@@ -61,8 +61,9 @@ test('closed shutter holds at its approach and resumes only after an explicit sy
 
 test('unreachable pickup stays queued and never mutates pallet or AGF load',()=>{
   const input=scenario();
-  input.operationalTopology.edges=input.operationalTopology.edges.filter(edge=>!['E01','E02'].includes(edge.id));
-  input.agfs=input.agfs.map(agf=>({...agf,currentNodeId:'PZ-HOME',area:'PZ'}));
+  const target=input.operationalTopology.interfaceBindings.find(b=>b.pattern==='L1').nodeId;
+  input.operationalTopology.edges=input.operationalTopology.edges.filter(edge=>
+    edge.fromNodeId!==target&&edge.toNodeId!==target);
   const run=simulate(input);
   const task=run.final.tasks.find(item=>item.kind==='01');
   assert.equal(task.status,'queued');
@@ -76,7 +77,9 @@ test('unreachable replenishment retains its issued aligner reservation without p
   input.productionEvents=[];
   input.aligners[0].ready=true;
   input.magazineUses=[{timeMs:0,magazineId:'M1'}];
-  input.operationalTopology.edges=input.operationalTopology.edges.filter(edge=>edge.id!=='E12');
+  const target=input.operationalTopology.interfaceBindings.find(b=>b.pattern==='AL1').nodeId;
+  input.operationalTopology.edges=input.operationalTopology.edges.filter(edge=>
+    edge.fromNodeId!==target&&edge.toNodeId!==target);
   const run=simulate(input),task=run.final.tasks.find(item=>item.kind==='03');
   assert.equal(task.status,'queued');
   assert.equal(task.waitReason,'UNREACHABLE_ROUTE');

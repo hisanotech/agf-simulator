@@ -85,10 +85,12 @@ const motionFields=[['turnRateDegPerSec','旋回角速度（deg/s）',.001],
   ['dropoffPositioningMin','荷下ろし姿勢への移行（分）',0],['dropoffForkInsertedMin','フォーク挿入後の荷下ろし（分）',0]];
 export function renderMotionSettings(s){
   const control=s.motionControl??{},hasPhases=motionFields.slice(1).some(([key])=>Object.hasOwn(control,key));
-  return `<p class="notice">方向変更は停止 → 旋回 → 再発進。実旋回角速度と荷役相ごとの実時間は未確定です。未設定の値を補完せず、必要になった地点で保留します。</p>
+  const rateEvidence=control.turnRateDegPerSec==null?'未確定':control.turnRateEvidence==='provisional-derived'?'暫定値・カタログ値からの導出':control.turnRateEvidence==='synthetic-assumption'?'合成テスト用の仮定・実機値ではありません':'このRunの明示設定';
+  const phaseEvidence=hasPhases?(control.handlingEvidence==='provisional-simulation'?'暫定シミュレーション値':'このRunの明示設定・未設定相は保留'):'旧回帰モデルは単一荷役時間を保持・空欄を自動分割しません';
+  return `<p class="notice">方向変更は停止 → 旋回 → 再発進。初期の旋回角速度12.1 deg/sは、カタログ旋回半径1.424m・積載旋回速度0.3m/sから求めた等価角速度の暫定値です。停止旋回の実測値ではありません。荷役4相も暫定シミュレーション値で、実機検証後に変更できます。空欄の値は補完せず保留します。</p>
     <div class="fields">${motionFields.map(([key,label,min])=>`<label>${label}<input type="number" min="${min}" step="0.001" data-motion-setting="${key}" aria-label="${label}" placeholder="未確定" value="${control[key]??''}"></label>`).join('')}
     <label>旋回の電池消費<select data-motion-setting="turningConsumesBattery" aria-label="旋回の電池消費"><option value="" ${control.turningConsumesBattery==null?'selected':''}>未確定 · 時間分類のみ</option><option value="true" ${control.turningConsumesBattery===true?'selected':''}>稼働消費へ含める · 明示条件</option><option value="false" ${control.turningConsumesBattery===false?'selected':''}>消費対象外 · 明示条件</option></select></label></div>
-    <p class="muted">旋回角速度：${control.turnRateDegPerSec==null?'未確定':control.turnRateEvidence==='synthetic-assumption'?'合成テスト用の仮定・実機値ではありません':'このRunの明示設定'}。荷役相：${hasPhases?'未設定相は保留・既存時間の自動分割なし':'旧回帰モデルは単一荷役時間を保持・空欄を自動分割しません'}。角度÷角速度で停止旋回時間を計算します。</p>`;
+    <p class="muted">旋回角速度：${rateEvidence}。荷役相：${phaseEvidence}。角度÷角速度で停止旋回時間を計算します。既存時間の自動分割はしません。</p>`;
 }
 /** Convert explicitly entered values; empty controls never become zero assumptions. */
 export function motionControlFromSettings(previous={},values){

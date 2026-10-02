@@ -72,12 +72,14 @@ test('G08 west warehouse shutter is excluded normally but retained as an unresol
   assert.ok(criterion('G08'));
 });
 
-test('G09 palletizing corridors remain two bidirectional one-lane corridors joined at both ends',()=>{
-  for(const id of ['PZ-A1','PZ-A2'])assert.deepEqual(
-    {direction:corridor(id).direction,laneCount:corridor(id).laneCount},
-    {direction:'both',laneCount:1});
-  assert.ok(map.links.some(link=>link.id==='L-PZ-WEST-1'));
-  assert.ok(map.links.some(link=>link.id==='L-PZ-EAST-1'));
+test('G09 palletizing shared region has opposite logical lanes with local changes instead of end-only detours',()=>{
+  for(const id of ['PZ-A1','PZ-A2']){
+    assert.equal(corridor(id).direction,id==='PZ-A1'?'east-to-west':'west-to-east');
+    assert.equal(corridor(id).laneCount,1);assert.equal(corridor(id).sharedRegionId,'PZ-SHARED');
+    assert.equal(corridor(id).physicalSeparation,false);
+  }
+  assert.ok(map.links.some(link=>link.id==='L-PZ-SHARED-LANE-CHANGE'&&link.status==='confirmed'));
+  assert.ok(!map.links.some(link=>['PZ-CON-W','PZ-CON-E'].includes(link.from)||['PZ-CON-W','PZ-CON-E'].includes(link.to)));
   assert.ok(criterion('G09'));
 });
 

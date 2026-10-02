@@ -9,6 +9,7 @@ export const states={idle:'待機',moving_empty:'空走・荷受け',moving_load
   positioning_for_dropoff:'荷下ろし姿勢へ移行',dropping_fork_inserted:'フォーク挿入済み・荷下ろし',
   waiting_motion_configuration:'走行・荷役設定待ち',
   waiting_avoidance:'退避完了・復帰待ち',waiting_interference:'干渉解消・退避待ち',wait_pickup:'荷受け許可待ち',
+  waiting_wrapper_input:'包装機入口待ち',waiting_charge_place:'充電場所待ち',
   waiting_traffic:'交通待ち',waiting_charge:'充電待ち',moving_to_charge:'充電場所へ移動',charging:'充電中',queued:'割当待ち',completed:'完了'};
 export const stateLabel=(status,graphMode=false)=>graphMode&&status==='moving_empty'?'空走':
   graphMode&&status==='moving_loaded'?'積載走行':states[status]??status;
@@ -62,8 +63,14 @@ Object.assign(eventNames,{TURN_STARTED:'停止旋回開始',TURN_COMPLETED:'停�
 Object.assign(eventNames,{AVOIDANCE_REACHED:'退避位置到着',AVOIDANCE_RETURN_STARTED:'元経路へ復帰開始',
   AVOIDANCE_TIE_UNRESOLVED:'回避側の同率判断が未確定',AVOIDANCE_UNAVAILABLE:'明示された退避経路なし',
   HEADING_INITIALIZED:'合成初期走行方向の設定',HANDLING_RESOURCE_WAITING:'設備前の姿勢移行空き待ち',
+  CHARGE_PLACE_RESERVED:'充電停止位置の予約',
   INTERFERENCE_DETECTED:'明示された干渉入力',INTERFERENCE_DEFERRED:'停止位置での干渉判断待ち'});
 export const areaName=id=>id==='PZ'?'パレタイズ':id==='WH'?'製品倉庫':id;
+Object.assign(eventNames,{WRAPPER_INPUT_WAITING:'包装機入口待ち',WRAPPER_INPUT_RESERVED:'包装機入口の受入枠予約',
+  WRAPPER_INPUT_WAIT_ENDED:'包装機入口待ち解除',WRAPPER_CONVEYOR_ACCEPTED:'包装機内部へ受渡し',WRAPPER_EXIT_WAITING:'包装機出口の空き待ち',
+  OVERTAKING_WAITING:'包装機入口待ちAGFの横通過待ち',OVERTAKING_STARTED:'包装機入口待ちAGFの横通過開始',OVERTAKING_COMPLETED:'正規レーンへの復帰完了'});
+Object.assign(reasons,{WRAPPER_INPUT:'包装機入口待ち',WRAPPER_INPUT_FULL_OR_RESERVED:'包装機入口が使用中または予約済み',
+  WRAPPER_PERMISSION:'包装機受入許可待ち',OVERTAKING_RESOURCE_OCCUPIED:'横通過の対象領域・復帰先の空き待ち'});
 export const locationName=id=>({ 'WRAP-INPUT':'包装機 投入','WRAP-OUTPUT':'包装機 回収',OT1:'仮置き1',OT2:'仮置き2',OT3:'仮置き3',
   'PILLAR-WAIT-W':'柱前西','PILLAR-WAIT-E':'柱前東',
   CHARGER1:'充電器1',CHARGER2:'充電器2','CHARGE-PLACE1':'充電場所1','CHARGE-PLACE2':'充電場所2'}[id]??(/^L\d$/.test(id??'')?'系列'+id.slice(1):/^M\d$/.test(id??'')?'マガジン'+id.slice(1):/^AL\d$/.test(id??'')?'整列機'+id.slice(2):id??'—'));

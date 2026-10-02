@@ -16,11 +16,17 @@ const turningAgf=()=>({id:'AGF1',status:'turning',currentNodeId:'TURN',heading:'
   taskId:'01-SYNTHETIC',movement:{current:null},turn:{nodeId:'TURN',fromHeadingDeg:0,targetHeadingDeg:90,
     angleDeg:90,startedAt:1000,completedAt:3000,rateDegPerSec:45,evidence:'synthetic-assumption'}});
 
-for(const preset of ['standard','extended'])test(`${preset} leaves real turn and handling phase settings unresolved`,()=>{
+for(const preset of ['standard','extended'])test(`${preset} declares user-requested provisional turn and handling initial values`,()=>{
   const s=createDemoScenario(preset);
-  for(const field of controlFields)assert.equal(s.motionControl?.[field],null,field);
-  assert.equal(s.motionControl.turnRateEvidence,'unresolved');
-  assert.equal(s.motionControl.handlingEvidence,'unresolved');
+  const expected={turnRateDegPerSec:12.1,pickupPositioningMin:.25,pickupForkInsertedMin:.1,
+    dropoffPositioningMin:.25,dropoffForkInsertedMin:.15,turningConsumesBattery:true};
+  for(const [field,value] of Object.entries(expected))assert.equal(s.motionControl?.[field],value,field);
+  assert.equal(s.motionControl.turnRateEvidence,'provisional-derived');
+  assert.equal(s.motionControl.handlingEvidence,'provisional-simulation');
+  assert.equal(s.motionControl.turningBatteryEvidence,'provisional-simulation');
+  assert.equal(s.motionControl.turnRateDerivation.radiusM,1.424);
+  assert.equal(s.motionControl.turnRateDerivation.loadedTurningSpeedMps,.3);
+  assert.equal(s.motionControl.turnRateDerivation.classification,'equivalent-angular-rate-not-measured-stationary-turn');
 });
 test('legacy graph fixture declares only synthetic turn timing without inventing handling splits',()=>{
   const s=createLegacyScenario('physical');
@@ -29,12 +35,21 @@ test('legacy graph fixture declares only synthetic turn timing without inventing
   assert.equal(s.motionControl.pickupPositioningMin,undefined);
   assert.equal(s.motionControl.dropoffForkInsertedMin,undefined);
 });
-test('normal motion settings display blank unresolved values and independent deg per second and minute units',()=>{
-  const scenario=createDemoScenario(),html=renderMotionSettings(scenario);
+test('explicitly cleared motion settings retain blank unresolved values and independent units',()=>{
+  const scenario=createDemoScenario(),values=Object.fromEntries(controlFields.map(key=>[key,'']));
+  scenario.motionControl=motionControlFromSettings(scenario.motionControl,values);
+  const html=renderMotionSettings(scenario);
   assert.match(html,/旋回角速度（deg\/s）/);assert.match(html,/荷受け姿勢への移行（分）/);
   assert.match(html,/フォーク挿入後の荷下ろし（分）/);assert.match(html,/未確定 · 時間分類のみ/);
   for(const key of controlFields.slice(0,-1))assert.match(html,new RegExp(`data-motion-setting="${key}"[^>]*value=""`));
-  const values=Object.fromEntries(controlFields.map(key=>[key,'']));
+  assert.deepEqual(motionControlFromSettings(scenario.motionControl,values),scenario.motionControl);
+});
+test('normal motion settings show provisional defaults without presenting them as measured stationary performance',()=>{
+  const scenario=createDemoScenario(),html=renderMotionSettings(scenario);
+  for(const key of controlFields.slice(0,-1))assert.match(html,new RegExp(`data-motion-setting="${key}"[^>]*value="${scenario.motionControl[key]}"`));
+  assert.match(html,/等価角速度の暫定値/);assert.match(html,/停止旋回の実測値ではありません/);
+  assert.match(html,/暫定シミュレーション値/);
+  const values=Object.fromEntries(controlFields.map(key=>[key,String(scenario.motionControl[key])]));
   assert.deepEqual(motionControlFromSettings(scenario.motionControl,values),scenario.motionControl);
 });
 test('explicit motion form values retain evidence and never split the old aggregate handling time',()=>{

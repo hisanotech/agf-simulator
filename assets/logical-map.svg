@@ -13,22 +13,24 @@
 <text x="46" y="115" class="label">パレタイズエリア　PZ</text>
 <rect x="146" y="123" width="730" height="44" rx="9" class="box"/>
 <text x="156" y="140" class="sm">PGW ×8 / PM ×5 / 包装機（投入と回収は別） / OT ×3</text>
-<text x="156" y="157" class="sm">各設備への接続は通路1側。個別荷役停止位置は未確定。</text>
-<line x1="150" y1="218" x2="955" y2="218" class="rail" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
-<line x1="150" y1="293" x2="955" y2="293" class="rail" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+<text x="156" y="157" class="sm">設備前で明示的にレーン変更。個別の実荷役停止位置は未確定。</text>
+<rect x="142" y="202" width="821" height="105" rx="10" fill="#06b6d4" fill-opacity=".08" data-shared-region="PZ-SHARED"/>
+<line x1="150" y1="218" x2="955" y2="218" class="rail" marker-start="url(#arrow)"/>
+<line x1="150" y1="293" x2="955" y2="293" class="rail" marker-end="url(#arrow)"/>
 <line x1="150" y1="218" x2="150" y2="293" class="cross"/>
 <line x1="955" y1="218" x2="955" y2="293" class="cross"/>
+<path d="M245 218 V293 M356 218 V293 M467 218 V293 M578 218 V293 M689 218 V293 M800 218 V293 M880 218 V293" class="cross" opacity=".5"/>
 <line x1="356" y1="168" x2="356" y2="213" class="cross"/>
-<text x="420" y="208" class="label">PZ-A1：通路1（双方向・1車線）</text>
-<text x="420" y="284" class="label">PZ-A2：通路2（双方向・1車線）</text>
-<text x="102" y="321" class="sm">西端接続</text>
-<text x="911" y="321" class="sm">東端接続</text>
-<text x="550" y="343" text-anchor="middle" class="sm">通路1と2を組み合わせた双方向2車線扱い。個々の通路を2車線に増やさない。</text>
+<text x="420" y="208" class="label">PZ-A1：北側論理レーン ← 東から西</text>
+<text x="420" y="284" class="label">PZ-A2：南側論理レーン → 西から東</text>
+<text x="102" y="321" class="sm">共有走行空間</text>
+<text x="850" y="321" class="sm">設備前・入口・出口で合流</text>
+<text x="550" y="343" text-anchor="middle" class="sm">同一走行空間の対向2論理レーン。物理分離・両端だけの接続・入口後の左迂回は設けない。</text>
 <rect x="42" y="192" width="86" height="52" rx="6" class="gate"/>
 <text x="52" y="213" class="sm">西側入口</text><text x="52" y="229" class="sm">進入のみ</text>
 <line x1="130" y1="218" x2="147" y2="218" class="unk"/>
 <rect x="984" y="193" width="130" height="51" rx="6" class="gate"/>
-<text x="995" y="213" class="sm">東側出口</text><text x="995" y="230" class="sm">退出のみ</text>
+<text x="995" y="213" class="sm">南面出口SH</text><text x="995" y="230" class="sm">取付位置は模式表示</text>
 <line x1="958" y1="218" x2="983" y2="218" class="unk"/>
 <rect x="460" y="383" width="260" height="54" rx="9" fill="#fff8ee" stroke="#c68b44" stroke-dasharray="8 5" stroke-width="2"/>
 <text x="590" y="405" text-anchor="middle" class="label">エリア間接続</text>
@@ -39,21 +41,21 @@
 <rect x="26" y="470" width="1128" height="294" rx="16" class="wh"/>
 <text x="46" y="500" class="label">製品倉庫　WH</text>
 <rect x="102" y="512" width="135" height="35" rx="7" class="gate"/>
-<text x="114" y="534" class="sm">西側SH：使用禁止</text>
+<text x="114" y="534" class="sm">西側SH：通常不使用</text>
 <line x1="107" y1="510" x2="230" y2="550" class="forbid"/>
 <line x1="230" y1="510" x2="107" y2="550" class="forbid"/>
 <rect x="518" y="476" width="143" height="43" rx="6" class="gate"/>
 <text x="530" y="495" class="sm">東側SH：出入口</text>
 <text x="530" y="510" class="sm">停止座標は未確定</text>
 <line x1="590" y1="520" x2="590" y2="563" class="unk"/>
-<path d="M331 567 V708 M356 567 V708" class="unk"/>
-<path d="M811 567 V708 M836 567 V708" class="unk"/>
+<path d="M331 567 V708" class="unk" marker-end="url(#arrow)"/><path d="M356 567 V708" class="unk" marker-start="url(#arrow)"/>
+<path d="M811 567 V708" class="unk" marker-start="url(#arrow)"/><path d="M836 567 V708" class="unk" marker-end="url(#arrow)"/>
 <line x1="349" y1="584" x2="820" y2="584" class="cross" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
 <line x1="349" y1="692" x2="820" y2="692" class="cross" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
 <rect x="564" y="566" width="58" height="30" rx="4" class="gate"/><text x="572" y="585" class="sm">防火SH</text>
 <rect x="564" y="676" width="58" height="30" rx="4" class="gate"/><text x="572" y="695" class="sm">防火SH</text>
-<text x="267" y="637" class="label" transform="rotate(-90 267 637)">西主通路2本：方向等未確認</text>
-<text x="880" y="636" class="label" transform="rotate(-90 880 636)">東主通路2本：方向等未確認</text>
+<text x="267" y="637" class="label" transform="rotate(-90 267 637)">西主通路：保管側 ↓ ／ 壁側 ↑</text>
+<text x="880" y="636" class="label" transform="rotate(-90 880 636)">東主通路：保管側 ↓ ／ 壁側 ↑</text>
 <text x="590" y="575" text-anchor="middle" class="sm">上段・下段接続：双方向2車線</text>
 <line x1="338" y1="633" x2="180" y2="633" stroke="#7f7fb5" stroke-width="4" stroke-dasharray="6 5"/>
 <line x1="828" y1="633" x2="1007" y2="633" stroke="#7f7fb5" stroke-width="4" stroke-dasharray="6 5"/>

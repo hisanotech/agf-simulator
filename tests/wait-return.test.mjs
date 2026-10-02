@@ -8,7 +8,10 @@ import {analyzeRun} from '../src/ui/replay-model.mjs';
 
 function scenario(){
   const s=createDemoScenario('physical');s.durationMin=180;s.lineIntervalsMin=Array(8).fill(0);
-  s.agfs.forEach((a,i)=>{a.blocked=i!==0;a.area='WH';a.currentNodeId='WH-HOME';a.batteryPct=90;});
+  // Synthetic fixture: preserve the tested departure, park blocked AGFs at
+  // distinct branch stops without occupying either expected HP return target.
+  const starts=['WH-HOME','CHARGE-PLACE1','CHARGE-PLACE2','PILLAR-WAIT-W'];
+  s.agfs.forEach((a,i)=>{a.blocked=i!==0;a.area='WH';a.currentNodeId=starts[i];a.batteryPct=90;});
   s.postTaskPolicy={waitingPriority:['HP1','HP2','PILLAR-WAIT-E','PILLAR-WAIT-W'],evidence:'user-confirmed-shared-priority'};
   s.manualRequests=[{timeMs:0,kind:'05',palletId:'SIM-TEMP-1',locationId:'OT1',storagePermission:true,
     destinationLocationId:s.generatedDestinationIds[0]}];

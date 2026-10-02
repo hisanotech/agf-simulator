@@ -12,6 +12,7 @@ const categories={RUN:'Run情報・根拠区分',EQUIPMENT:'設備の初期状�
 const evidenceNames={'user-confirmed':'ユーザー確認済み','user-confirmed-initial-placement':'ユーザー確認済みの初期配置',
   'user-confirmed-shared-priority':'ユーザー確認済みの共通待機順位','synthetic':'合成値','synthetic-assumption':'合成モデルの仮定',
   'scenario-assumption':'Scenarioの設定・仮定','explicit-scenario-setting':'明示設定',
+  'provisional-derived':'暫定値・カタログ値から導出（停止旋回の実測値ではありません）','provisional-simulation':'暫定シミュレーション値',
   'supplier-assumption-user-relayed':'供給元の想定（ユーザー共有）','legacy-ready-derived-model':'旧readyからのモデル換算',
   'implementation-default':'旧モデルの既定値','unresolved':'未確定','unconfigured':'未設定','saved-run':'保存済みRun',
   'deterministic-model-tie-break':'再現性のためのモデル上の同率処理',
@@ -25,6 +26,7 @@ const labels={id:'Run ID',executedAt:'実行日時',durationMin:'実行時間（
   motionModel:'走行モデル',physicalEtaAllowed:'実測ETAとしての使用',initialPosition:'初期位置',initialArea:'初期エリア',
   initialBatteryPct:'初期バッテリー（%）',initialStatus:'初期状態',bufferCapacity:'製品バッファ容量（PL/系列）',
   inputCapacity:'投入容量（PL）',outputCapacity:'出口容量（PL）',inboundAgfLimit:'投入側へ割当可能なAGF上限（台）',
+  conveyorCapacity:'内部コンベア保持容量（PL・処理中を含む）',
   initialQuantity:'初期枚数',capacity:'設定上限（枚）',trigger:'補充必要となる残数（枚）',refillBatch:'補充量（枚）',
   magazineEmptyRecoveryPolicy:'0枚停止後の再開方式',intervalMin:'搬出間隔（分）',offsetMin:'初回ずらし（分）',magazineId:'使用マガジン',
   destinationAreaPriority:'目的地エリア優先',batteryOrder:'バッテリー選定順',eligibility:'選定対象の条件',tieBreak:'同率時の処理',
@@ -37,6 +39,7 @@ const labels={id:'Run ID',executedAt:'実行日時',durationMin:'実行時間（
   owner:'系列・用途',rowPriority:'同用途内の行優先順位',theoreticalPL:'理論容量（PL）',assignedPL:'割当済み行の容量（PL）',
   turnRateDegPerSec:'旋回角速度（deg/s）',turnRateEvidence:'旋回角速度の根拠',turningConsumesBattery:'旋回時間を消費対象に含める',
   turningBatteryEvidence:'旋回の電池消費対象の根拠',avoidanceTieBreakPolicy:'同状態の回避候補タイブレーク',
+  turnRateDerivation:'等価旋回角速度の導出条件',
   noOvertakingGroupId:'追越禁止の通行グループ',noOvertakingForwardDirection:'グループの順方向',
   interfaceId:'対象設備',kind:'停止点の種別',handlingGroupId:'設備前通路グループ',handlingResourceIds:'姿勢移行の占有対象',
   occupancyResourceIds:'占有対象',outboundEdgeIds:'明示退避経路の区間順',returnEdgeIds:'明示復帰経路の区間順',
@@ -93,7 +96,7 @@ export function buildRunConditions(run,{runId=run.runId??null,executedAt=run.exe
   }
   if(graph){
     const control=s.motionControl??{};
-    for(const key of ['turnRateDegPerSec','turnRateEvidence','turningConsumesBattery','turningBatteryEvidence','avoidanceTieBreakPolicy','pickupPositioningMin',
+    for(const key of ['turnRateDegPerSec','turnRateEvidence','turnRateDerivation','turningConsumesBattery','turningBatteryEvidence','avoidanceTieBreakPolicy','pickupPositioningMin',
       'pickupForkInsertedMin','dropoffPositioningMin','dropoffForkInsertedMin','handlingEvidence']){
       const value=control[key];
       const source=['turningConsumesBattery','turningBatteryEvidence'].includes(key)?(typeof control.turningConsumesBattery==='boolean'?control.turningBatteryEvidence??'explicit-scenario-setting':'unresolved'):

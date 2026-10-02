@@ -14,10 +14,13 @@ export const WAREHOUSE_RULES = Object.freeze({
   freeWallCrossing:false,emptyColumnAccess:'unresolved',physicalEtaAllowed:false
 });
 
-export const WAREHOUSE_MAIN_AISLES=Object.freeze(['W','E'].flatMap(side=>[1,2].map(n=>Object.freeze({
-  id:`WH-${side}-MAIN-${n}`,side:side==='W'?'west':'east',access:'allowed',
-  direction:'unresolved',laneCount:null,simultaneousPassing:'unresolved',connectionPoints:'unresolved'
-}))));
+export const WAREHOUSE_MAIN_AISLES=Object.freeze(['W','E'].flatMap(side=>[1,2].map(n=>{
+  const blockSide=side==='W'?n===1:n===2;
+  return Object.freeze({id:`WH-${side}-MAIN-${n}`,side:side==='W'?'west':'east',access:'allowed',
+    positionRole:blockSide?'block-side':'wall-side',direction:blockSide?'north-to-south':'south-to-north',
+    directionEvidence:'user-confirmed-initial-traffic-policy',
+    laneCount:null,simultaneousPassing:'unresolved',connectionPoints:'unresolved'});
+})));
 
 const places=(prefix,count)=>Object.freeze(Array.from({length:count},(_,i)=>Object.freeze({
   id:prefix+(i+1),positionEvidence:'relative-only',stopNodeId:null,...(prefix==='CHARGE-PLACE'?{chargerId:null}:{})

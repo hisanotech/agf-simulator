@@ -42,7 +42,9 @@ test('every PGW and magazine stop branches north from palletizing aisle one',()=
 test('each individual device stop holds an explicit synthetic stop resource through handling and turning',()=>{
   for(const stop of graph.nodes.filter(n=>n.evidence===evidence)){
     const resource='DEVICE-STOP:'+stop.interfaceId;
-    assert.deepEqual(stop.occupancyResourceIds,[resource]);
+    assert.equal(stop.exclusiveTraffic,true);
+    assert.ok(stop.occupancyResourceIds.includes(resource));
+    assert.ok(stop.occupancyResourceIds.includes('NODE:'+stop.id));
     assert.ok(stop.handlingResourceIds.includes(resource));
     const branch=graph.edges.find(e=>e.toNodeId===stop.id);
     assert.ok(branch.occupancyResourceIds.includes(resource));
@@ -106,7 +108,9 @@ test('operational display paths expose every turn as an explicit node and straig
     assert.ok(a.x===b.x||a.y===b.y,edge.id+' must follow its straight schematic segment');
   }
   assert.ok(graph.nodes.some(n=>n.type==='turn'));
-  for(const sourceId of ['E01','E04','E07','E08','E13','E14','E15','E16','E17']){
+  // E08 is the unchanged outdoor polyline. Old E01/E07/service bends were
+  // replaced by explicit shared-region changes or the four directional aisles.
+  for(const sourceId of ['E08']){
     const parts=graph.edges.filter(e=>e.splitSourceEdgeId===sourceId);
     assert.ok(parts.length>1,sourceId);
     assert.equal(parts.reduce((sum,e)=>sum+e.distanceMm,0),parts[0].splitSourceDistanceMm);
@@ -166,6 +170,25 @@ test('split two-lane geometry retains separate lane resources and remaps explici
   validateOperationalTopology(split);
 });
 
+test('split display turns preserve declared local handling scope and an explicitly permitted reverse overtaking route',()=>{
+  const input=bentFixture();input.edges[0].lanes[0].direction='forward';
+  input.nodes.push({id:'WAIT',type:'pickup',areaId:'PZ',x:10,y:10,approvalState:'synthetic-validated'});
+  Object.assign(input.nodes[1],{localHandlingBlockedEdgeIds:['BENT'],
+    handlingScopeEvidence:'synthetic-equipment-front-edge-declaration-not-site-boundary'});
+  input.overtakingPlans=[{id:'EXPLICIT-REVERSE-TEST',blockedNodeId:'WAIT',fromNodeId:'END',rejoinNodeId:'START',
+    edgeIds:['BENT'],temporaryReverseEdgeIds:['BENT'],
+    resourceIds:['CHANGE','OPPOSITE','ALONGSIDE','RETURN'],evidence:'synthetic-assumption'}];
+  const split=splitSyntheticDisplayTurns(input),ids=split.edges.map(e=>e.id);
+  assert.deepEqual(split.nodes.find(n=>n.id==='END').localHandlingBlockedEdgeIds,ids);
+  assert.deepEqual(split.overtakingPlans[0].edgeIds,ids.toReversed());
+  assert.deepEqual(new Set(split.overtakingPlans[0].temporaryReverseEdgeIds),new Set(ids));
+  assert.equal(findOperationalPath(split,'END','START',{movement:'empty',taskType:'01'}),null);
+  const invalid=structuredClone(input);invalid.nodes[1].localHandlingBlockedEdgeIds=['MISSING'];
+  assert.throws(()=>validateOperationalTopology(invalid),/local handling edges/);
+  const reverseDenied=structuredClone(input);reverseDenied.overtakingPlans[0].temporaryReverseEdgeIds=[];
+  assert.throws(()=>validateOperationalTopology(reverseDenied),/undeclared reverse/);
+});
+
 test('invalid traffic metadata and invented or disconnected avoidance routes fail closed',()=>{
   const group=bentFixture();delete group.edges[0].noOvertakingForwardDirection;
   assert.throws(()=>validateOperationalTopology(group),/forward direction/);
@@ -183,7 +206,8 @@ test('invalid traffic metadata and invented or disconnected avoidance routes fai
 function oneLineScenario(n){
   const s=createLegacyScenario('manual');
   s.durationMin=20;s.motionModel='synthetic_graph';s.operationalTopology=structuredClone(graph);
-  s.agfs=s.agfs.map((a,i)=>({...a,currentNodeId:'WH-HOME',area:'WH',blocked:i!==0}));
+  const starts=['WH-HOME','CHARGE-PLACE2','HP1','HP2'];
+  s.agfs=s.agfs.map((a,i)=>({...a,currentNodeId:starts[i],area:'WH',blocked:i!==0}));
   s.lineIntervalsMin=Array(8).fill(0);
   s.productionEvents=[{timeMs:0,lineId:'L'+n,palletId:'SYNTHETIC-PGW'+n,destinationLocationId:s.generatedDestinationIds[0]}];
   s.magazineUses=[];s.manualRequests=[];
@@ -219,6 +243,6 @@ test('a disconnected PGW4 access keeps 01 queued without pickup or AGF teleporta
   const run=simulate(s),task=run.final.tasks.find(t=>t.kind==='01');
   assert.equal(task.status,'queued');assert.equal(task.waitReason,'UNREACHABLE_ROUTE');
   assert.ok(!run.events.some(e=>e.taskId===task.id&&['TASK_PICKED','SEGMENT_ENTERED'].includes(e.type)));
-  assert.ok(run.final.agfs.every(a=>a.currentNodeId==='WH-HOME'&&a.carriedPalletId===null));
+  assert.ok(run.final.agfs.every(a=>a.currentNodeId===s.agfs.find(initial=>initial.id===a.id).currentNodeId&&a.carriedPalletId===null));
   assert.equal(run.final.lines.L4.length,1);
 });

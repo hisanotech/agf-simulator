@@ -6,6 +6,7 @@ import {defaultProductStreams,THEORETICAL_LINE_INTERVALS_MIN} from '../core/prod
 export function createDemoScenario(preset='standard') {
   if(preset==='standard'||preset==='extended'){
     const s=createLegacyScenario('physical');s.preset=preset;
+    s.wrapper={...s.wrapper,inputCapacity:1,outputCapacity:1,conveyorCapacity:5};
     s.lineIntervalsMin=[...THEORETICAL_LINE_INTERVALS_MIN];
     s.lineStartOffsetsMin=productionOffsets();
     s.productStreams=defaultProductStreams(undefined,s.lineStartOffsetsMin);
@@ -21,9 +22,14 @@ export function createDemoScenario(preset='standard') {
     // User-confirmed startup only. The actual stop coordinates remain synthetic.
     s.initialParking={evidence:'user-confirmed-initial-placement',placeIds:['CHARGE-PLACE1','CHARGE-PLACE2','HP1','HP2']};
     s.chargePlaceIds=['CHARGE-PLACE1','CHARGE-PLACE2'];
-    s.motionControl={turnRateDegPerSec:null,turnRateEvidence:'unresolved',turningConsumesBattery:null,turningBatteryEvidence:'unresolved',avoidanceTieBreakPolicy:null,
-      pickupPositioningMin:null,pickupForkInsertedMin:null,dropoffPositioningMin:null,dropoffForkInsertedMin:null,
-      handlingEvidence:'unresolved'};
+    // User-requested provisional defaults. Equivalent angular speed derived
+    // from catalogue turning travel, not a measured stationary turn rate.
+    s.motionControl={turnRateDegPerSec:12.1,turnRateEvidence:'provisional-derived',turningConsumesBattery:true,
+      turningBatteryEvidence:'provisional-simulation',avoidanceTieBreakPolicy:null,
+      turnRateDerivation:{radiusM:1.424,loadedTurningSpeedMps:.3,source:'user-provided-public-catalogue-values',
+        classification:'equivalent-angular-rate-not-measured-stationary-turn'},
+      pickupPositioningMin:.25,pickupForkInsertedMin:.10,dropoffPositioningMin:.25,dropoffForkInsertedMin:.15,
+      handlingEvidence:'provisional-simulation'};
     s.agfs.forEach((a,i)=>{a.currentNodeId=s.initialParking.placeIds[i];a.area='WH';});
     s.warehouse.forEach(slot=>{slot.palletIds=[];slot.permission=true;});
     s.magazines.forEach(m=>{m.quantity=10;});
@@ -59,8 +65,8 @@ export function createLegacyScenario(preset='standard') {
     lineStartOffsetsMin:preset==='standard'?productionOffsets():Array(8).fill(0),
     generatedDestinationIds,
     wrapper:{inputCapacity:1,outputCapacity:2,...(preset==='physical'?{inboundAgfLimit:3}:{})},
-    agfs:Array.from({length:4},(_,i)=>({id:'AGF'+(i+1),area:i<2?'PZ':'WH',
-      batteryPct:preset==='charge'?41:100,status:'idle',...(preset==='physical'?{currentNodeId:i<2?'PZ-HOME':'WH-HOME'}:{})})),
+    agfs:Array.from({length:4},(_,i)=>({id:'AGF'+(i+1),area:preset==='physical'?'WH':i<2?'PZ':'WH',
+      batteryPct:preset==='charge'?41:100,status:'idle',...(preset==='physical'?{currentNodeId:['CHARGE-PLACE1','CHARGE-PLACE2','HP1','HP2'][i]}:{})})),
     chargerIds:['CHARGER1','CHARGER2'],
     battery:{consumptionModel:'active_time',activeReferenceMin:360,activeReferenceConsumptionPct:70,
       reservePct:40,chargeStartPct:40,chargeTargetPct:80,consumptionPct:1.5,chargeMinPerPct:2.4},
@@ -87,5 +93,5 @@ export function initialAgfFromSettings(scenario,agf,{batteryPct,position}){
     return {...agf,batteryPct,area:'WH',currentNodeId:position};
   }
   return {...agf,batteryPct,area:position,...(scenario.motionModel==='synthetic_graph'?
-    {currentNodeId:position==='PZ'?'PZ-HOME':'WH-HOME'}:{})};
+    {currentNodeId:position===agf.area&&agf.currentNodeId?agf.currentNodeId:position==='PZ'?'PZ-HOME':'WH-HOME'}:{})};
 }

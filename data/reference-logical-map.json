@@ -224,42 +224,30 @@
     {
       "id": "PZ-A1",
       "area": "PZ",
-      "direction": "both",
+      "direction": "east-to-west",
       "laneCount": 1,
-      "simultaneousPassing": "reported-yes",
+      "simultaneousPassing": "not-applicable",
       "access": "allowed",
       "geometryStatus": "not-measured",
-      "notes": "走行通路1。設備・OTがここに接続。"
+      "notes": "Northern equipment-side logical lane inside one shared region.",
+      "kind": "logical-lane",
+      "sharedRegionId": "PZ-SHARED",
+      "physicalSeparation": false,
+      "directionEvidence": "user-confirmed-initial-traffic-policy"
     },
     {
       "id": "PZ-A2",
       "area": "PZ",
-      "direction": "both",
+      "direction": "west-to-east",
       "laneCount": 1,
-      "simultaneousPassing": "reported-yes",
+      "simultaneousPassing": "not-applicable",
       "access": "allowed",
       "geometryStatus": "not-measured",
-      "notes": "走行通路2。通路1と両端で接続。"
-    },
-    {
-      "id": "PZ-CON-W",
-      "area": "PZ",
-      "direction": "both",
-      "laneCount": 1,
-      "simultaneousPassing": "reported-yes",
-      "access": "allowed",
-      "geometryStatus": "not-measured",
-      "notes": "通路1・2の西端の接続。"
-    },
-    {
-      "id": "PZ-CON-E",
-      "area": "PZ",
-      "direction": "both",
-      "laneCount": 1,
-      "simultaneousPassing": "reported-yes",
-      "access": "allowed",
-      "geometryStatus": "not-measured",
-      "notes": "通路1・2の東端の接続。"
+      "notes": "Southern exterior-side logical lane inside the same shared region.",
+      "kind": "logical-lane",
+      "sharedRegionId": "PZ-SHARED",
+      "physicalSeparation": false,
+      "directionEvidence": "user-confirmed-initial-traffic-policy"
     },
     {
       "id": "PZ-DEV",
@@ -339,7 +327,7 @@
       "simultaneousPassing": "unresolved",
       "access": "allowed",
       "geometryStatus": "not-measured",
-      "notes": "各側2本の主通路をまとめた抽象参照。個別主通路の方向・車線数・同時通過条件・接続先は未確認。",
+      "notes": "Abstract group of two main aisles: initial block-side southbound / wall-side northbound policy confirmed; actual branches and stops remain unreviewed.",
       "kind": "main-aisle-group-reference"
     },
     {
@@ -350,7 +338,7 @@
       "simultaneousPassing": "unresolved",
       "access": "allowed",
       "geometryStatus": "not-measured",
-      "notes": "各側2本の主通路をまとめた抽象参照。個別主通路の方向・車線数・同時通過条件・接続先は未確認。",
+      "notes": "Abstract group of two main aisles: initial block-side southbound / wall-side northbound policy confirmed; actual branches and stops remain unreviewed.",
       "kind": "main-aisle-group-reference"
     },
     {
@@ -491,46 +479,13 @@
       ],
       "direction": "both",
       "aggregateLaneCount": 2,
-      "interpretation": "two parallel one-lane corridors, not two lanes in each corridor"
+      "interpretation": "Opposite logical one-way lanes inside one shared running region; no physical separation or end-only connectors.",
+      "sharedRegionId": "PZ-SHARED",
+      "physicalSeparation": false,
+      "laneChangeScope": "explicit-equipment-entry-exit-stations"
     }
   ],
   "links": [
-    {
-      "id": "L-PZ-WEST-1",
-      "from": "PZ-A1",
-      "to": "PZ-CON-W",
-      "direction": "both",
-      "status": "confirmed",
-      "reason": "West-end connection",
-      "reviewState": "user-confirmed-abstract"
-    },
-    {
-      "id": "L-PZ-WEST-2",
-      "from": "PZ-CON-W",
-      "to": "PZ-A2",
-      "direction": "both",
-      "status": "confirmed",
-      "reason": "West-end connection",
-      "reviewState": "user-confirmed-abstract"
-    },
-    {
-      "id": "L-PZ-EAST-1",
-      "from": "PZ-A1",
-      "to": "PZ-CON-E",
-      "direction": "both",
-      "status": "confirmed",
-      "reason": "East-end connection",
-      "reviewState": "user-confirmed-abstract"
-    },
-    {
-      "id": "L-PZ-EAST-2",
-      "from": "PZ-CON-E",
-      "to": "PZ-A2",
-      "direction": "both",
-      "status": "confirmed",
-      "reason": "East-end connection",
-      "reviewState": "user-confirmed-abstract"
-    },
     {
       "id": "L-PZ-DEV",
       "from": "PZ-A1",
@@ -542,7 +497,7 @@
     },
     {
       "id": "L-PZ-OT",
-      "from": "PZ-A1",
+      "from": "PZ-A2",
       "to": "PZ-OT",
       "direction": "both",
       "status": "confirmed",
@@ -552,7 +507,7 @@
     {
       "id": "L-PZ-IN-ATTACH",
       "from": "PZ-W-IN",
-      "to": "PZ-A1",
+      "to": "PZ-A2",
       "direction": "forward",
       "status": "unresolved",
       "reason": "Exact entry attachment not yet specified",
@@ -560,7 +515,7 @@
     },
     {
       "id": "L-PZ-OUT-ATTACH",
-      "from": "PZ-A1",
+      "from": "PZ-A2",
       "to": "PZ-S-OUT",
       "direction": "forward",
       "status": "unresolved",
@@ -692,6 +647,15 @@
       "status": "confirmed",
       "reason": "User-confirmed east main aisle group access to the service area; individual aisle and stop geometry unresolved",
       "reviewState": "user-confirmed-abstract"
+    },
+    {
+      "id": "L-PZ-SHARED-LANE-CHANGE",
+      "from": "PZ-A1",
+      "to": "PZ-A2",
+      "direction": "both",
+      "status": "confirmed",
+      "reviewState": "user-confirmed-abstract",
+      "notes": "Local explicit lane-change interfaces at equipment, entry and exit; no physical wall, no endpoint detour."
     }
   ],
   "interfaces": [
@@ -852,6 +816,20 @@
       "controlledBy": "AGF",
       "taskExecutingVehiclesMustBeAbleToPass": true,
       "actualManeuver": "unresolved"
+    },
+    "initialTrafficPolicy": {
+      "evidence": "user-confirmed-initial-traffic-policy",
+      "pz": {
+        "north": "east_to_west",
+        "south": "west_to_east",
+        "physicalSeparation": false
+      },
+      "warehouse": {
+        "blockSide": "north_to_south",
+        "wallSide": "south_to_north"
+      },
+      "sameDirectionOvertaking": "forbidden",
+      "defaultConflictResolution": "stop-before-entry"
     }
   },
   "taskRoutes": [
@@ -973,7 +951,9 @@
         "id": "WH-W-MAIN-1",
         "side": "west",
         "access": "allowed",
-        "direction": "unresolved",
+        "positionRole": "block-side",
+        "direction": "north-to-south",
+        "directionEvidence": "user-confirmed-initial-traffic-policy",
         "laneCount": null,
         "simultaneousPassing": "unresolved",
         "connectionPoints": "unresolved"
@@ -982,7 +962,9 @@
         "id": "WH-W-MAIN-2",
         "side": "west",
         "access": "allowed",
-        "direction": "unresolved",
+        "positionRole": "wall-side",
+        "direction": "south-to-north",
+        "directionEvidence": "user-confirmed-initial-traffic-policy",
         "laneCount": null,
         "simultaneousPassing": "unresolved",
         "connectionPoints": "unresolved"
@@ -991,7 +973,9 @@
         "id": "WH-E-MAIN-1",
         "side": "east",
         "access": "allowed",
-        "direction": "unresolved",
+        "positionRole": "wall-side",
+        "direction": "south-to-north",
+        "directionEvidence": "user-confirmed-initial-traffic-policy",
         "laneCount": null,
         "simultaneousPassing": "unresolved",
         "connectionPoints": "unresolved"
@@ -1000,7 +984,9 @@
         "id": "WH-E-MAIN-2",
         "side": "east",
         "access": "allowed",
-        "direction": "unresolved",
+        "positionRole": "block-side",
+        "direction": "north-to-south",
+        "directionEvidence": "user-confirmed-initial-traffic-policy",
         "laneCount": null,
         "simultaneousPassing": "unresolved",
         "connectionPoints": "unresolved"

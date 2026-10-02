@@ -13,7 +13,7 @@ const copy=()=>structuredClone(graph);
 test('synthetic operational topology is explicit, metric, but never presented as CAD physical ETA',()=>{
   const result=validateOperationalTopology(graph);
   assert.equal(result.datasetKind,'synthetic');
-  assert.equal(result.nodes,139);
+  assert.equal(result.nodes,215);
   assert.equal(graph.nodes.filter(n=>n.evidence==='synthetic-device-interface-not-site-stop').length,23);
   assert.deepEqual(graph.nodes.filter(n=>n.type==='wait').map(n=>n.id),['HP1','HP2','PILLAR-WAIT-W','PILLAR-WAIT-E']);
   assert.ok(result.edges>0);

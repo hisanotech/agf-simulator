@@ -8,6 +8,7 @@ import {renderAnalysis,renderComparison,metric} from './analysis-view.mjs';
 import {initCadPanel} from './cad-panel.mjs';
 import {populateExtendedSettings,readExtendedSettings,loadSyntheticSettingsExample,organizeSettings} from './extended-settings.mjs';
 import {eventCsv,conditionCsv,conditionCsvFilename} from './export.mjs';
+import {customerConditionsCsv,transportResultsCsv,agfResultsCsv,customerCsvFilename} from './customer-export.mjs';
 import {appendRunInput,createInitialPreview} from './run-input.mjs';
 import {warehouseOwnerLegend} from './warehouse-colors.mjs';
 import {WAREHOUSE_BLOCKS} from '../map/warehouse-layout.mjs';
@@ -36,6 +37,9 @@ function populateSettings(scenario) {
   $('inboundAgfLimit').disabled=scenario.motionModel!=='synthetic_graph';
   $('inboundAgfLimit').value=scenario.wrapper.inboundAgfLimit??4;
   $('inputCapacity').value=scenario.wrapper.inputCapacity;$('outputCapacity').value=scenario.wrapper.outputCapacity;
+  $('conveyor-capacity-field').hidden=scenario.wrapper.conveyorCapacity===undefined;
+  $('conveyorCapacity').disabled=scenario.wrapper.conveyorCapacity===undefined;
+  $('conveyorCapacity').value=scenario.wrapper.conveyorCapacity??5;
   $('line-fields').innerHTML=scenario.lineIntervalsMin.map((n,i)=>`<div class="line-setting"><h3>系列 ${i+1}</h3>${input('line-'+i,'搬出間隔（分）',n)}${input('offset-'+i,'初回ずらし（分）',scenario.lineStartOffsetsMin[i],0,.001)}</div>`).join('');
   $('time-fields').innerHTML=timeFields.map(([id,label])=>input(id,label,scenario.times[id],id==='wrapMin'?.001:0,.001)).join('');
   const phased=scenario.motionModel==='synthetic_graph'&&['pickupPositioningMin','pickupForkInsertedMin','dropoffPositioningMin','dropoffForkInsertedMin'].some(key=>Object.hasOwn(scenario.motionControl??{},key));
@@ -63,6 +67,7 @@ function scenarioFromSettings() {
   scenario.durationMin=numeric('duration');scenario.mode=$('mode').value;scenario.fallback=$('fallback').value;
   scenario.lineCapacity=numeric('lineCapacity');
   scenario.wrapper={inputCapacity:numeric('inputCapacity'),outputCapacity:numeric('outputCapacity')};
+  if(base.wrapper.conveyorCapacity!==undefined)scenario.wrapper.conveyorCapacity=numeric('conveyorCapacity');
   if(scenario.motionModel==='synthetic_graph')scenario.wrapper.inboundAgfLimit=numeric('inboundAgfLimit');
   scenario.lineIntervalsMin=Array.from({length:8},(_,i)=>numeric('line-'+i));
   scenario.lineStartOffsetsMin=Array.from({length:8},(_,i)=>numeric('offset-'+i));
@@ -126,7 +131,7 @@ function adoptRun(next,at=0) {
   syncRunControls();
   setTime(timeMs,true);
 }
-function syncRunControls(){for(const id of ['play','pause','stop','seek','next-event','csv','conditions-csv','manual04','manual05'])$(id).disabled=!result;}
+function syncRunControls(){for(const id of ['play','pause','stop','seek','next-event','csv','conditions-csv','customer-conditions-csv','transport-results-csv','agf-results-csv','manual04','manual05'])$(id).disabled=!result;}
 function showInitialPreview(){
   pause();result=null;analysis=null;comparison=null;runId='';timeMs=0;currentIndex=0;
   preview=createInitialPreview(base);$('clock').textContent=clock(0);$('seek').value='0';
@@ -186,7 +191,7 @@ function renderSnapshot(){const run=result??preview;if(!run)return;const snap=sn
   $('agf-list').innerHTML=snap.agfs.map((a,i)=>{
     const task=snap.tasks.find(t=>t.id===a.taskId),status=effectiveStatus(a,snap);
     return `<button class="agf-card${a.id===selectedAgf?' selected':''}" data-select-agf="${esc(a.id)}" aria-pressed="${a.id===selectedAgf}">
-      <div class="agf-card-head"><span class="agf-id"><span class="vehicle-number">${i+1}</span>${esc(a.id)}</span>${badge(status,stateLabel(status,run.scenario.motionModel==='synthetic_graph'))}</div>
+      <div class="agf-card-head"><span class="agf-id"><span class="vehicle-number">${i+1}</span>${esc(a.id)}</span>${badge(status,stateLabel(a.status==='waiting_charge_place'?a.status:status,run.scenario.motionModel==='synthetic_graph'))}</div>
       <div class="battery-line"><span>電池</span><span class="battery-track"><i data-battery-bar="${a.id}" class="${a.batteryPct<=run.scenario.battery.chargeStartPct?'low':''}" style="width:${a.batteryPct}%"></i></span><b data-battery-text="${a.id}">${a.batteryPct.toFixed(1)}%</b></div>
       <dl class="agf-details"><dt>タスク</dt><dd>${task?esc(task.id)+' / '+task.kind:'—'}</dd><dt>搬送元 → 先</dt><dd>${task?esc(locationName(task.originId))+' → '+esc(locationName(task.destinationId)):'—'}</dd>
       <dt>積載</dt><dd>${esc(a.carriedPalletId??'なし')}</dd><dt>現在位置</dt><dd>${esc(a.currentNodeId?locationName(a.currentNodeId):areaName(a.area)+'（概念エリア）')}</dd><dt>方向</dt><dd data-heading-text="${esc(a.id)}">${esc(headingLabel(a.heading,a.headingDeg))}</dd>
@@ -204,7 +209,7 @@ function renderSnapshot(){const run=result??preview;if(!run)return;const snap=sn
       return chip(id+' '+pl.length+'/'+run.scenario.lineCapacity+(production?.state==='blocked'?
         ' '+(reasons[production.reason]??production.reason):''));
     }).join('')],
-    ['包装機',`<p>投入 ${snap.wrapper.input.length}/${run.scenario.wrapper.inputCapacity} · 回収 ${snap.wrapper.output.length}/${run.scenario.wrapper.outputCapacity}<br>処理中：${esc(snap.wrapper.processing??'なし')}</p>`],
+    ['包装機',`<p>入口 ${snap.wrapper.input.length}/${run.scenario.wrapper.inputCapacity}PL · 出口 ${snap.wrapper.output.length}/${run.scenario.wrapper.outputCapacity}PL${run.scenario.wrapper.conveyorCapacity!==undefined?`<br>内部保持 ${(snap.wrapper.conveyor??[]).length}/${run.scenario.wrapper.conveyorCapacity}PL（処理中を含む）`:''}<br>包装処理：${snap.wrapper.processing?'稼働中':'待機'}</p>`],
     ['マガジン',Object.values(snap.magazines).map(m=>chip(m.id+' '+m.quantity+'枚'+(m.pending?' 03搬送中':m.refillNeeded?' 補充必要':''),m.refillNeeded)).join('')],
     ['整列機・倉庫',Object.values(snap.aligners).map(a=>chip(a.id+' '+(a.quantity??(a.ready?10:0))+'枚'+(a.reservedTaskId?' 予約済':'') ,a.ready)).join('')+`<p>倉庫内 ${Object.values(snap.warehouse).reduce((n,s)=>n+s.palletIds.length,0)} PL · Runの合成在庫</p>`]
   ].map(([title,content])=>`<div class="equipment-group"><h3>${title}</h3><div class="equipment-chips">${content}</div></div>`).join('');
@@ -289,6 +294,9 @@ function downloadCsv(contents,filename){const url=URL.createObjectURL(new Blob([
   const a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notify(filename+' を出力しました。保存済みRunの条件を使用しています。');}
 $('csv').addEventListener('click',()=>{if(result)downloadCsv(eventCsv(result,runId),runId+'-events.csv');});
 $('conditions-csv').addEventListener('click',()=>{if(result)downloadCsv(conditionCsv(result,runId),conditionCsvFilename(runId));});
+$('customer-conditions-csv').addEventListener('click',()=>{if(result)downloadCsv(customerConditionsCsv(result),customerCsvFilename(result,'conditions'));});
+$('transport-results-csv').addEventListener('click',()=>{if(result)downloadCsv(transportResultsCsv(result),customerCsvFilename(result,'transport'));});
+$('agf-results-csv').addEventListener('click',()=>{if(result)downloadCsv(agfResultsCsv(result),customerCsvFilename(result,'agf'));});
 initCadPanel({showError:error=>{$('cad-error').textContent=friendlyError(error);$('cad-error').hidden=false;},clearError:()=>{$('cad-error').hidden=true;}});
 for(const id of ['open-cad','open-cad-map'])$(id).addEventListener('click',()=>{pause();$('cad-dialog').showModal();});
 showInitialPreview();showView(location.hash.slice(1)||'monitor');

@@ -3,7 +3,7 @@ import { batteryModel, validateBatteryModel, createBatteryLedger } from './batte
 import {validateOperationalTopology,findOperationalPath,resolveInterfaceNode,splitSyntheticDisplayTurns} from '../map/operational-topology.mjs';
 import {createTrafficController} from './traffic-controller.mjs';
 import {directionHeading,turnAngle,cardinalHeading,HEADING_DEGREES,validateMotionControl,handlingDurations} from './motion-control.mjs';
-import {chooseAvoidance,findExplicitAvoidancePlan} from './interference-control.mjs';
+import {chooseAvoidance,findExplicitAvoidancePlan,findExplicitOvertakingPlan} from './interference-control.mjs';
 import {validateWarehousePolicy,validateProduct,validateStoredPallets,chooseWarehouseLocation,canUseUpper} from './warehouse-policy.mjs';
 import {generateProductionEvents} from './production-streams.mjs';
 import {NORMAL_WAITING_PLACES,NORMAL_WAITING_PRIORITY} from '../map/warehouse-layout.mjs';
@@ -53,6 +53,9 @@ export function simulate(rawScenario) {
   required(Number.isInteger(scenario.wrapper?.inputCapacity) && scenario.wrapper.inputCapacity > 0 &&
     Number.isInteger(scenario.wrapper?.outputCapacity) && scenario.wrapper.outputCapacity > 0,
     'wrapper capacities required');
+  const conveyorCapacity=scenario.wrapper.conveyorCapacity??null;
+  required(conveyorCapacity===null||Number.isInteger(conveyorCapacity)&&conveyorCapacity>0,
+    'wrapper conveyor capacity must be a positive integer');
   const graphMode=scenario.motionModel==='synthetic_graph';
   const motionControl=scenario.motionControl??null;
   validateMotionControl(motionControl);
@@ -65,7 +68,7 @@ export function simulate(rawScenario) {
   if(graphMode)validateOperationalTopology(topology);
   const graphNodes=graphMode?new Map(topology.nodes.map(node=>[node.id,node])):null;
   const graphEdges=graphMode?new Map(topology.edges.map(edge=>[edge.id,edge])):null;
-  const traffic=graphMode?createTrafficController(topology.edges):null;
+  const traffic=graphMode?createTrafficController(topology.edges,{nodes:topology.nodes}):null;
   const gates=graphMode?new Map(topology.shutters.map(gate=>[gate.id,{passable:gate.initiallyPassable}])):null;
   const lines = new Map(Array.from({length:8}, (_,i) => ['L' + (i+1), []]));
   const agfs = (scenario.agfs ?? []).map(a => ({...a, status:a.status ?? 'idle', taskId:null,
@@ -78,6 +81,7 @@ export function simulate(rawScenario) {
   for (const a of agfs) required(Number.isFinite(a.batteryPct) && a.batteryPct >= 0 && a.batteryPct <= 100 &&
     typeof a.area === 'string' && a.area, 'invalid AGF initial position/battery');
   if(graphMode)for(const a of agfs)required(graphNodes.has(a.currentNodeId),'graph AGF needs a known currentNodeId');
+  if(graphMode)for(const a of agfs)traffic.setNodeOccupant?.({agfId:a.id,nodeId:a.currentNodeId});
   const batteryLedger = batteryModel(battery) === 'active_time' ? createBatteryLedger(agfs,battery) : null;
   const chargers = new Map((scenario.chargerIds ?? []).map(id => [id,null]));
   required(chargers.size === 2 && new Set(scenario.chargerIds).size === 2, 'two chargers required');
@@ -87,6 +91,8 @@ export function simulate(rawScenario) {
   // Stop occupancy is independent of electrical charger occupancy. The optional
   // ordered places are explicit synthetic scenario input, never a place/charger pair.
   const chargePlaces=new Map((scenario.chargePlaceIds??[]).map(id=>[id,null]));
+  const chargePlaceReservations=new Map((scenario.chargePlaceIds??[]).map(id=>[id,null]));
+  const parkingChargeQueue=[];
   if(chargePlaces.size){
     required(postTaskPolicy&&chargePlaces.size===2&&scenario.chargePlaceIds.length===2&&
       [...chargePlaces.keys()].every(id=>graphNodes.get(id)?.type==='charge'&&resolveInterfaceNode(topology,id)===id),
@@ -177,8 +183,10 @@ export function simulate(rawScenario) {
     validateStoredPallets(slots,pallets,warehousePolicy,lineIds);
   }
   const tasks = new Map(), queue = [], history = [], snapshots = [], rowBusy = new Set();
-  const wrapper = {input:[], output:[], processing:null, readyToRelease:false};
+  const wrapper = {input:[], output:[], processing:null, readyToRelease:false,permission:scenario.wrapper.permission!==false,
+    ...(conveyorCapacity!==null?{conveyor:[]}:{})};
   const wrapperInboundReservations=new Set();
+  const wrapperInputReservations=new Set();
   let now = 0, order = 0, nextTask = 0;
   const stats = {created:0, stored:0, completed:0, byKind:{}, chargingStarts:0};
   const pending = [];
@@ -217,7 +225,8 @@ export function simulate(rawScenario) {
       const saved=clone({...a,movement:{...a.movement,steps:[]}});
       saved.movement.steps=a.movement.steps;return saved;
     }), lines:Object.fromEntries([...lines].map(([k,v]) => [k,[...v]])),
-    wrapper:{...clone(wrapper),...(graphMode?{reservedInboundTaskIds:[...wrapperInboundReservations]}:{})},
+    wrapper:{...clone(wrapper),...(graphMode?{reservedInboundTaskIds:[...wrapperInboundReservations],
+      reservedInputTaskIds:[...wrapperInputReservations]}:{})},
     chargers:Object.fromEntries(chargers),
     magazines:Object.fromEntries([...magazines].map(([k,v]) => [k,clone(v)])),
     aligners:Object.fromEntries([...aligners].map(([k,v]) => [k,clone(v)])),
@@ -228,7 +237,7 @@ export function simulate(rawScenario) {
     ...(warehousePolicy?{storagePolicyActive:true}:{}),
     ...(postTaskPolicy?{waitingPlaces:Object.fromEntries(waitingPlaces),
       waitingReservations:Object.fromEntries(waitingReservations)}:{}),
-    ...(chargePlaces.size?{chargePlaces:Object.fromEntries(chargePlaces)}:{}),
+    ...(chargePlaces.size?{chargePlaces:Object.fromEntries(chargePlaces),chargePlaceReservations:Object.fromEntries(chargePlaceReservations)}:{}),
     ...(graphMode?{traffic:traffic.snapshot(),gates:Object.fromEntries([...gates].map(([id,state])=>[id,clone(state)]))}:{})
   });
   const record = (type, fields={}) => {
@@ -244,7 +253,7 @@ export function simulate(rawScenario) {
     required(Number.isInteger(timeMs) && timeMs >= now, 'cannot schedule event in the past: ' + type);
     const moving=fields.agfId&&agfs.find(a=>a.id===fields.agfId);
     const motionEvent=['SEGMENT_REQUEST','SEGMENT_EXITED','TURN_COMPLETED','HANDLING_REQUEST',
-      'AVOIDANCE_REACHED','AVOIDANCE_RETURNED'].includes(type);
+      'AVOIDANCE_REACHED','AVOIDANCE_RETURNED','WRAPPER_WAIT_READY','OVERTAKING_COMPLETED'].includes(type);
     queue.push({timeMs,order:order++,type,...fields,
       ...(motionEvent?{movementGeneration:moving?.movementGeneration}:{})});
   };
@@ -285,7 +294,8 @@ export function simulate(rawScenario) {
   };
   const wakeTraffic=()=>{
     if(!graphMode)return;
-    for(const agf of [...agfs].sort(byId)){
+    for(const agf of [...agfs].sort((a,b)=>Number(!!b.carriedPalletId)-Number(!!a.carriedPalletId)||
+      (a.movement?.requestOrder??Infinity)-(b.movement?.requestOrder??Infinity))){
       const movement=agf.movement;
       if(agf.status!=='waiting_traffic'||!movement||movement.retryScheduled)continue;
       if(movement.handlingPending){movement.retryScheduled=true;schedule(now,'HANDLING_REQUEST',{agfId:agf.id});continue;}
@@ -313,7 +323,7 @@ export function simulate(rawScenario) {
       record('MOTION_CONFIGURATION_WAITING',{agfId:agf.id,taskId:agf.taskId,nodeId:agf.currentNodeId,reason,...fields});
     }
   };
-  const beginTurn=(agf,step)=>{
+  const beginTurn=(agf,step,afterType='SEGMENT_REQUEST')=>{
     const target=heading(step.fromNodeId,step.toNodeId);
     if(agf.headingDeg==null){
       // No preceding direction exists at startup. This initializes only the
@@ -331,6 +341,7 @@ export function simulate(rawScenario) {
     const groupDirection=step.traversal==='forward'?edge.noOvertakingForwardDirection:opposite[edge.noOvertakingForwardDirection];
     if(traffic.reserveResources){
       const reserved=traffic.reserveResources({agfId:agf.id,resourceIds,
+        edgeId:step.edgeId,fromNodeId:step.fromNodeId,requestOrder:agf.movement.requestOrder??order,
         ...(edge.noOvertakingGroupId?{groupId:edge.noOvertakingGroupId,groupDirection}:{})});
       if(!reserved.entered){
         agf.status='waiting_traffic';agf.movement.waitingReason='TURN_RESOURCE';
@@ -342,7 +353,7 @@ export function simulate(rawScenario) {
     agf.status='turning';agf.movement.waitingReason=null;
     agf.turn={nodeId:agf.currentNodeId,fromHeadingDeg:agf.headingDeg,targetHeadingDeg:target,angleDeg:angle,
       startedAt:now,completedAt:now+duration,rateDegPerSec:motionControl.turnRateDegPerSec,
-      evidence:motionControl.turnRateEvidence,resourceIds};
+      evidence:motionControl.turnRateEvidence,resourceIds,afterType};
     record('TURN_STARTED',{agfId:agf.id,taskId:agf.taskId,nodeId:agf.currentNodeId,
       fromHeadingDeg:agf.headingDeg,targetHeadingDeg:target,angleDeg:angle,startedAt:now,completedAt:now+duration,
       turnDurationMs:duration,turnRateDegPerSec:motionControl.turnRateDegPerSec,turnRateEvidence:motionControl.turnRateEvidence,
@@ -359,7 +370,9 @@ export function simulate(rawScenario) {
     const node=graphNodes.get(agf.currentNodeId),groupId=node.handlingGroupId??null;
     const phase=operation==='pickup'?'positioning_pickup':'positioning_dropoff';
     if(groupId&&traffic.setHandlingPhase){
-      const reserved=traffic.setHandlingPhase({agfId:agf.id,groupId,phase,resourceIds:node.handlingResourceIds??[]});
+      const reserved=traffic.setHandlingPhase({agfId:agf.id,groupId,phase,resourceIds:node.handlingResourceIds??[],
+        ...((node.localHandlingBlockedEdgeIds??node.handlingBlockedEdgeIds)?
+          {blockedEdgeIds:node.localHandlingBlockedEdgeIds??node.handlingBlockedEdgeIds}:{})});
       if(!reserved.entered){
         agf.status='waiting_traffic';agf.movement.waitingReason='HANDLING_RESOURCE';
         agf.movement.handlingPending={operation,legacyDelayMs};
@@ -385,6 +398,48 @@ export function simulate(rawScenario) {
     const node=graphNodes.get(agf.currentNodeId);
     traffic?.clearHandlingPhase?.(agf.id);traffic?.releaseResources?.(agf.id,node.handlingResourceIds??[]);
     traffic?.leaveGroup?.(agf.id);agf.handling=null;wakeTraffic();
+  };
+  const beginWrapperDelivery=(task,agf)=>{
+    // A pending delivery stays at its individual pickup interface. The immutable
+    // path determines the first valid departure heading; no display-only move.
+    agf.movementGeneration=(agf.movementGeneration??0)+1;
+    agf.movement={movement:'loaded',taskId:task.id,steps:task.loadedRoute.steps,stepIndex:0,
+      nextType:'DROPOFF',delayMs:minute(times.dropoffMin),current:null,waitingReason:'WRAPPER_INPUT',
+      retryScheduled:false,wrapperDeparture:true,requestOrder:history.length};
+    agf.wrapperWaitStartedAt=now;agf.departurePlanned=false;
+    task.waitReason='WRAPPER_INPUT';task.wrapperWaitStartedAt=now;
+    const step=agf.movement.steps[0];
+    const available=wrapper.permission&&wrapper.input.length+wrapperInputReservations.size<scenario.wrapper.inputCapacity;
+    agf.movement.wrapperOrientationPending=!available;
+    if(!available&&step&&beginTurn(agf,step,'WRAPPER_WAIT_READY'))return;
+    agf.movement.wrapperOrientationPending=false;
+    agf.status='waiting_wrapper_input';
+    record('WRAPPER_INPUT_WAITING',{taskId:task.id,kind:task.kind,agfId:agf.id,palletId:task.palletId,
+      nodeId:agf.currentNodeId,reason:wrapper.permission?'WRAPPER_INPUT_FULL_OR_RESERVED':'WRAPPER_PERMISSION',
+      waitingPositionEvidence:'synthetic-individual-device-interface-not-site-stop'});
+  };
+  const wakeWrapperInputs=()=>{
+    if(!graphMode)return;
+    const waiters=agfs.filter(a=>a.movement?.wrapperDeparture&&!a.movement.current&&a.status!=='turning'&&
+      !['waiting_motion_configuration','waiting_interference'].includes(a.status))
+      .sort((a,b)=>a.movement.requestOrder-b.movement.requestOrder);
+    for(const a of waiters){
+      const t=tasks.get(a.taskId);
+      if(!wrapperInputReservations.has(t.id)){
+        if(!wrapper.permission||wrapper.input.length+wrapperInputReservations.size>=scenario.wrapper.inputCapacity)continue;
+        wrapperInputReservations.add(t.id);
+        record('WRAPPER_INPUT_RESERVED',{taskId:t.id,agfId:a.id,palletId:t.palletId,
+          reservationCount:wrapperInputReservations.size,inputCount:wrapper.input.length,
+          selectionEvidence:'synthetic runtime tie-break'});
+        record('ROUTE_PLANNED',{taskId:t.id,kind:t.kind,agfId:a.id,movement:'loaded',
+          edgeIds:t.loadedRoute.steps.map(s=>s.edgeId),modelDistanceMm:t.loadedRoute.modelDistanceMm,
+          modelDurationMs:t.loadedRoute.modelDurationMs,etaStatus:t.loadedRoute.etaStatus});
+      }
+      if(!wrapper.permission||traffic.isBeingOvertaken?.(a.id)||a.movement.retryScheduled)continue;
+      a.status='waiting_wrapper_input';a.movement.retryScheduled=true;a.departurePlanned=true;
+      if(a.movement.steps.length)schedule(now,'SEGMENT_REQUEST',{agfId:a.id});
+      else completeRoute(a);
+    }
   };
   const avoidanceReturnReady=agf=>{
     const other=agfs.find(a=>a.id===agf.avoidance.otherAgfId);
@@ -418,7 +473,8 @@ export function simulate(rawScenario) {
       const moving=!!a.movement&&!a.avoidance&&!a.movement.current&&a.status!=='turning'&&!a.handling;
       const plan=moving?findExplicitAvoidancePlan(topology,{currentNodeId:a.currentNodeId,conflictGroupId,
         movement:a.movement.movement,taskType:tasks.get(a.taskId)?.kind??(a.movement.movement==='wait'?'WAIT':'CHARGE')}):null;
-      return {agfId:a.id,moving,loaded:!!a.carriedPalletId,avoidancePossible:!!plan,plan};
+      return {agfId:a.id,moving,loaded:!!a.carriedPalletId,avoidancePossible:!!plan,plan,
+        requestOrder:a.movement?.requestOrder??history.length};
     });
     const selection=chooseAvoidance({candidates:feasible,tieBreakPolicy:motionControl?.avoidanceTieBreakPolicy??null});
     if(selection.status!=='selected'){
@@ -440,6 +496,32 @@ export function simulate(rawScenario) {
       routeEvidence:plan.evidence});
     beginRoute(tasks.get(selected.taskId)??null,selected,selected.avoidance.originalMovement.movement,
       plan.outboundPath,'AVOIDANCE_REACHED');return selected===blocked;
+  };
+  const tryOvertaking=(agf,blockers)=>{
+    if(agf.overtaking||agf.avoidance||agf.movement?.current||agf.status==='turning')return false;
+    for(const id of blockers){
+      const front=agfs.find(a=>a.id===id);
+      if(tasks.get(front?.taskId)?.kind!=='01')continue;
+      const movement=agf.movement,kind=tasks.get(agf.taskId)?.kind??(movement.movement==='wait'?'WAIT':'CHARGE');
+      const plan=findExplicitOvertakingPlan(topology,{currentNodeId:agf.currentNodeId,blockedAgf:front,
+        regularBlocked:true,movement:movement.movement,taskType:kind});
+      if(!plan||plan.path.steps.some(s=>s.shutterId&&!gates.get(s.shutterId)?.passable))continue;
+      const end=movement.steps.at(-1)?.toNodeId;
+      const continuation=findOperationalPath(topology,plan.rejoinNodeId,end,{movement:movement.movement,taskType:kind});
+      if(!continuation)continue;
+      const lease=traffic.reserveOvertaking({agfId:agf.id,blockedAgfId:front.id,blockedAgf:front,
+        regularBlocked:true,plan,requestOrder:movement.requestOrder});
+      if(!lease.entered){
+        record('OVERTAKING_WAITING',{agfId:agf.id,blockedAgfId:front.id,taskId:agf.taskId,
+          planId:plan.planId,blockers:lease.blockers,reason:lease.reason});continue;
+      }
+      traffic.leaveGroup(agf.id);
+      agf.overtaking={plan,originalMovement:movement,continuation};
+      record('OVERTAKING_STARTED',{agfId:agf.id,blockedAgfId:front.id,taskId:agf.taskId,planId:plan.planId,
+        resourceIds:lease.resources,temporaryReverseEdgeIds:plan.temporaryReverseEdgeIds,evidence:plan.evidence});
+      beginRoute(tasks.get(agf.taskId),agf,movement.movement,plan.path,'OVERTAKING_COMPLETED');return true;
+    }
+    return false;
   };
   const pendingInterferences=[];
   const evaluateInterference=notice=>{
@@ -557,20 +639,45 @@ export function simulate(rawScenario) {
     return changed;
   };
   const maybeStartWrap = () => {
-    if (wrapper.processing !== null || wrapper.input.length === 0) return;
-    const id=wrapper.input.shift(), p=pallets.get(id);
-    required(p.stage === 'wrapper_input', 'invalid wrapper input pallet');
+    if(conveyorCapacity!==null){
+      // Internal holding capacity is separate from the single inlet/outlet.
+      // No unconfirmed conveyor-transfer duration or parallel wrapping is added.
+      while(wrapper.input.length&&wrapper.conveyor.length<conveyorCapacity){
+        const id=wrapper.input.shift(),p=pallets.get(id);
+        required(p.stage==='wrapper_input','invalid conveyor input pallet');
+        p.stage='wrapper_conveyor';wrapper.conveyor.push(id);
+        record('WRAPPER_CONVEYOR_ACCEPTED',{palletId:id,conveyorQuantity:wrapper.conveyor.length,
+          conveyorCapacity,transferTimingEvidence:'unresolved-transfer-time-same-event-sequence'});
+      }
+    }
+    if(wrapper.processing!==null)return;
+    const id=conveyorCapacity!==null?wrapper.conveyor.find(id=>pallets.get(id).stage==='wrapper_conveyor'):wrapper.input.shift();
+    if(!id)return;
+    const p=pallets.get(id);
+    required(p.stage===(conveyorCapacity!==null?'wrapper_conveyor':'wrapper_input'),'invalid wrapper input pallet');
     wrapper.processing=id; p.stage='wrapping';
     record('WRAP_STARTED',{palletId:id});
     schedule(now+minute(times.wrapMin),'WRAP_FINISHED',{palletId:id});
   };
   const releaseWrap = () => {
-    if (!wrapper.readyToRelease || wrapper.output.length >= scenario.wrapper.outputCapacity) return;
+    if (!wrapper.readyToRelease || conveyorCapacity===null&&wrapper.output.length >= scenario.wrapper.outputCapacity) return;
     const id=wrapper.processing, p=pallets.get(id);
     required(id && p.stage === 'wrapping', 'invalid wrapper release');
-    wrapper.output.push(id); wrapper.processing=null; wrapper.readyToRelease=false; p.stage='wrapped';
+    if(conveyorCapacity===null)wrapper.output.push(id);
+    wrapper.processing=null; wrapper.readyToRelease=false; p.stage='wrapped';
     record('WRAP_COMPLETED',{palletId:id});
     schedule(now+minute(times.labelMin),'LABEL_COMPLETED',{palletId:id});
+    maybeStartWrap();
+  };
+  const releaseWrapperOutput=()=>{
+    if(conveyorCapacity===null)return;
+    for(const id of [...wrapper.conveyor]){
+      const p=pallets.get(id);
+      if(p.stage!=='wrapper_exit_pending')continue;
+      if(wrapper.output.length>=scenario.wrapper.outputCapacity)break;
+      wrapper.conveyor.splice(wrapper.conveyor.indexOf(id),1);wrapper.output.push(id);p.stage='exit_ready';
+      record('EXIT_READY',{palletId:id,conveyorQuantity:wrapper.conveyor.length,outputQuantity:wrapper.output.length});
+    }
     maybeStartWrap();
   };
   const finishTask = (t,a) => {
@@ -586,11 +693,12 @@ export function simulate(rawScenario) {
   };
   const completeDrop = (t,a) => {
     if (t.kind === '01' || t.kind === '04') {
-      if (wrapper.input.length >= scenario.wrapper.inputCapacity) {
+      if (!wrapper.permission||wrapper.input.length >= scenario.wrapper.inputCapacity) {
         t.status='wait_drop'; hold(t,'WRAPPER_INPUT_FULL'); return false;
       }
       if(graphMode){
         required(wrapperInboundReservations.delete(t.id),'wrapper drop without reserved inbound capacity');
+        required(wrapperInputReservations.delete(t.id),'wrapper drop without input-slot reservation');
       }
       wrapper.input.push(t.palletId); pallets.get(t.palletId).stage='wrapper_input';
     } else if (t.kind === '02' || t.kind === '05') {
@@ -738,17 +846,37 @@ export function simulate(rawScenario) {
       // Keep an occupied initial charging stop when charging there. Otherwise
       // prefer a free, reachable stop, then the shortest queue in scenario order.
       const choices=[...chargePlaces.keys()].map(id=>({id,path:routeFor(a.currentNodeId,id,'charge','CHARGE')}))
-        .filter(c=>c.path);
+        .filter(c=>c.path&&(chargePlaces.get(c.id)===a.id||!chargePlaces.get(c.id)&&
+          (!chargePlaceReservations.get(c.id)||chargePlaceReservations.get(c.id)===a.id)));
+      if(chargePlaces.size&&!choices.length){
+        a.status='waiting_charge_place';a.movement=null;
+        if(!parkingChargeQueue.includes(a.id))parkingChargeQueue.push(a.id);
+        record('SEGMENT_WAITING',{agfId:a.id,nodeId:a.currentNodeId,reason:'CHARGE_PLACE_OCCUPIED',
+          blockers:[...chargePlaces.values()].filter(Boolean),phase:'before-travel'});
+        record('CHARGE_WAITING',{agfId:a.id,reason:'CHARGE_PLACE_OCCUPIED',phase:'before-travel'});return;
+      }
       const load=id=>(chargePlaces.get(id)?1:0)+agfs.filter(other=>other.chargeTarget===id&&other.id!==chargePlaces.get(id)).length;
       choices.sort((a1,b1)=>(chargePlaces.get(a1.id)===a.id?-1:chargePlaces.get(b1.id)===a.id?1:load(a1.id)-load(b1.id)));
       const target=chargePlaces.size?choices[0]?.id:'CHARGE-PLACE';
       const path=chargePlaces.size?choices[0]?.path:routeFor(a.currentNodeId,target,'charge','CHARGE');
       if(path){
         if(postTaskPolicy)releasePlaces(a);
+        if(chargePlaces.size&&chargePlaces.get(target)!==a.id){
+          chargePlaceReservations.set(target,a.id);
+          record('CHARGE_PLACE_RESERVED',{agfId:a.id,chargePlaceId:target});
+        }
         a.chargeTarget=target;beginRoute(null,a,'charge',path,'CHARGE_ARRIVED');
       }
       else {a.status='waiting_traffic';record('CHARGE_ROUTE_WAITING',{agfId:a.id,reason:'UNREACHABLE_CHARGE_ROUTE'});}
     }else schedule(now+minute(times.chargeTravelMin),'CHARGE_ARRIVED',{agfId:a.id});
+  };
+  const wakeChargePlaces=()=>{
+    if(!chargePlaces.size)return;
+    for(const id of [...parkingChargeQueue]){
+      const a=agfs.find(a=>a.id===id);
+      if(![...chargePlaces].some(([place,owner])=>!owner&&!chargePlaceReservations.get(place)))break;
+      parkingChargeQueue.splice(parkingChargeQueue.indexOf(id),1);requestCharge(a);
+    }
   };
   const chargeIdleAgfs=()=>{
     if(!postTaskPolicy)return;
@@ -776,7 +904,7 @@ export function simulate(rawScenario) {
       beginRoute(null,a,'wait',path,'WAIT_ARRIVED');
     }
   };
-  const permissionTargets={warehouse:slots,magazine:magazines,aligner:aligners};
+  const permissionTargets={warehouse:slots,magazine:magazines,aligner:aligners,wrapper:new Map([['WRAP-INPUT',wrapper]])};
   for(const event of scenario.permissionEvents??[]){
     required(Number.isInteger(event.timeMs)&&event.timeMs>=0&&typeof event.permitted==='boolean'&&
       permissionTargets[event.target]?.has(event.targetId),'invalid equipment permission event');
@@ -857,12 +985,17 @@ export function simulate(rawScenario) {
     mapStatus:graphMode?'synthetic-operational':'conceptual-only',
     timingStatus:graphMode?'synthetic-graph-assumption':'scenario-assumption'});
   chargeIdleAgfs();
-  const operatorPhase=e=>e.type==='ALIGNER_REFILL_OPERATED'?1:0;
+  const operatorPhase=e=>e.type==='ALIGNER_REFILL_OPERATED'?2:e.type==='SEGMENT_REQUEST'?1:0;
   while(queue.length) {
     // A displayed-time operator input follows endogenous events already visible
     // at that instant, including dynamically scheduled pickup/drop events. This
     // is an ordering phase only: it adds no invented elapsed processing time.
-    queue.sort((a,b)=>a.timeMs-b.timeMs || operatorPhase(a)-operatorPhase(b) || a.order-b.order);
+    // Simultaneous requests are arbitrated after same-time state transitions.
+    // Loaded traffic precedes empty traffic; equal requests use event order only.
+    // This is a synthetic runtime tie-break, never an AGF-number site priority.
+    const loadPriority=e=>e.type==='SEGMENT_REQUEST'?Number(!agfs.find(a=>a.id===e.agfId)?.carriedPalletId):0;
+    queue.sort((a,b)=>a.timeMs-b.timeMs || operatorPhase(a)-operatorPhase(b) ||
+      loadPriority(a)-loadPriority(b)||a.order-b.order);
     const e=queue.shift();
     if (e.timeMs>durationMs) break;
     if(e.movementGeneration!==undefined&&agfs.find(a=>a.id===e.agfId)?.movementGeneration!==e.movementGeneration)continue;
@@ -987,7 +1120,9 @@ export function simulate(rawScenario) {
       a.status=pickup?'picking_fork_inserted':'dropping_fork_inserted';
       const node=graphNodes.get(a.currentNodeId);
       if(a.handling.groupId)traffic.setHandlingPhase?.({agfId:a.id,groupId:a.handling.groupId,
-        phase:a.status,resourceIds:node.handlingResourceIds??[]});
+        phase:a.status,resourceIds:node.handlingResourceIds??[],
+        ...((node.localHandlingBlockedEdgeIds??node.handlingBlockedEdgeIds)?
+          {blockedEdgeIds:node.localHandlingBlockedEdgeIds??node.handlingBlockedEdgeIds}:{})});
       record(e.type,{agfId:a.id,taskId:a.taskId,nodeId:a.currentNodeId,operation:pickup?'pickup':'dropoff'});
       schedule(now+a.handling.forkInsertedMs,pickup?'PICKUP':'DROPOFF',{taskId:a.taskId});wakeTraffic();
     } else if (e.type === 'PICKUP') {
@@ -1004,7 +1139,7 @@ export function simulate(rawScenario) {
         required(wrapper.output.includes(t.palletId) && pallets.get(t.palletId).stage==='queued_02',
           '02 pickup before exit readiness');
         wrapper.output.splice(wrapper.output.indexOf(t.palletId),1);
-        releaseWrap();
+        releaseWrap();releaseWrapperOutput();
       } else if (t.kind==='03') {
         const source=aligners.get(t.alignerId);
         required(source.quantity===10 && source.reservedTaskId===t.id,'03 pickup before aligner ready');
@@ -1024,7 +1159,8 @@ export function simulate(rawScenario) {
       t.status='moving_loaded';t.pickupAt=now;
       a.status='moving_loaded';a.area=t.originArea;a.carriedPalletId=t.palletId??('EMPTY-STACK-'+t.id);
       record('TASK_PICKED',{taskId:t.id,kind:t.kind,agfId:a.id,palletId:t.palletId??null});
-      if(graphMode)beginRoute(t,a,'loaded',t.loadedRoute,'DROPOFF',minute(times.dropoffMin));
+      if(graphMode&&['01','04'].includes(t.kind))beginWrapperDelivery(t,a);
+      else if(graphMode)beginRoute(t,a,'loaded',t.loadedRoute,'DROPOFF',minute(times.dropoffMin));
       else schedule(now+minute(times.loadedMin+times.dropoffMin),'DROPOFF',{taskId:t.id});
     } else if (e.type === 'DROPOFF') {
       const t=tasks.get(e.taskId),a=agfs.find(a=>a.id===t?.agfId);
@@ -1036,7 +1172,7 @@ export function simulate(rawScenario) {
       required(wrapper.processing===e.palletId && !wrapper.readyToRelease,
         'invalid wrap completion');
       wrapper.readyToRelease=true;
-      if (wrapper.output.length>=scenario.wrapper.outputCapacity)
+      if (conveyorCapacity===null&&wrapper.output.length>=scenario.wrapper.outputCapacity)
         record('WRAP_OUTPUT_BLOCKED',{palletId:e.palletId});
       else releaseWrap();
     } else if (e.type === 'LABEL_COMPLETED') {
@@ -1047,7 +1183,11 @@ export function simulate(rawScenario) {
     } else if (e.type === 'EXIT_READY') {
       const p=pallets.get(e.palletId);
       required(p?.stage==='labeled','exit before label');
-      p.stage='exit_ready';record('EXIT_READY',{palletId:e.palletId});
+      if(conveyorCapacity!==null){
+        p.stage='wrapper_exit_pending';
+        if(wrapper.output.length>=scenario.wrapper.outputCapacity)record('WRAPPER_EXIT_WAITING',{palletId:e.palletId,reason:'WRAPPER_OUTPUT_FULL'});
+        releaseWrapperOutput();
+      }else{p.stage='exit_ready';record('EXIT_READY',{palletId:e.palletId});}
     } else if(e.type==='EQUIPMENT_PERMISSION_CHANGED'){
       permissionTargets[e.target].get(e.targetId).permission=e.permitted;
       if(e.target==='warehouse')dirtySlots.add(e.targetId);
@@ -1057,6 +1197,21 @@ export function simulate(rawScenario) {
       gates.get(e.shutterId).passable=e.passable;
       record('SHUTTER_STATE_CHANGED',{shutterId:e.shutterId,passable:e.passable});
       wakeTraffic();
+    } else if(e.type==='OVERTAKING_COMPLETED'){
+      const a=agfs.find(a=>a.id===e.agfId),passing=a?.overtaking;
+      required(passing&&a.currentNodeId===passing.plan.rejoinNodeId,'overtaking completion before explicit rejoin');
+      traffic.completeOvertaking(a.id);a.overtaking=null;
+      record('OVERTAKING_COMPLETED',{agfId:a.id,taskId:a.taskId,planId:passing.plan.planId,nodeId:a.currentNodeId});
+      beginRoute(tasks.get(a.taskId),a,passing.originalMovement.movement,passing.continuation,
+        passing.originalMovement.nextType,passing.originalMovement.delayMs);
+      wakeTraffic();
+    } else if(e.type==='WRAPPER_WAIT_READY'){
+      const a=agfs.find(a=>a.id===e.agfId);
+      required(a?.movement?.wrapperDeparture&&!a.movement.current,'wrapper wait before pickup');
+      a.movement.wrapperOrientationPending=false;a.movement.retryScheduled=false;
+      a.status='waiting_wrapper_input';a.departurePlanned=false;
+      record('WRAPPER_INPUT_WAITING',{taskId:a.taskId,agfId:a.id,palletId:a.carriedPalletId,nodeId:a.currentNodeId,
+        reason:'WRAPPER_INPUT_FULL_OR_RESERVED',waitingPositionEvidence:'synthetic-individual-device-interface-not-site-stop'});
     } else if(e.type==='TURN_COMPLETED'){
       const a=agfs.find(a=>a.id===e.agfId),turn=a?.turn;
       required(a?.status==='turning'&&turn?.startedAt===e.startedAt&&turn.completedAt===now,
@@ -1069,13 +1224,22 @@ export function simulate(rawScenario) {
         headingDeg:a.headingDeg,angleDeg:turn.angleDeg,turnDurationMs:now-turn.startedAt});
       // Retain the stopped node's explicit resources until the outgoing segment
       // owns its lane as well. Release at segment exit; no same-time entry gap.
-      schedule(now,'SEGMENT_REQUEST',{agfId:a.id});wakeTraffic();
+      a.movement.retryScheduled=true;
+      schedule(now,turn.afterType??'SEGMENT_REQUEST',{agfId:a.id});wakeTraffic();
     } else if(e.type==='SEGMENT_REQUEST'){
       const a=agfs.find(agf=>agf.id===e.agfId),movement=a?.movement;
       required(a&&movement&&movement.stepIndex<movement.steps.length,'segment request without movement');
       if(a.status==='waiting_interference')continue;
       movement.retryScheduled=false;
+      movement.requestOrder??=e.order;
       const step=movement.steps[movement.stepIndex],edge=graphEdges.get(step.edgeId);
+      if(movement.wrapperOrientationPending){
+        if(beginTurn(a,step,'WRAPPER_WAIT_READY'))continue;
+        movement.wrapperOrientationPending=false;
+      }
+      if(movement.wrapperDeparture&&(!wrapperInputReservations.has(a.taskId)||!wrapper.permission||traffic.isBeingOvertaken?.(a.id))){
+        a.status='waiting_wrapper_input';continue;
+      }
       if(beginTurn(a,step))continue;
       if(step.shutterId&&!gates.get(step.shutterId)?.passable){
         if(movement.waitingReason!=='SHUTTER'){
@@ -1092,17 +1256,29 @@ export function simulate(rawScenario) {
             reason:'CHARGE_PLACE_OCCUPIED',phase:'before-arrival'});
         }
       }else{
-        const entered=traffic.tryEnter({agfId:a.id,edgeId:step.edgeId,traversal:step.traversal,requestOrder:e.order});
+        const entered=traffic.tryEnter({agfId:a.id,edgeId:step.edgeId,traversal:step.traversal,
+          requestOrder:movement.requestOrder,fromNodeId:step.fromNodeId,toNodeId:step.toNodeId,
+          lookaheadSteps:graphEdges.get(movement.steps[movement.stepIndex+1]?.edgeId)?.mergeConflictResourceId?
+            [movement.steps[movement.stepIndex+1]]:[],
+          ...(a.overtaking?{overtakingPlanId:a.overtaking.plan.planId}:{})});
         if(!entered.entered){
           if(movement.waitingReason!=='RESOURCE'){
-            movement.waitingReason='RESOURCE';a.status='waiting_traffic';
+            movement.waitingReason='RESOURCE';a.status=movement.wrapperDeparture?'waiting_wrapper_input':'waiting_traffic';
+            if(movement.wrapperDeparture)a.departurePlanned=false;
             record('SEGMENT_WAITING',{taskId:movement.taskId,agfId:a.id,edgeId:step.edgeId,
               blockers:entered.blockers,reason:entered.reason??'OCCUPIED'});
             const deadlocks=traffic.detectDeadlocks();
             if(deadlocks.length)record('DEADLOCK_DETECTED',{cycles:deadlocks,recoveryPolicy:'detect-only'});
           }
-          tryAvoidance(a,entered.blockers,edge,entered.reason);
+          if(!tryOvertaking(a,entered.blockers))tryAvoidance(a,entered.blockers,edge,entered.reason);
         }else{
+          traffic.depart?.({agfId:a.id,fromNodeId:step.fromNodeId});
+          if(movement.wrapperDeparture){
+            movement.wrapperDeparture=false;a.departurePlanned=true;tasks.get(a.taskId).waitReason=null;
+            const waitMs=now-a.wrapperWaitStartedAt;
+            tasks.get(a.taskId).wrapperInputWaitMs=(tasks.get(a.taskId).wrapperInputWaitMs??0)+waitMs;
+            record('WRAPPER_INPUT_WAIT_ENDED',{agfId:a.id,taskId:a.taskId,waitMs});
+          }
           if(waitingPlaces.get(step.fromNodeId)===a.id){
             waitingPlaces.set(step.fromNodeId,null);
             record('PARKING_RELEASED',{agfId:a.id,placeId:step.fromNodeId});
@@ -1112,12 +1288,15 @@ export function simulate(rawScenario) {
             record('PARKING_RELEASED',{agfId:a.id,placeId:step.fromNodeId});
             if(a.chargerId)releaseCharger(a);
           }
-          if(chargePlaces.has(step.toNodeId))chargePlaces.set(step.toNodeId,a.id);
+          if(chargePlaces.has(step.toNodeId)){
+            chargePlaces.set(step.toNodeId,a.id);chargePlaceReservations.set(step.toNodeId,null);
+          }
           if(movement.waitingReason)record('TRAFFIC_WAIT_ENDED',{taskId:movement.taskId,agfId:a.id,
             edgeId:step.edgeId,reason:movement.waitingReason});
           movement.waitingReason=null;
           movement.current={edgeId:step.edgeId,laneId:entered.laneId,fromNodeId:step.fromNodeId,
             toNodeId:step.toNodeId,enteredAt:now,exitAt:now+step.durationMs,
+            futureResourceIds:entered.futureResourceIds??[],
             ...(step.displayPath?{displayPath:clone(step.displayPath)}:{})};
           a.status=movement.movement==='empty'?'moving_empty':movement.movement==='loaded'?'moving_loaded':
             movement.movement==='wait'?'moving_to_wait':'moving_to_charge';
@@ -1128,7 +1307,7 @@ export function simulate(rawScenario) {
           schedule(now+step.durationMs,'SEGMENT_EXITED',{agfId:a.id});
           // Resume other waiters only after this AGF has its moving status/current
           // segment. Waking it while still waiting would queue a duplicate entry.
-          if(chargePlaces.has(step.fromNodeId))wakeTraffic();
+          if(chargePlaces.has(step.fromNodeId)){wakeTraffic();wakeChargePlaces();}
         }
       }
     } else if(e.type==='SEGMENT_EXITED'){
@@ -1141,7 +1320,10 @@ export function simulate(rawScenario) {
         (nextEdge?.noOvertakingGroupId===edge.noOvertakingGroupId&&groupDirection(edge,current.traversal??
           movement.steps[movement.stepIndex].traversal)===groupDirection(nextEdge,nextStep.traversal)||
           !nextStep&&graphNodes.get(current.toNodeId).handlingGroupId===edge.noOvertakingGroupId);
-      traffic.release(a.id,{keepFollowingOrder});a.currentNodeId=current.toNodeId;a.area=graphNodes.get(a.currentNodeId).areaId;
+      traffic.release(a.id,{keepFollowingOrder,retainResourceIds:[...(graphNodes.get(current.toNodeId).occupancyResourceIds??[]),
+        ...(current.futureResourceIds??[])]});
+      traffic.commitArrival?.({agfId:a.id,nodeId:current.toNodeId});
+      a.currentNodeId=current.toNodeId;a.area=graphNodes.get(a.currentNodeId).areaId;
       record('SEGMENT_EXITED',{taskId:movement.taskId,agfId:a.id,edgeId:current.edgeId,
         laneId:current.laneId,nodeId:a.currentNodeId,movement:movement.movement});
       movement.current=null;movement.stepIndex++;
@@ -1174,6 +1356,7 @@ export function simulate(rawScenario) {
     } else throw new Error('unsupported event '+e.type);
     for(let i=pendingInterferences.length-1;i>=0;i--)if(evaluateInterference(pendingInterferences[i]))pendingInterferences.splice(i,1);
     wakeDrops(); wakePickups(); issue02(); issue03(); chargeIdleAgfs(); dispatch(); settleWaiting(); scheduleBlockedRetries();wakeAvoidance();
+    if(!['SEGMENT_REQUEST','HANDLING_REQUEST'].includes(e.type))wakeWrapperInputs();
   }
   if (batteryLedger) {
     batteryLedger.advance(now,durationMs,tasks);

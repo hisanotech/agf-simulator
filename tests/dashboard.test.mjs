@@ -23,7 +23,9 @@ test('warehouse contains 802 logical tier locations without inventing an east ga
 
 test('south service has separate waiting, parking and chargers without a forbidden storage route',()=>{
   assert.equal(WAREHOUSE_MAIN_AISLES.length,4);
-  assert.ok(WAREHOUSE_MAIN_AISLES.every(a=>a.direction==='unresolved'&&a.laneCount===null));
+  assert.ok(WAREHOUSE_MAIN_AISLES.every(a=>a.laneCount===null&&a.direction===
+    (a.positionRole==='block-side'?'north-to-south':'south-to-north')&&
+    a.directionEvidence==='user-confirmed-initial-traffic-policy'));
   assert.equal(WAREHOUSE_SERVICE.waitingPlaces.length,4);
   assert.equal(WAREHOUSE_SERVICE.waitingCandidates.totalCount,4);
   assert.equal(WAREHOUSE_SERVICE.waitingCandidates.groups.find(group=>group.kind==='rack-gap-pillars').count,2);
@@ -107,7 +109,8 @@ test('real graph snapshots retain handling across unrelated events and zero-leng
   for(const atPickup of [false,true]) {
     const input=createDemoScenario('physical');input.durationMin=10;input.lineIntervalsMin=Array(8).fill(0);
     const pickupNode=input.operationalTopology.interfaceBindings.find(x=>x.pattern==='OT1').nodeId;
-    if(atPickup)for(const agf of input.agfs){agf.currentNodeId=pickupNode;agf.area='PZ';}
+    input.agfs.forEach((agf,i)=>{agf.blocked=i!==0;});
+    if(atPickup){input.agfs[0].currentNodeId=pickupNode;input.agfs[0].area='PZ';}
     input.times.pickupMin=2;input.times.dropoffMin=1;
     input.manualRequests=[{timeMs:0,kind:'05',palletId:'SIM-TEMP-1',locationId:'OT1',
       destinationLocationId:input.generatedDestinationIds[0],storagePermission:true}];

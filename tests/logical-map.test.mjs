@@ -8,7 +8,7 @@ const copy = () => structuredClone(map);
 
 test('reference map is abstract, with explicit unresolved links', () => {
   const result = validateLogicalMap(map);
-  assert.equal(result.corridors, 22);
+  assert.equal(result.corridors, 20);
   assert.ok(result.confirmedLinks > 0);
   assert.ok(result.unresolvedLinks > 0);
   assert.equal(map.geometry.measured, false);
@@ -17,18 +17,22 @@ test('reference map is abstract, with explicit unresolved links', () => {
   assert.ok(!('xMm' in map.corridors[0]));
 });
 
-test('parallel palletizing corridors each remain one lane', () => {
+test('shared palletizing region has opposite logical lanes and local lane-change interfaces', () => {
   const pair = map.corridorGroups.find(x => x.id === 'PZ-PAIR');
   assert.equal(pair.aggregateLaneCount, 2);
   for (const id of pair.members) {
     const section = map.corridors.find(x => x.id === id);
     assert.equal(section.laneCount, 1);
-    assert.equal(section.direction, 'both');
+    assert.equal(section.direction,id==='PZ-A1'?'east-to-west':'west-to-east');
+    assert.equal(section.physicalSeparation,false);assert.equal(section.sharedRegionId,'PZ-SHARED');
   }
   const trip = findConceptualPath(map, 'PZ-A2', 'PZ-DEV');
   assert.equal(trip.kind, 'conceptual-only');
   assert.equal(trip.etaMs, null);
-  assert.ok(trip.corridors.includes('PZ-CON-W') || trip.corridors.includes('PZ-CON-E'));
+  assert.deepEqual(trip.corridors,['PZ-A2','PZ-A1','PZ-DEV']);
+  assert.ok(!map.corridors.some(c=>['PZ-CON-W','PZ-CON-E'].includes(c.id)));
+  const wrong=copy();wrong.corridorGroups.find(g=>g.id==='PZ-PAIR').physicalSeparation=true;
+  assert.throws(()=>validateLogicalMap(wrong),/shared region/);
 });
 
 test('warehouse cross-aisle conceptual connection exists', () => {
@@ -113,7 +117,7 @@ test('latest warehouse structure separates four main aisles from rows and servic
   assert.equal(map.warehouseLayout.service.chargePlaces.length,2);
   assert.equal(map.warehouseLayout.service.emptyPalletStorage.agfAccess,'forbidden');
   const changed=copy();changed.warehouseLayout.mainAisles[0].direction='both';
-  assert.throws(()=>validateLogicalMap(changed),/Main aisle/);
+  assert.throws(()=>validateLogicalMap(changed),/main aisles/);
   const forbidden=copy();forbidden.warehouseLayout.service.emptyPalletStorage.routeNodes.push('INVENTED');
   assert.throws(()=>validateLogicalMap(forbidden),/storage/);
 });

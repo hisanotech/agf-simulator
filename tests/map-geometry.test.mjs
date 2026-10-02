@@ -56,11 +56,15 @@ test('G07/G08 normal entry connects east warehouse gate to west palletizing gate
   assert.equal(west.cy,wh.y);assert.ok(item('WH-W-GATE').class.includes('inactive'));
   assert.ok(west.right<entry.cx); // no normal line enters this separate opening
 });
-test('G09 two palletizing corridors have opposing arrows and both-end connections; equipment order is retained',()=>{
+test('G09 opposite logical lanes share one region with equipment-front connections; equipment order is retained',()=>{
   const a=numbers('PZ-A1'),b=numbers('PZ-A2');
   assert.ok(a[1]<b[1]);assert.equal(a[0],b[0]);assert.equal(a[2],b[2]);
-  assert.deepEqual(numbers('PZ-A-ENDS'),[a[0],a[1],b[1],a[2],a[1],b[1]]);
-  for(const id of ['PZ-A1','PZ-A2'])for(const marker of ['marker-start','marker-end'])assert.ok(item(id)[marker]);
+  assert.equal(item('PZ-SHARED')['data-physical-separation'],'false');
+  assert.ok(item('PZ-A1')['marker-start']);assert.equal(item('PZ-A1')['marker-end'],undefined);
+  assert.ok(item('PZ-A2')['marker-end']);assert.equal(item('PZ-A2')['marker-start'],undefined);
+  const merges=numbers('PZ-MERGES');assert.ok(merges.length>30);
+  for(let i=0;i<merges.length;i+=3){assert.equal(merges[i+1],a[1]);assert.equal(merges[i+2],b[1]);}
+  for(const x of [192,448.5,511.5,637.5,682.5])assert.ok(merges.filter((_,i)=>i%3===0).includes(x));
   const order=['PGW8','PM1','PGW7','PM2','PGW5','PM3','PGW4','HI','WRAPPER','HO','PGW2','PM4','PGW1','PGW3','PM5','PGW6'];
   order.forEach((id,i)=>{const e=equipment(id);assert.ok(inside(e,pz)&&e.bottom<a[1]);
     if(i)assert.ok(equipment(order[i-1]).right<e.x);});
@@ -76,6 +80,14 @@ test('G11 four main aisles fit between storage and the central wall',()=>{
   for(const id of ['WB1','WB2','WB3'])assert.ok(block(id).right<Math.min(...west));
   assert.ok(Math.max(...west)<wall&&wall<Math.min(...eastXs));
   for(const id of ['EB1','EB2'])assert.ok(Math.max(...eastXs)<block(id).x);
+  for(const id of ['WH-W-MAIN-1','WH-E-MAIN-2']){
+    assert.equal(item(id)['data-direction'],'north-to-south');assert.ok(item(id)['marker-end']);
+    assert.equal(item(id)['marker-start'],undefined);
+  }
+  for(const id of ['WH-W-MAIN-2','WH-E-MAIN-1']){
+    assert.equal(item(id)['data-direction'],'south-to-north');assert.ok(item(id)['marker-start']);
+    assert.equal(item(id)['marker-end'],undefined);
+  }
 });
 test('G12 central wall opens exactly at the two fire shutters inside the warehouse',()=>{
   const n=box('FIRE-NORTH'),s=box('FIRE-SOUTH'),wall=numbers('CENTRAL-WALL');

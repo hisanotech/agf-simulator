@@ -1,13 +1,14 @@
 import {escapeHtml as esc,stateLabel,productLabel,taskNames,clock,minutes} from './format.mjs';
 import {analyzeRun,durationStatuses,durationTenths} from './replay-model.mjs';
 import {renderRunConditions} from './run-conditions.mjs';
+import {renderCustomerResults,renderCustomerComparison} from './customer-results.mjs';
 
 export const metric=(label,value,unit='',sub='',tone='',icon='')=>`<div class="metric ${tone}"><div class="metric-label">${esc(label)}<span class="metric-icon" aria-hidden="true">${icon}</span></div><strong>${esc(value)}</strong><small>${esc(unit)}</small>${sub?`<span class="metric-sub">${esc(sub)}</span>`:''}</div>`;
 const utilBars=data=>data.agfs.map(a=>`<div class="util-row"><span>${esc(a.id)}</span><div class="util-track"><i style="width:${a.utilizationPct}%"></i></div><b>${a.utilizationPct.toFixed(1)}%</b></div>`).join('');
 const kindTable=data=>`<div class="table-scroll"><table><thead><tr><th>搬送区分</th><th>要求</th><th>完了</th><th>未完了</th></tr></thead><tbody>${data.byKind.map(k=>`<tr><td><span class="mono">${k.kind}</span> ${taskNames[k.kind]}</td><td>${k.requested}</td><td>${k.completed}</td><td>${k.pending}</td></tr>`).join('')}</tbody></table></div>`;
 function renderAnalysisMetrics(run,data=analyzeRun(run)) {
   const graph=run.scenario.motionModel==='synthetic_graph',label=s=>stateLabel(s,graph);
-  const graphStatuses=['turning','positioning_for_pickup','picking_fork_inserted','positioning_for_dropoff','dropping_fork_inserted','waiting_motion_configuration','waiting_avoidance','waiting_interference'];
+  const graphStatuses=['turning','positioning_for_pickup','picking_fork_inserted','positioning_for_dropoff','dropping_fork_inserted','waiting_motion_configuration','waiting_avoidance','waiting_interference','waiting_wrapper_input','waiting_charge_place'];
   const categories=durationStatuses.filter(s=>(graph||!s.startsWith('handling_')&&!graphStatuses.includes(s))&&(run.scenario.postTaskPolicy||!['moving_to_wait','hp_wait','waiting_hp_instruction','waiting_hp_capacity','waiting_hp_route'].includes(s)));
   return `<div class="analysis-metrics">${metric('搬送要求数',data.requested,'件','01〜05の発行済み要求','accent','↗')}${metric('完了タスク',data.completed,'件','実行期間内の完了','success','✓')}${metric('保留タスク',data.held,'件',`未完了 ${data.pending}件 / 02発行前保留 ${data.preRequestHeld}PL`,'warning','◷')}${metric('AGF平均稼働率',data.utilizationPct.toFixed(1),'%','空走・積載・旋回・荷役','accent','▥')}
     ${graph?metric('停止旋回',minutes(data.turningMs),'分','4台合計・並進移動なし')+metric('荷役姿勢への移行',minutes(data.positioningMs),'分','荷受け／荷下ろしの姿勢移行')+metric('フォーク挿入後の荷役',minutes(data.forkHandlingMs),'分','姿勢移行時間と別集計')+metric('走行・荷役設定待ち',minutes(data.motionConfigurationWaitMs),'分','未確定値を補完せず保留'):''}
@@ -21,9 +22,12 @@ function renderAnalysisMetrics(run,data=analyzeRun(run)) {
     <p class="method-note section">集計根拠：実行開始から終了まで、同時刻イベントは順序適用後の状態を使用。末尾イベント後の継続時間も含みます。内訳表は0.1分単位で合計が一致するよう最大剰余法で端数を配分します。稼働率は丸め前のミリ秒値で算出します。合成グラフの交通待ちはイベント状態から集計します。実CAD距離・確定ETA・現場性能ではありません。</p>`;
 }
 export function renderAnalysis(run,data=analyzeRun(run),context={}){
-  return renderAnalysisMetrics(run,data)+renderRunConditions(run,context);
+  return renderCustomerResults(run,data)+`<details class="developer-details"><summary>開発者向け詳細</summary>${renderAnalysisMetrics(run,data)}<p class="method-note">充電待ちのうち充電停止位置の空き待ち：${minutes(data.chargePlaceWaitMs??0)}分（4台合計）。充電待ち時間に含め、別途加算しません。</p>${renderRunConditions(run,context)}</details>`;
 }
-export function renderComparison(runs) {
+export function renderComparison(runs){
+  return renderCustomerComparison(runs)+`<details class="developer-details"><summary>開発者向け比較詳細</summary>${renderComparisonDetails(runs)}</details>`;
+}
+function renderComparisonDetails(runs) {
   const data=runs.map(analyzeRun);
   const scenario=runs[0].scenario;
   const productionDescription=scenario.productStreams?scenario.productStreams.filter(s=>s.enabled).map(s=>esc(productLabel(s))+': '+s.intervalMin+'分 / ずらし'+s.startOffsetMin+'分').join('<br>'):'系列1〜8の間隔（分）：'+scenario.lineIntervalsMin.map(n=>n===0?'停止':n).join(' / ');
