@@ -11,7 +11,7 @@ import {eventCsv,conditionCsv,conditionCsvFilename} from './export.mjs';
 import {appendRunInput,createInitialPreview} from './run-input.mjs';
 import {warehouseOwnerLegend} from './warehouse-colors.mjs';
 import {WAREHOUSE_BLOCKS} from '../map/warehouse-layout.mjs';
-import {escapeHtml as esc,clock,states,stateLabel,taskNames,reasons,eventNames,areaName,locationName,badge,productLabel} from './format.mjs';
+import {escapeHtml as esc,clock,states,stateLabel,taskNames,reasons,eventNames,areaName,locationName,badge,productLabel,headingLabel,turnDescription} from './format.mjs';
 
 const $=id=>document.getElementById(id);
 const timeFields=[['emptyMin','空走（分）'],['loadedMin','積載走行（分）'],['pickupMin','荷受け（分）'],
@@ -20,7 +20,6 @@ const batteryFields=[['reservePct','選定残量下限（%）'],['chargeStartPct
   ['activeReferenceMin','基準稼働時間（分）'],['activeReferenceConsumptionPct','基準時間での消費（ポイント）'],
   ['consumptionPct','旧方式：1タスク消費（ポイント）'],['chargeMinPerPct','1ポイント充電に要する時間（分）']];
 const numeric=id=>Number($(id).value);
-const headingLabel=heading=>({north:'北 ↑',south:'南 ↓',east:'東 →',west:'西 ←'})[heading]??'未確定';
 const input=(id,label,value,min=0,step=.1,max='')=>`<label>${esc(label)}<input id="${id}" type="number" min="${min}" step="${step}" ${max!==''?`max="${max}"`:''} value="${value}" required></label>`;
 let base=createDemoScenario(),result=null,preview=null,analysis=null,comparison=null,runId='',runNumber=0;
 let timeMs=0,currentIndex=-1,batterySecond=-1,selectedAgf='AGF1',activeView='monitor',dirty=false,frame=null,anchor=null;
@@ -39,6 +38,8 @@ function populateSettings(scenario) {
   $('inputCapacity').value=scenario.wrapper.inputCapacity;$('outputCapacity').value=scenario.wrapper.outputCapacity;
   $('line-fields').innerHTML=scenario.lineIntervalsMin.map((n,i)=>`<div class="line-setting"><h3>系列 ${i+1}</h3>${input('line-'+i,'搬出間隔（分）',n)}${input('offset-'+i,'初回ずらし（分）',scenario.lineStartOffsetsMin[i],0,.001)}</div>`).join('');
   $('time-fields').innerHTML=timeFields.map(([id,label])=>input(id,label,scenario.times[id],id==='wrapMin'?.001:0,.001)).join('');
+  const phased=scenario.motionModel==='synthetic_graph'&&['pickupPositioningMin','pickupForkInsertedMin','dropoffPositioningMin','dropoffForkInsertedMin'].some(key=>Object.hasOwn(scenario.motionControl??{},key));
+  for(const id of ['pickupMin','dropoffMin']){$(id).disabled=phased;$(id).title=phased?'停止旋回・荷役姿勢で4相を明示設定します。既存時間の自動分割はしません。':'';}
   for(const id of ['emptyMin','loadedMin','chargeTravelMin']){$(id).disabled=scenario.motionModel==='synthetic_graph';$(id).title=$(id).disabled?'区間走行ではグラフの距離と速度を使用します。':'';}
   $('battery-fields').innerHTML='<label>消費方式<select id="battery-model"><option value="active_time">走行・荷役の稼働時間</option><option value="per_task">タスク単位（旧シナリオ再現用）</option></select></label>'+
     batteryFields.map(([id,label])=>input(id,label,scenario.battery[id],['chargeMinPerPct','activeReferenceMin'].includes(id)?.001:0,.001,id.endsWith('Pct')&&id!=='chargeMinPerPct'?100:'')).join('');
@@ -82,6 +83,7 @@ function friendlyError(error) {
   const message=error.message??String(error);
   if(/lineMagazineMap/.test(message))return 'GWI〜GWVIIIの全8系列に、存在するマガジンを指定してください。実対応は未確定のため初期値を設定していません。';
   if(/magazineEmptyRecoveryPolicy/.test(message))return '空パレット0枚停止後の再開方式を確認してください。未設定のままでは補充後も生産を保留します。';
+  if(/MOTION_CONFIG/.test(message))return '停止旋回・荷役姿勢の設定を確認してください。旋回角速度は正のdeg/s、4相の時間は0以上の分で明示します。未確定値は補完しません。';
   if(/waiting return target|normal waiting place|shared normal waiting priority/.test(message))return '共通の帰還先はHP1 → HP2 → 柱前東 → 柱前西です。4か所すべてへの合成経路が接続されている必要があります。AGF別の固定割当は使用できません。';
   if(/initial parking|initial HP capacity/.test(message))return '初期停止位置が重複しています。HP1・HP2・充電場所1・充電場所2へ4台を重複なく配置してください。';
   if(/duplicate|already reserved|reserved temporary/.test(message))return '二重予約です。同じパレットの既存予約を確認してください。';
@@ -158,7 +160,7 @@ const snapshot=()=>{const run=result??preview;if(!run)return null;const index=Ma
     const displayPosition=projectAgfPosition(a,run.scenario.operationalTopology,timeMs);
     return {...a,batteryPct:projectBatteryPct(a,saved.tasks.find(t=>t.id===a.taskId),
       run.scenario.battery,timeMs-run.events[index].timeMs),
-      displayPosition,heading:displayPosition?.heading??a.heading};
+      displayPosition,heading:displayPosition?.heading??a.heading,headingDeg:displayPosition?.headingDeg??a.headingDeg};
   })};
 };
 function renderBattery(){for(const a of snapshot().agfs){
@@ -167,7 +169,10 @@ function renderBattery(){for(const a of snapshot().agfs){
 }}
 function renderHeadings(agfs){for(const a of agfs){
   document.querySelectorAll(`[data-heading-text="${a.id}"]`).forEach(el=>{
-    const label=headingLabel(a.heading);if(el.textContent!==label)el.textContent=label;
+    const label=headingLabel(a.heading,a.headingDeg);if(el.textContent!==label)el.textContent=label;
+  });
+  document.querySelectorAll(`[data-turn-detail="${a.id}"]`).forEach(el=>{
+    const label=turnDescription(a,timeMs);if(el.textContent!==label)el.textContent=label;
   });
 }}
 function selectAgf(id){selectedAgf=id;renderSnapshot();}
@@ -176,7 +181,7 @@ function renderSnapshot(){const run=result??preview;if(!run)return;const snap=sn
   const held=snap.tasks.filter(t=>t.status!=='completed'&&t.waitReason).length;
   const working=snap.agfs.filter(a=>workingStatuses.includes(effectiveStatus(a,snap))).length;
   $('metrics').innerHTML=metric('搬送要求',snap.tasks.length,'件','表示時点の累計','','↗')+metric('搬送完了',completed,'件','表示時点の累計','success','✓')+
-    metric('保留タスク',held,'件',`未完了 ${snap.tasks.length-completed}件`,'warning','◷')+metric('作業中AGF',working,'/ 4台','空走・荷受け / 積載・荷下ろし','accent','▥');
+    metric('保留タスク',held,'件',`未完了 ${snap.tasks.length-completed}件`,'warning','◷')+metric('作業中AGF',working,'/ 4台','空走・積載・旋回・荷役','accent','▥');
   map.render(snap,selectedAgf,{timeMs,topology:run.scenario.operationalTopology??null});
   $('agf-list').innerHTML=snap.agfs.map((a,i)=>{
     const task=snap.tasks.find(t=>t.id===a.taskId),status=effectiveStatus(a,snap);
@@ -184,11 +189,13 @@ function renderSnapshot(){const run=result??preview;if(!run)return;const snap=sn
       <div class="agf-card-head"><span class="agf-id"><span class="vehicle-number">${i+1}</span>${esc(a.id)}</span>${badge(status,stateLabel(status,run.scenario.motionModel==='synthetic_graph'))}</div>
       <div class="battery-line"><span>電池</span><span class="battery-track"><i data-battery-bar="${a.id}" class="${a.batteryPct<=run.scenario.battery.chargeStartPct?'low':''}" style="width:${a.batteryPct}%"></i></span><b data-battery-text="${a.id}">${a.batteryPct.toFixed(1)}%</b></div>
       <dl class="agf-details"><dt>タスク</dt><dd>${task?esc(task.id)+' / '+task.kind:'—'}</dd><dt>搬送元 → 先</dt><dd>${task?esc(locationName(task.originId))+' → '+esc(locationName(task.destinationId)):'—'}</dd>
-      <dt>積載</dt><dd>${esc(a.carriedPalletId??'なし')}</dd><dt>現在位置</dt><dd>${esc(a.currentNodeId?locationName(a.currentNodeId):areaName(a.area)+'（概念エリア）')}</dd><dt>方向</dt><dd data-heading-text="${esc(a.id)}">${esc(headingLabel(a.heading))}</dd></dl></button>`;
+      <dt>積載</dt><dd>${esc(a.carriedPalletId??'なし')}</dd><dt>現在位置</dt><dd>${esc(a.currentNodeId?locationName(a.currentNodeId):areaName(a.area)+'（概念エリア）')}</dd><dt>方向</dt><dd data-heading-text="${esc(a.id)}">${esc(headingLabel(a.heading,a.headingDeg))}</dd>
+      ${a.status==='turning'?`<dt>停止旋回</dt><dd data-turn-detail="${esc(a.id)}">${esc(turnDescription(a,timeMs))}</dd>`:''}
+      ${a.status==='waiting_motion_configuration'?`<dt>保留理由</dt><dd>${esc(reasons[task?.waitReason??a.movement?.waitingReason]??task?.waitReason??a.movement?.waitingReason??'未確定の走行・荷役設定を確認してください')}</dd>`:''}</dl></button>`;
   }).join('');
   const selected=snap.agfs.find(a=>a.id===selectedAgf),task=snap.tasks.find(t=>t.id===selected?.taskId);
   const movement=selected?.movement,current=movement?.current;
-  $('route-detail').innerHTML=`<b>${esc(selectedAgf)}</b> ${task?`${esc(task.id)} · ${task.kind} ｜ ${esc(locationName(task.originId))} → ${esc(locationName(task.destinationId))}<br>`:'｜ 実行中タスクなし · '}<span class="muted">${current?`合成区間 ${esc(current.edgeId)} / ${esc(current.fromNodeId)} → ${esc(current.toNodeId)} / <span data-heading-text="${esc(selectedAgf)}">${esc(headingLabel(selected.heading))}</span>`:'実CAD経路・確定ETAは未承認'}</span>`;
+  $('route-detail').innerHTML=`<b>${esc(selectedAgf)}</b> ${task?`${esc(task.id)} · ${task.kind} ｜ ${esc(locationName(task.originId))} → ${esc(locationName(task.destinationId))}<br>`:'｜ 実行中タスクなし · '}<span class="muted">${current?`合成区間 ${esc(current.edgeId)} / ${esc(current.fromNodeId)} → ${esc(current.toNodeId)} / <span data-heading-text="${esc(selectedAgf)}">${esc(headingLabel(selected.heading,selected.headingDeg))}</span>`:'実CAD経路・確定ETAは未承認'}</span>${selected?.status==='turning'?`<br><span data-turn-detail="${esc(selectedAgf)}">${esc(turnDescription(selected,timeMs))}</span>`:''}`;
   $('charger-list').innerHTML=Object.entries(snap.chargers).map(([id,agf],i)=>`<div class="charger-row"><span>ϟ 充電器 ${i+1}</span><b>${agf?esc(agf)+' · 充電中':'○ 空き'}</b></div>`).join('');
   const chip=(label,ready=false)=>`<span class="equipment-chip${ready?' ready':''}">${esc(label)}</span>`;
   $('equipment-list').innerHTML=[

@@ -5,14 +5,17 @@ const lineNames=['GWI','GWII','GWIII','GWIV','GWV','GWVI','GWVII','GWVIII'];
 const variants=[['normal','full','普通満載'],['normal','partial','普通端数'],['special','full','特注満載'],['special','partial','特注端数']];
 const categories={RUN:'Run情報・根拠区分',EQUIPMENT:'設備の初期状態',AGF:'AGF選定・初期配置・待機',
   PRODUCTION:'8系列の生産条件',WRAPPER:'包装機',TIMING:'時間設定',GRAPH:'走行モデル',GRAPH_EDGE:'区間距離・接続',
-  GRAPH_SPEED:'区間ごとの速度',CHARGING:'充電器・充電場所',BATTERY:'バッテリー・充電条件',MAGAZINE:'空パレットマガジン',
-  ALIGNER:'整列機の初期状態',WAREHOUSE:'倉庫の系列割当',INPUTS:'手動操作・入力イベント',REPRODUCIBILITY:'再現用Scenario'};
+  GRAPH_SPEED:'区間ごとの速度',GRAPH_NODE:'個別停止点・荷役姿勢占有',AVOIDANCE_PLAN:'明示された合成退避経路',
+  CHARGING:'充電器・充電場所',BATTERY:'バッテリー・充電条件',MAGAZINE:'空パレットマガジン',
+  ALIGNER:'整列機の初期状態',WAREHOUSE:'倉庫の系列割当',MOTION_CONTROL:'停止旋回・荷役姿勢',
+  INPUTS:'手動操作・入力イベント',REPRODUCIBILITY:'再現用Scenario'};
 const evidenceNames={'user-confirmed':'ユーザー確認済み','user-confirmed-initial-placement':'ユーザー確認済みの初期配置',
   'user-confirmed-shared-priority':'ユーザー確認済みの共通待機順位','synthetic':'合成値','synthetic-assumption':'合成モデルの仮定',
   'scenario-assumption':'Scenarioの設定・仮定','explicit-scenario-setting':'明示設定',
   'supplier-assumption-user-relayed':'供給元の想定（ユーザー共有）','legacy-ready-derived-model':'旧readyからのモデル換算',
   'implementation-default':'旧モデルの既定値','unresolved':'未確定','unconfigured':'未設定','saved-run':'保存済みRun',
   'deterministic-model-tie-break':'再現性のためのモデル上の同率処理',
+  'synthetic-model-tiebreak':'合成モデル限定の同率処理',
   'user-confirmed-neutral-start':'ユーザー確認済みのニュートラル初期状態',
   'user-confirmed-driving-and-handling':'ユーザー確認済み（走行・荷役）',
   'theoretical-pallet-discharge-100pct':'設備能力100%の理論タクト','synthetic-phases':'初回ずらしの合成仮定',
@@ -31,7 +34,14 @@ const labels={id:'Run ID',executedAt:'実行日時',durationMin:'実行時間（
   emptyMin:'空走の固定時間（分）',loadedMin:'積載走行の固定時間（分）',pickupMin:'荷受け（分）',dropoffMin:'荷下ろし（分）',
   wrapMin:'包装（分）',labelMin:'ラベル（分）',exitMin:'出口移送（分）',chargeTravelMin:'充電場所までの固定移動（分）',
   distanceMm:'合成モデル距離（mm）',fromNodeId:'始点',toNodeId:'終点',accessScopes:'搬送・動作の通行対象',block:'ブロック',row:'行',
-  owner:'系列・用途',rowPriority:'同用途内の行優先順位',theoreticalPL:'理論容量（PL）',assignedPL:'割当済み行の容量（PL）'};
+  owner:'系列・用途',rowPriority:'同用途内の行優先順位',theoreticalPL:'理論容量（PL）',assignedPL:'割当済み行の容量（PL）',
+  turnRateDegPerSec:'旋回角速度（deg/s）',turnRateEvidence:'旋回角速度の根拠',turningConsumesBattery:'旋回時間を消費対象に含める',
+  turningBatteryEvidence:'旋回の電池消費対象の根拠',avoidanceTieBreakPolicy:'同状態の回避候補タイブレーク',
+  noOvertakingGroupId:'追越禁止の通行グループ',noOvertakingForwardDirection:'グループの順方向',
+  interfaceId:'対象設備',kind:'停止点の種別',handlingGroupId:'設備前通路グループ',handlingResourceIds:'姿勢移行の占有対象',
+  occupancyResourceIds:'占有対象',outboundEdgeIds:'明示退避経路の区間順',returnEdgeIds:'明示復帰経路の区間順',
+  pickupPositioningMin:'荷受け姿勢への移行（分）',pickupForkInsertedMin:'フォーク挿入後の荷受け（分）',
+  dropoffPositioningMin:'荷下ろし姿勢への移行（分）',dropoffForkInsertedMin:'フォーク挿入後の荷下ろし（分）',handlingEvidence:'荷役相時間の根拠'};
 const ownerOf=warehouseRowOwner;
 
 /** Pure projection of saved run.scenario; no input form or current clock is read. */
@@ -78,7 +88,19 @@ export function buildRunConditions(run,{runId=run.runId??null,executedAt=run.exe
   for(const [key,value] of Object.entries(s.wrapper??{}))add('WRAPPER','settings',key,value,key==='inboundAgfLimit'?evidence('timing'):evidence('structure'));
   for(const [key,value] of Object.entries(s.times??{})){
     const unused=graph&&['emptyMin','loadedMin','chargeTravelMin'].includes(key);
-    add('TIMING','settings',key,value,evidence('timing'),(labels[key]??key)+(unused?'（graph Runでは未使用）':''));
+    const phased=graph&&s.motionControl&&['pickupPositioningMin','pickupForkInsertedMin','dropoffPositioningMin','dropoffForkInsertedMin'].some(key=>Object.hasOwn(s.motionControl,key));
+    add('TIMING','settings',key,value,evidence('timing'),(labels[key]??key)+(unused||phased&&['pickupMin','dropoffMin'].includes(key)?'（graph Runでは未使用）':''));
+  }
+  if(graph){
+    const control=s.motionControl??{};
+    for(const key of ['turnRateDegPerSec','turnRateEvidence','turningConsumesBattery','turningBatteryEvidence','avoidanceTieBreakPolicy','pickupPositioningMin',
+      'pickupForkInsertedMin','dropoffPositioningMin','dropoffForkInsertedMin','handlingEvidence']){
+      const value=control[key];
+      const source=['turningConsumesBattery','turningBatteryEvidence'].includes(key)?(typeof control.turningConsumesBattery==='boolean'?control.turningBatteryEvidence??'explicit-scenario-setting':'unresolved'):
+        key==='avoidanceTieBreakPolicy'?value?.evidence??'unresolved':
+        key.startsWith('turnRate')?control.turnRateEvidence??'unresolved':control.handlingEvidence??'unresolved';
+      add('MOTION_CONTROL','settings',key,value,source);
+    }
   }
   add('PRODUCTION','settings','source',s.productionEvents?'explicit-events':s.productStreams?'product-streams':'line-intervals',evidence('production'));
   add('PRODUCTION','settings','model',s.productionModel??'legacy_external_pallets',s.productionModel===undefined?'legacy-model':evidence('production'));
@@ -111,10 +133,14 @@ export function buildRunConditions(run,{runId=run.runId??null,executedAt=run.exe
     const topology=s.operationalTopology;
     for(const key of ['graphId','revision','coordinateSystem','datasetKind','readiness'])add('GRAPH','settings',key,topology?.[key],topology?.evidence??'synthetic-assumption');
     for(const edge of topology?.edges??[]){
-      for(const key of ['fromNodeId','toNodeId','distanceMm','accessScopes','lanePolicy','lanes','occupancyResourceIds','shutterId'])add('GRAPH_EDGE',edge.id,key,edge[key],topology.evidence??'synthetic-assumption');
+      for(const key of ['fromNodeId','toNodeId','distanceMm','accessScopes','lanePolicy','lanes','occupancyResourceIds','shutterId','noOvertakingGroupId','noOvertakingForwardDirection'])add('GRAPH_EDGE',edge.id,key,edge[key],topology.evidence??'synthetic-assumption');
       for(const movement of ['empty','loaded','charge','wait'])add('GRAPH_SPEED',edge.id,movement,edge.speedMmPerSec?.[movement],topology.evidence??'synthetic-assumption',
         edge.id+' '+({empty:'空走',loaded:'積載',charge:'充電移動',wait:'待機場所へ復帰'})[movement]+'（mm/s）');
     }
+    for(const node of topology?.nodes??[])for(const key of ['interfaceId','kind','handlingGroupId','handlingResourceIds','occupancyResourceIds'])
+      if(node[key]!==undefined)add('GRAPH_NODE',node.id,key,node[key],node.evidence??topology.evidence??'synthetic-assumption');
+    for(const plan of topology?.avoidancePlans??[])for(const [key,value] of Object.entries(plan))
+      add('AVOIDANCE_PLAN',plan.id,key,value,plan.evidence??'unresolved');
   }
   const warehouseRows=new Map(),assignments=new Map((s.warehousePolicy?.rowAssignments??[]).map(a=>[a.rowId,a]));
   for(const slot of s.warehouse??[])if(slot.rowId)warehouseRows.set(slot.rowId,{block:slot.blockId,row:slot.row});
@@ -124,7 +150,7 @@ export function buildRunConditions(run,{runId=run.runId??null,executedAt=run.exe
     const owner=ownerOf(assignments.get(rowId)),priority=s.warehousePolicy?.rowPriority?.[owner]?.indexOf(rowId);
     for(const [key,value] of Object.entries({...row,owner,rowPriority:priority===undefined||priority<0?null:priority+1}))add('WAREHOUSE',rowId,key,value,s.warehousePolicy?.evidence??'unconfigured');
   }
-  for(const key of ['productionEvents','manualRequests','alignerRefillEvents','magazineUses','alignerReadyEvents','permissionEvents','shutterEvents']){
+  for(const key of ['productionEvents','manualRequests','alignerRefillEvents','magazineUses','alignerReadyEvents','permissionEvents','shutterEvents','interferenceEvents']){
     const events=s[key];if(events===undefined)continue;
     add('INPUTS',key,'count',events.length,'saved-run',key+' 件数');
     events.forEach((event,i)=>add('INPUTS',key,String(i+1),event,'saved-run'));

@@ -21,6 +21,9 @@ export function createDemoScenario(preset='standard') {
     // User-confirmed startup only. The actual stop coordinates remain synthetic.
     s.initialParking={evidence:'user-confirmed-initial-placement',placeIds:['CHARGE-PLACE1','CHARGE-PLACE2','HP1','HP2']};
     s.chargePlaceIds=['CHARGE-PLACE1','CHARGE-PLACE2'];
+    s.motionControl={turnRateDegPerSec:null,turnRateEvidence:'unresolved',turningConsumesBattery:null,turningBatteryEvidence:'unresolved',avoidanceTieBreakPolicy:null,
+      pickupPositioningMin:null,pickupForkInsertedMin:null,dropoffPositioningMin:null,dropoffForkInsertedMin:null,
+      handlingEvidence:'unresolved'};
     s.agfs.forEach((a,i)=>{a.currentNodeId=s.initialParking.placeIds[i];a.area='WH';});
     s.warehouse.forEach(slot=>{slot.palletIds=[];slot.permission=true;});
     s.magazines.forEach(m=>{m.quantity=10;});
@@ -45,6 +48,9 @@ export function createLegacyScenario(preset='standard') {
   return {
     preset,durationMin:180,mode:'area_first',fallback:'any',lineCapacity:2,
     productionModel:'legacy_external_pallets',
+    // Explicit regression assumption; not the unknown real machine angular rate.
+    // Preserve legacy indivisible handling durations rather than guessing a split.
+    motionControl:{turnRateDegPerSec:45,turnRateEvidence:'synthetic-assumption',turningConsumesBattery:true,turningBatteryEvidence:'synthetic-assumption',avoidanceTieBreakPolicy:null},
     evidence:{structure:'user-confirmed',coordinates:'unreviewed',inventory:'synthetic',
       production:preset==='standard'?'theoretical-pallet-discharge-100pct':'synthetic-intervals',
       productionOffsets:'synthetic-phases',timing:'scenario-assumption',battery:'scenario-assumption',

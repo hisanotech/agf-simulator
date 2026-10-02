@@ -15,6 +15,10 @@ export const conditionCsvFilename=runId=>String(runId??'run')+'-conditions.csv';
 export function eventCsv(run,runId) {
   const columns=['runId','mode','timeMs','sequence','type','kind','taskId','palletId','agfId','originId','destinationId',
     'status','lineId','magazineId','locationId','reason','inputKind','edgeId','laneId','fromNodeId','toNodeId','nodeId','movement','heading','modelDurationMs',
+    'headingDeg','fromHeadingDeg','targetHeadingDeg','angleDeg','startedAt','completedAt','turnDurationMs','turnRateDegPerSec','turnRateEvidence',
+    'phase','phaseDurationMs','handlingEvidence','turningConsumesBattery','turningBatteryEvidence','motionControlJson',
+    'planId','otherAgfId','agfIds','conflictGroupId','selectionReason','selectionEvidence','routeEvidence',
+    'operation','positioningMs','forkInsertedMs','angleEvidence','turningConsumptionStatus','resources','blockers','noOvertakingGroupId','groupDirection',
     'shutterId','passable','etaStatus','target','targetId','permitted','permissionEvidence','hpId','placeId','chargePlaceId','chargerId',
     'sourceLineId','productType','loadType','storageLocationId','blockId','row','column','tier','storageResult',
     'alignerId','quantityBefore','quantityAfter','quantity','refillBatch','refillNeeded','pickedAt','operatedAt','operationType',
@@ -30,6 +34,7 @@ export function eventCsv(run,runId) {
       inventoryStatus:run.scenario.evidence?.inventory??'unspecified',batteryModel:run.scenario.battery.consumptionModel??'per_task',
       batteryConsumptionBasis:run.scenario.evidence?.batteryConsumption??'scenario-assumption',
       batteryScope:run.scenario.evidence?.batteryScope??'legacy-per-task',scenarioJson:index===0?JSON.stringify(run.scenario):''};
+    if(index===0&&run.scenario.motionControl)row.motionControlJson=JSON.stringify(run.scenario.motionControl);
     return columns.map(column=>cell(row[column])).join(',');
   });
   return '\ufeff'+[columns.join(','),...rows].join('\r\n');

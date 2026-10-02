@@ -106,7 +106,7 @@ test('graph analysis separates handling and traffic wait from segment travel',()
 test('real graph snapshots retain handling across unrelated events and zero-length routes',()=>{
   for(const atPickup of [false,true]) {
     const input=createDemoScenario('physical');input.durationMin=10;input.lineIntervalsMin=Array(8).fill(0);
-    const pickupNode=input.operationalTopology.interfaceBindings.find(x=>x.pattern==='OT*').nodeId;
+    const pickupNode=input.operationalTopology.interfaceBindings.find(x=>x.pattern==='OT1').nodeId;
     if(atPickup)for(const agf of input.agfs){agf.currentNodeId=pickupNode;agf.area='PZ';}
     input.times.pickupMin=2;input.times.dropoffMin=1;
     input.manualRequests=[{timeMs:0,kind:'05',palletId:'SIM-TEMP-1',locationId:'OT1',

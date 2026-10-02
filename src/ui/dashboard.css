@@ -22,6 +22,14 @@ dialog{background:#1e293b;border:1px solid #4b627c;border-radius:14px;color:#f8f
 #map .exterior-zone{fill:#e7eef1;stroke:#aebec8;stroke-width:1.5}#map .shutter-gate{fill:#fef3c7;stroke:#d99724;stroke-width:2}#map .shutter-gate.inactive{fill:#e5e7eb;stroke:#94a3b8}#map .alignment-axis{stroke:#0891b2;stroke-width:2;stroke-dasharray:5 5}#map .normal-flow{fill:none;stroke:#0e7490;stroke-width:4}#map .active-route{fill:none;stroke:#0891b2;stroke-width:6;stroke-linecap:round;opacity:.72}#map .waiting-candidate{fill:#e0f2fe;stroke:#0284c7;stroke-width:1.5;stroke-dasharray:4 3}#map .heading-label{font-size:18px;font-weight:800;text-anchor:middle;fill:#0e7490}.timeline-waiting_traffic{background:#ef4444}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 .timeline-handling_pickup{background:#8b5cf6}.timeline-handling_dropoff{background:#d946ef}.state-handling_pickup,.state-handling_dropoff{background:#382454;color:#e9d5ff}
+.timeline-turning{background:#0284c7}.state-turning{background:#164e63;color:#a5f3fc}
+.timeline-positioning_for_pickup,.timeline-positioning_for_dropoff{background:#7c3aed}
+.timeline-picking_fork_inserted,.timeline-dropping_fork_inserted{background:#a855f7}
+.state-positioning_for_pickup,.state-positioning_for_dropoff,.state-picking_fork_inserted,.state-dropping_fork_inserted{background:#382454;color:#e9d5ff}
+.timeline-waiting_motion_configuration{background:#f59e0b}.state-waiting_motion_configuration{background:#473716;color:#fde68a}
+.timeline-waiting_avoidance{background:#f59e0b}.state-waiting_avoidance{background:#473716;color:#fde68a}
+.timeline-waiting_interference{background:#f59e0b}.state-waiting_interference{background:#473716;color:#fde68a}
+#map .agf-forks{fill:none;stroke:#0e7490;stroke-width:2;stroke-linecap:round}
 .allocation-scroll{max-height:480px}#product-stream-fields input[type=number],#warehouse-row-fields input{max-width:160px}.product-meta{display:block;font-size:11px;color:#94a3b8;margin-top:5px}.timeline-moving_to_wait{background:#0ea5e9}.timeline-hp_wait{background:#475569}.timeline-waiting_hp_instruction,.timeline-waiting_hp_capacity,.timeline-waiting_hp_route{background:#f59e0b}.state-moving_to_wait{color:#7dd3fc;background:#16364f}.state-hp_wait{color:#cbd5e1;background:#334155}
 .slot-unsupported{background:#243548;color:#94a3b8;border:1px dashed #64748b}
 /* Landscape schematic: no physical scale, uniform readable text, cyan live routes. */

@@ -14,6 +14,7 @@ export function populateExtendedSettings(s){
   document.getElementById('legacy-settings-note').hidden=!!s.warehousePolicy;
   document.getElementById('line-fields').parentElement.hidden=!!s.productStreams;
   populateSupplySettings(s);
+  populateMotionSettings(s);
   if(!s.warehousePolicy)return;
   document.getElementById('product-stream-fields').innerHTML=s.productStreams.map((stream,i)=>`<tr>
     <td>${esc(stream.sourceLineId)}</td><td>${label(stream.productType,stream.loadType)}</td>
@@ -40,7 +41,7 @@ export function organizeSettings(){
     ['基本設定','時間・設備・容量',[section('duration'),section('time-fields')]],
     ['搬出設定','8系列・4種別・発生頻度',[section('line-fields'),extended[0]]],
     ['倉庫設定','行割当・入庫順位',[extended[1]]],
-    ['AGF・充電設定','初期状態・電池・倉庫待機',[section('agf-fields'),section('battery-fields'),extended[2]]]
+    ['AGF・充電設定','初期状態・電池・停止旋回・倉庫待機',[section('agf-fields'),section('battery-fields'),section('motion-settings'),extended[2]]]
   ];
   for(const [index,[name,description,sections]] of groups.entries()){
     const details=document.createElement('details');details.className='panel settings-category';details.open=index===0;
@@ -54,6 +55,7 @@ export function organizeSettings(){
 }
 export function readExtendedSettings(s){
   readSupplySettings(s);
+  readMotionSettings(s);
   if(!s.warehousePolicy)return;
   const get=selector=>document.querySelector(selector);
   s.lineIntervalsMin=Array(8).fill(0);
@@ -77,8 +79,58 @@ export function readExtendedSettings(s){
   s.warehousePolicy={evidence:'explicit-scenario-setting',rowAssignments:assignments,rowPriority};
   s.postTaskPolicy={evidence:'user-confirmed-shared-priority',waitingPriority:[...NORMAL_WAITING_PRIORITY]};
 }
+
+const motionFields=[['turnRateDegPerSec','旋回角速度（deg/s）',.001],
+  ['pickupPositioningMin','荷受け姿勢への移行（分）',0],['pickupForkInsertedMin','フォーク挿入後の荷受け（分）',0],
+  ['dropoffPositioningMin','荷下ろし姿勢への移行（分）',0],['dropoffForkInsertedMin','フォーク挿入後の荷下ろし（分）',0]];
+export function renderMotionSettings(s){
+  const control=s.motionControl??{},hasPhases=motionFields.slice(1).some(([key])=>Object.hasOwn(control,key));
+  return `<p class="notice">方向変更は停止 → 旋回 → 再発進。実旋回角速度と荷役相ごとの実時間は未確定です。未設定の値を補完せず、必要になった地点で保留します。</p>
+    <div class="fields">${motionFields.map(([key,label,min])=>`<label>${label}<input type="number" min="${min}" step="0.001" data-motion-setting="${key}" aria-label="${label}" placeholder="未確定" value="${control[key]??''}"></label>`).join('')}
+    <label>旋回の電池消費<select data-motion-setting="turningConsumesBattery" aria-label="旋回の電池消費"><option value="" ${control.turningConsumesBattery==null?'selected':''}>未確定 · 時間分類のみ</option><option value="true" ${control.turningConsumesBattery===true?'selected':''}>稼働消費へ含める · 明示条件</option><option value="false" ${control.turningConsumesBattery===false?'selected':''}>消費対象外 · 明示条件</option></select></label></div>
+    <p class="muted">旋回角速度：${control.turnRateDegPerSec==null?'未確定':control.turnRateEvidence==='synthetic-assumption'?'合成テスト用の仮定・実機値ではありません':'このRunの明示設定'}。荷役相：${hasPhases?'未設定相は保留・既存時間の自動分割なし':'旧回帰モデルは単一荷役時間を保持・空欄を自動分割しません'}。角度÷角速度で停止旋回時間を計算します。</p>`;
+}
+/** Convert explicitly entered values; empty controls never become zero assumptions. */
+export function motionControlFromSettings(previous={},values){
+  const result={...previous};
+  for(const [key] of motionFields){
+    const raw=values[key];
+    if(raw===''||raw==null){
+      if(Object.hasOwn(previous,key)||key==='turnRateDegPerSec')result[key]=null;
+      continue;
+    }
+    const value=Number(raw);
+    if(!Number.isFinite(value)||value<0||key==='turnRateDegPerSec'&&value===0)
+      throw new Error('MOTION_CONFIG: 旋回角速度は正の値、荷役相時間は0以上の分で入力してください。');
+    result[key]=value;
+  }
+  const rateChanged=result.turnRateDegPerSec!==previous.turnRateDegPerSec;
+  result.turnRateEvidence=result.turnRateDegPerSec==null?'unresolved':rateChanged?'explicit-scenario-setting':previous.turnRateEvidence??'explicit-scenario-setting';
+  const phases=motionFields.slice(1).map(([key])=>key);
+  if(phases.some(key=>Object.hasOwn(result,key))){
+    const complete=phases.every(key=>Number.isFinite(result[key]));
+    result.handlingEvidence=!complete?'unresolved':phases.some(key=>result[key]!==previous[key])?
+      'explicit-scenario-setting':previous.handlingEvidence??'explicit-scenario-setting';
+  }
+  const battery=values.turningConsumesBattery;
+  result.turningConsumesBattery=battery==='true'||battery===true?true:battery==='false'||battery===false?false:null;
+  result.turningBatteryEvidence=result.turningConsumesBattery===null?'unresolved':result.turningConsumesBattery===previous.turningConsumesBattery?
+    previous.turningBatteryEvidence??'explicit-scenario-setting':'explicit-scenario-setting';
+  return result;
+}
+function populateMotionSettings(s){
+  const root=document.getElementById('motion-settings');if(!root)return;
+  root.closest('section').hidden=s.motionModel!=='synthetic_graph';
+  root.innerHTML=s.motionModel==='synthetic_graph'?renderMotionSettings(s):'';
+}
+function readMotionSettings(s){
+  if(s.motionModel!=='synthetic_graph')return;
+  const values=Object.fromEntries([...document.querySelectorAll('[data-motion-setting]')].map(input=>[input.dataset.motionSetting,input.value]));
+  s.motionControl=motionControlFromSettings(s.motionControl,values);
+}
 export function loadSyntheticSettingsExample(s){
   readSupplySettings(s);
+  readMotionSettings(s);
   // Replace the row-allocation example only; preserve edited production streams.
   s.productStreams=s.productStreams.map((stream,i)=>({...stream,
     enabled:document.querySelector(`[data-stream-enabled="${i}"]`).checked,

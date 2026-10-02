@@ -9,6 +9,11 @@ export function integratedAcceptanceScenario(kind='normal'){
   // Explicit legacy regression fixture: pre-existing stocks/inputs are NOT the
   // ordinary neutral Run. New coupled-production acceptance uses a separate fixture.
   s.productionModel='legacy_external_pallets';
+  s.motionControl={turnRateDegPerSec:45,turnRateEvidence:'synthetic-assumption',
+    turningConsumesBattery:true,turningBatteryEvidence:'synthetic-assumption',
+    // Declared synthetic fixture phases, not a guessed division of site handling.
+    pickupPositioningMin:0,pickupForkInsertedMin:s.times.pickupMin,
+    dropoffPositioningMin:0,dropoffForkInsertedMin:s.times.dropoffMin,handlingEvidence:'synthetic-assumption'};
   s.lineIntervalsMin=Array(8).fill(0);
   s.magazines.forEach(m=>{m.quantity=4;});
   s.aligners=s.aligners.map(a=>({id:a.id,quantity:0}));

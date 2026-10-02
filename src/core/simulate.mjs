@@ -1,7 +1,9 @@
 import { selectAgf } from './select-agf.mjs';
 import { batteryModel, validateBatteryModel, createBatteryLedger } from './battery-model.mjs';
-import {validateOperationalTopology,findOperationalPath,resolveInterfaceNode} from '../map/operational-topology.mjs';
+import {validateOperationalTopology,findOperationalPath,resolveInterfaceNode,splitSyntheticDisplayTurns} from '../map/operational-topology.mjs';
 import {createTrafficController} from './traffic-controller.mjs';
+import {directionHeading,turnAngle,cardinalHeading,HEADING_DEGREES,validateMotionControl,handlingDurations} from './motion-control.mjs';
+import {chooseAvoidance,findExplicitAvoidancePlan} from './interference-control.mjs';
 import {validateWarehousePolicy,validateProduct,validateStoredPallets,chooseWarehouseLocation,canUseUpper} from './warehouse-policy.mjs';
 import {generateProductionEvents} from './production-streams.mjs';
 import {NORMAL_WAITING_PLACES,NORMAL_WAITING_PRIORITY} from '../map/warehouse-layout.mjs';
@@ -52,11 +54,14 @@ export function simulate(rawScenario) {
     Number.isInteger(scenario.wrapper?.outputCapacity) && scenario.wrapper.outputCapacity > 0,
     'wrapper capacities required');
   const graphMode=scenario.motionModel==='synthetic_graph';
+  const motionControl=scenario.motionControl??null;
+  validateMotionControl(motionControl);
   const postTaskPolicy=scenario.postTaskPolicy??null;
   required(!postTaskPolicy||graphMode,'HP return requires an explicit synthetic graph');
   required(graphMode||scenario.motionModel===undefined||scenario.motionModel==='fixed_time',
     'motionModel must be fixed_time or synthetic_graph');
-  const topology=graphMode?scenario.operationalTopology:null;
+  const topology=graphMode?splitSyntheticDisplayTurns(scenario.operationalTopology):null;
+  if(graphMode)scenario.operationalTopology=topology;
   if(graphMode)validateOperationalTopology(topology);
   const graphNodes=graphMode?new Map(topology.nodes.map(node=>[node.id,node])):null;
   const graphEdges=graphMode?new Map(topology.edges.map(edge=>[edge.id,edge])):null;
@@ -64,7 +69,9 @@ export function simulate(rawScenario) {
   const gates=graphMode?new Map(topology.shutters.map(gate=>[gate.id,{passable:gate.initiallyPassable}])):null;
   const lines = new Map(Array.from({length:8}, (_,i) => ['L' + (i+1), []]));
   const agfs = (scenario.agfs ?? []).map(a => ({...a, status:a.status ?? 'idle', taskId:null,
-    carriedPalletId:null,chargerId:null,...(graphMode?{movement:null,heading:null}: {})}));
+    carriedPalletId:null,chargerId:null,...(graphMode?{movement:null,heading:a.heading??null,
+      headingDeg:a.headingDeg??HEADING_DEGREES[a.heading]??null,turn:null,
+      turningConsumesBattery:motionControl?.turningConsumesBattery??null}: {})}));
   required(agfs.length === 4 && new Set(agfs.map(a => a.id)).size === 4, 'four unique AGFs required');
   if(scenario.wrapper.inboundAgfLimit!==undefined)required(Number.isInteger(scenario.wrapper.inboundAgfLimit)&&
     scenario.wrapper.inboundAgfLimit>=1&&scenario.wrapper.inboundAgfLimit<=agfs.length,'invalid wrapper inbound AGF limit');
@@ -235,7 +242,11 @@ export function simulate(rawScenario) {
   };
   const schedule = (timeMs, type, fields={}) => {
     required(Number.isInteger(timeMs) && timeMs >= now, 'cannot schedule event in the past: ' + type);
-    queue.push({timeMs,order:order++,type,...fields});
+    const moving=fields.agfId&&agfs.find(a=>a.id===fields.agfId);
+    const motionEvent=['SEGMENT_REQUEST','SEGMENT_EXITED','TURN_COMPLETED','HANDLING_REQUEST',
+      'AVOIDANCE_REACHED','AVOIDANCE_RETURNED'].includes(type);
+    queue.push({timeMs,order:order++,type,...fields,
+      ...(motionEvent?{movementGeneration:moving?.movementGeneration}:{})});
   };
   const hold = (task, reason) => {
     if (task.waitReason !== reason) {
@@ -246,8 +257,7 @@ export function simulate(rawScenario) {
   };
   const heading=(fromNodeId,toNodeId)=>{
     const from=graphNodes.get(fromNodeId),to=graphNodes.get(toNodeId);
-    const dx=to.x-from.x,dy=to.y-from.y;
-    return Math.abs(dx)>=Math.abs(dy)?(dx>=0?'east':'west'):(dy>=0?'south':'north');
+    return directionHeading(from,to);
   };
   const routeFor=(startNodeId,interfaceId,movement,taskType)=>{
     const endNodeId=resolveInterfaceNode(topology,interfaceId);
@@ -258,11 +268,13 @@ export function simulate(rawScenario) {
     // Keep the arrived route in every snapshot until handling finishes, including
     // snapshots recorded by unrelated equipment events and zero-distance pickup.
     record('ROUTE_COMPLETED',{taskId,agfId:agf.id,movement,nodeId:agf.currentNodeId});
-    schedule(now+delayMs,nextType,{taskId,agfId:agf.id});
+    if(nextType==='PICKUP'||nextType==='DROPOFF')beginHandling(agf,nextType==='PICKUP'?'pickup':'dropoff',delayMs);
+    else schedule(now+delayMs,nextType,{taskId,agfId:agf.id});
   };
   const beginRoute=(task,agf,movement,path,nextType,delayMs=0)=>{
     const taskId=task?.id??null;
     agf.status=movement==='empty'?'moving_empty':movement==='loaded'?'moving_loaded':movement==='wait'?'moving_to_wait':'moving_to_charge';
+    agf.movementGeneration=(agf.movementGeneration??0)+1;
     agf.movement={movement,taskId,steps:saveRoute(path).steps,stepIndex:0,nextType,delayMs,
       current:null,waitingReason:null,retryScheduled:false};
     record('ROUTE_PLANNED',{taskId,kind:task?.kind??(movement==='wait'?'WAIT':'CHARGE'),agfId:agf.id,movement,
@@ -276,6 +288,7 @@ export function simulate(rawScenario) {
     for(const agf of [...agfs].sort(byId)){
       const movement=agf.movement;
       if(agf.status!=='waiting_traffic'||!movement||movement.retryScheduled)continue;
+      if(movement.handlingPending){movement.retryScheduled=true;schedule(now,'HANDLING_REQUEST',{agfId:agf.id});continue;}
       const step=movement.steps[movement.stepIndex];
       if(movement.waitingReason==='SHUTTER'&&!gates.get(step.shutterId)?.passable)continue;
       movement.retryScheduled=true;schedule(now,'SEGMENT_REQUEST',{agfId:agf.id});
@@ -292,6 +305,152 @@ export function simulate(rawScenario) {
     tasks.set(t.id,t); pending.push(t.id);
     record('TASK_REQUESTED',{taskId:t.id,kind,palletId:t.palletId ?? null});
     return t;
+  };
+  const holdMotion=(agf,reason,fields={})=>{
+    agf.status='waiting_motion_configuration';
+    if(agf.movement.waitingReason!==reason){
+      agf.movement.waitingReason=reason;
+      record('MOTION_CONFIGURATION_WAITING',{agfId:agf.id,taskId:agf.taskId,nodeId:agf.currentNodeId,reason,...fields});
+    }
+  };
+  const beginTurn=(agf,step)=>{
+    const target=heading(step.fromNodeId,step.toNodeId);
+    if(agf.headingDeg==null){
+      // No preceding direction exists at startup. This initializes only the
+      // synthetic display heading, with explicit evidence rather than site pose.
+      agf.headingDeg=target;agf.heading=cardinalHeading(target);
+      record('HEADING_INITIALIZED',{agfId:agf.id,headingDeg:target,evidence:'synthetic-first-segment-heading-not-site-pose'});
+      return false;
+    }
+    const angle=turnAngle(agf.headingDeg,target);
+    if(Math.abs(angle)<1e-7)return false;
+    if(!motionControl?.turnRateDegPerSec){holdMotion(agf,'TURN_RATE_UNRESOLVED',{targetHeadingDeg:target,angleDeg:angle});return true;}
+    const resourceIds=graphNodes.get(agf.currentNodeId).occupancyResourceIds??[];
+    const edge=graphEdges.get(step.edgeId);
+    const opposite={east:'west',west:'east',north:'south',south:'north',forward:'reverse',reverse:'forward'};
+    const groupDirection=step.traversal==='forward'?edge.noOvertakingForwardDirection:opposite[edge.noOvertakingForwardDirection];
+    if(traffic.reserveResources){
+      const reserved=traffic.reserveResources({agfId:agf.id,resourceIds,
+        ...(edge.noOvertakingGroupId?{groupId:edge.noOvertakingGroupId,groupDirection}:{})});
+      if(!reserved.entered){
+        agf.status='waiting_traffic';agf.movement.waitingReason='TURN_RESOURCE';
+        record('SEGMENT_WAITING',{agfId:agf.id,taskId:agf.taskId,edgeId:step.edgeId,
+          blockers:reserved.blockers,reason:'TURN_RESOURCE_OCCUPIED'});return true;
+      }
+    }
+    const duration=Math.ceil(Math.abs(angle)/motionControl.turnRateDegPerSec*1000);
+    agf.status='turning';agf.movement.waitingReason=null;
+    agf.turn={nodeId:agf.currentNodeId,fromHeadingDeg:agf.headingDeg,targetHeadingDeg:target,angleDeg:angle,
+      startedAt:now,completedAt:now+duration,rateDegPerSec:motionControl.turnRateDegPerSec,
+      evidence:motionControl.turnRateEvidence,resourceIds};
+    record('TURN_STARTED',{agfId:agf.id,taskId:agf.taskId,nodeId:agf.currentNodeId,
+      fromHeadingDeg:agf.headingDeg,targetHeadingDeg:target,angleDeg:angle,startedAt:now,completedAt:now+duration,
+      turnDurationMs:duration,turnRateDegPerSec:motionControl.turnRateDegPerSec,turnRateEvidence:motionControl.turnRateEvidence,
+      angleEvidence:'synthetic-shortest-angle-not-site-turn-permission',
+      turningConsumptionStatus:motionControl.turningConsumesBattery==null?'unresolved-excluded-from-active-model':
+        motionControl.turningConsumesBattery?'explicit-active-time':'explicit-excluded'});
+    schedule(now+duration,'TURN_COMPLETED',{agfId:agf.id,startedAt:now});return true;
+  };
+  const beginHandling=(agf,operation,legacyDelayMs)=>{
+    const expected=resolveInterfaceNode(topology,operation==='pickup'?tasks.get(agf.taskId).originId:tasks.get(agf.taskId).destinationId);
+    required(agf.currentNodeId===expected,'handling before individual interface arrival');
+    const phases=handlingDurations(motionControl,operation);
+    if(phases.kind==='unresolved'){holdMotion(agf,'HANDLING_PHASES_UNRESOLVED',{operation});return;}
+    const node=graphNodes.get(agf.currentNodeId),groupId=node.handlingGroupId??null;
+    const phase=operation==='pickup'?'positioning_pickup':'positioning_dropoff';
+    if(groupId&&traffic.setHandlingPhase){
+      const reserved=traffic.setHandlingPhase({agfId:agf.id,groupId,phase,resourceIds:node.handlingResourceIds??[]});
+      if(!reserved.entered){
+        agf.status='waiting_traffic';agf.movement.waitingReason='HANDLING_RESOURCE';
+        agf.movement.handlingPending={operation,legacyDelayMs};
+        record('HANDLING_RESOURCE_WAITING',{agfId:agf.id,taskId:agf.taskId,nodeId:agf.currentNodeId,
+          blockers:reserved.blockers,operation});return;
+      }
+    }
+    delete agf.movement.handlingPending;agf.movement.waitingReason=null;agf.movement.retryScheduled=false;
+    agf.handling={operation,startedAt:now,groupId,kind:phases.kind,forkInsertedMs:phases.forkInsertedMs??null};
+    // Old regression scenarios keep their indivisible modeled handling duration.
+    // No invented ratio or unconditional passing exception is introduced.
+    if(phases.kind==='legacy-unsplit'){
+      agf.status=operation==='pickup'?'moving_empty':'moving_loaded';
+      schedule(now+legacyDelayMs,operation==='pickup'?'PICKUP':'DROPOFF',{taskId:agf.taskId});return;
+    }
+    agf.status=operation==='pickup'?'positioning_for_pickup':'positioning_for_dropoff';
+    record('TASK_POSITIONING_STARTED',{agfId:agf.id,taskId:agf.taskId,nodeId:agf.currentNodeId,operation,
+      positioningMs:phases.positioningMs,forkInsertedMs:phases.forkInsertedMs,handlingEvidence:phases.evidence});
+    schedule(now+phases.positioningMs,operation==='pickup'?'PICKUP_FORK_INSERTED':'DROPOFF_FORK_INSERTED',
+      {agfId:agf.id,taskId:agf.taskId});
+  };
+  const clearHandling=agf=>{
+    const node=graphNodes.get(agf.currentNodeId);
+    traffic?.clearHandlingPhase?.(agf.id);traffic?.releaseResources?.(agf.id,node.handlingResourceIds??[]);
+    traffic?.leaveGroup?.(agf.id);agf.handling=null;wakeTraffic();
+  };
+  const avoidanceReturnReady=agf=>{
+    const other=agfs.find(a=>a.id===agf.avoidance.otherAgfId);
+    const group=agf.avoidance.conflictGroupId;
+    if(!other?.movement)return true;
+    const state=traffic.snapshot();
+    const ownsResource=Object.entries(state.owners).some(([resourceId,owner])=>owner===other.id&&resourceId===group);
+    const follows=state.followingOrder?.some(member=>member.agfId===other.id&&member.groupId===group);
+    if(ownsResource||follows)return false;
+    if(other.currentNodeId===agf.avoidance.resumeNodeId)return false;
+    // A current segment can still cover the explicit conflict resource even if
+    // its group is represented only by a shared occupancy resource.
+    const covers=edge=>edge&&(edge.noOvertakingGroupId===group||edge.occupancyResourceIds.includes(group)||'edge:'+edge.id===group);
+    return !covers(graphEdges.get(other.movement.current?.edgeId))&&
+      !covers(graphEdges.get(other.movement.steps[other.movement.stepIndex]?.edgeId));
+  };
+  const wakeAvoidance=()=>{
+    if(!graphMode)return;
+    for(const a of agfs)if(a.status==='waiting_avoidance'&&a.avoidance?.phase==='waiting'&&avoidanceReturnReady(a)){
+      a.avoidance.phase='returning';
+      record('AVOIDANCE_RETURN_STARTED',{agfId:a.id,taskId:a.taskId,planId:a.avoidance.plan.planId});
+      beginRoute(tasks.get(a.taskId)??null,a,a.avoidance.originalMovement.movement,
+        a.avoidance.plan.returnPath,'AVOIDANCE_RETURNED');
+    }
+  };
+  const tryAvoidance=(blocked,blockers,edge,reason)=>{
+    if(['NO_OVERTAKING','HANDLING_POSITIONING'].includes(reason))return false;
+    const conflictGroupId=edge.noOvertakingGroupId??edge.occupancyResourceIds[0]??'edge:'+edge.id;
+    const pair=[blocked,...blockers.map(id=>agfs.find(a=>a.id===id)).filter(Boolean)];
+    const feasible=pair.map(a=>{
+      const moving=!!a.movement&&!a.avoidance&&!a.movement.current&&a.status!=='turning'&&!a.handling;
+      const plan=moving?findExplicitAvoidancePlan(topology,{currentNodeId:a.currentNodeId,conflictGroupId,
+        movement:a.movement.movement,taskType:tasks.get(a.taskId)?.kind??(a.movement.movement==='wait'?'WAIT':'CHARGE')}):null;
+      return {agfId:a.id,moving,loaded:!!a.carriedPalletId,avoidancePossible:!!plan,plan};
+    });
+    const selection=chooseAvoidance({candidates:feasible,tieBreakPolicy:motionControl?.avoidanceTieBreakPolicy??null});
+    if(selection.status!=='selected'){
+      const key=selection.reason+'|'+pair.map(a=>a.id).sort().join('|');
+      if(blocked.movement.avoidanceHoldKey!==key){blocked.movement.avoidanceHoldKey=key;
+        record(selection.reason==='AVOIDANCE_TIE_UNRESOLVED'?'AVOIDANCE_TIE_UNRESOLVED':'AVOIDANCE_UNAVAILABLE',
+          {agfId:blocked.id,taskId:blocked.taskId,conflictGroupId,reason:selection.reason,evidence:selection.evidence});}
+      return false;
+    }
+    const selected=agfs.find(a=>a.id===selection.agfId),plan=feasible.find(c=>c.agfId===selected.id).plan;
+    if(plan.outboundPath.steps.some(step=>step.shutterId&&!gates.get(step.shutterId)?.passable)||
+      plan.returnPath.steps.some(step=>step.shutterId&&!gates.get(step.shutterId)?.passable))return false;
+    const other=pair.find(a=>a.id!==selected.id);
+    selected.avoidance={plan,originalMovement:selected.movement,resumeNodeId:selected.currentNodeId,
+      otherAgfId:other.id,pausedOther:other.status==='waiting_interference',conflictGroupId,phase:'outbound'};
+    traffic.release(selected.id);
+    record('AVOIDANCE_STARTED',{agfId:selected.id,taskId:selected.taskId,otherAgfId:selected.avoidance.otherAgfId,
+      planId:plan.planId,conflictGroupId,selectionReason:selection.reason,selectionEvidence:selection.evidence,
+      routeEvidence:plan.evidence});
+    beginRoute(tasks.get(selected.taskId)??null,selected,selected.avoidance.originalMovement.movement,
+      plan.outboundPath,'AVOIDANCE_REACHED');return selected===blocked;
+  };
+  const pendingInterferences=[];
+  const evaluateInterference=notice=>{
+    const pair=notice.agfIds.map(id=>agfs.find(a=>a.id===id));
+    if(pair.some(a=>a.movement?.current||a.status==='turning'))return false;
+    if(pair.some(a=>!a.movement||a.handling||a.avoidance))return true;
+    for(const a of pair){a.status='waiting_interference';a.movement.waitingReason='INTERFERENCE';}
+    const edge=topology.edges.find(edge=>edge.noOvertakingGroupId===notice.conflictGroupId||
+      edge.occupancyResourceIds.includes(notice.conflictGroupId)||'edge:'+edge.id===notice.conflictGroupId);
+    required(edge,'unknown explicit interference group');
+    tryAvoidance(pair[0],[pair[1].id],edge,'INTERFERENCE');return true;
   };
   const issue03=()=>{
     // ID ordering is a deterministic model tie-break, not a facility priority.
@@ -415,6 +574,7 @@ export function simulate(rawScenario) {
     maybeStartWrap();
   };
   const finishTask = (t,a) => {
+    if(graphMode)clearHandling(a);
     t.status='completed'; t.completedAt=now; t.waitReason=null;
     a.status=postTaskPolicy?'dispatch_pending':'idle'; a.taskId=null; a.carriedPalletId=null;
     if(graphMode)a.movement=null;
@@ -686,6 +846,12 @@ export function simulate(rawScenario) {
       typeof x.passable==='boolean','invalid shutter event');
     schedule(x.timeMs,'SHUTTER_STATE_CHANGED',x);
   }
+  for(const x of scenario.interferenceEvents??[]){
+    required(graphMode&&Number.isInteger(x.timeMs)&&x.timeMs>=0&&x.evidence==='synthetic-assumption'&&
+      x.agfIds?.length===2&&new Set(x.agfIds).size===2&&x.agfIds.every(id=>agfs.some(a=>a.id===id))&&
+      typeof x.conflictGroupId==='string','invalid explicit synthetic interference notice');
+    schedule(x.timeMs,'INTERFERENCE_DETECTED',x);
+  }
   record('RUN_STARTED',{inputKind:production.length?'external':'synthetic-interval',mode:scenario.mode,
     productionModel:coupledProduction?'empty_pallet_supply':'legacy_external_pallets',
     mapStatus:graphMode?'synthetic-operational':'conceptual-only',
@@ -699,6 +865,7 @@ export function simulate(rawScenario) {
     queue.sort((a,b)=>a.timeMs-b.timeMs || operatorPhase(a)-operatorPhase(b) || a.order-b.order);
     const e=queue.shift();
     if (e.timeMs>durationMs) break;
+    if(e.movementGeneration!==undefined&&agfs.find(a=>a.id===e.agfId)?.movementGeneration!==e.movementGeneration)continue;
     batteryLedger?.advance(now,e.timeMs,tasks);
     now=e.timeMs;
     if (e.type === 'PRODUCTION_DUE'||e.type==='PALLET_EXITED') {
@@ -781,10 +948,54 @@ export function simulate(rawScenario) {
         const quantityBefore=a.quantity;a.quantity=10;
         record('ALIGNER_REFILLED',{alignerId:a.id,operationType:e.operationType,quantityBefore,quantityAfter:10,operatedAt:now});
       }
+    } else if(e.type==='INTERFERENCE_DETECTED'){
+      record('INTERFERENCE_DETECTED',{agfIds:[...e.agfIds],conflictGroupId:e.conflictGroupId,evidence:e.evidence});
+      if(!evaluateInterference(e)){
+        pendingInterferences.push(e);
+        record('INTERFERENCE_DEFERRED',{agfIds:[...e.agfIds],conflictGroupId:e.conflictGroupId,
+          reason:'STOP_AT_EXPLICIT_NODE_BEFORE_AVOIDANCE'});
+      }
+    } else if(e.type==='HANDLING_REQUEST'){
+      const a=agfs.find(a=>a.id===e.agfId),waiting=a?.movement?.handlingPending;
+      required(a&&waiting,'handling retry without a pending arrival');
+      a.movement.retryScheduled=false;beginHandling(a,waiting.operation,waiting.legacyDelayMs);
+    } else if(e.type==='AVOIDANCE_REACHED'){
+      const a=agfs.find(a=>a.id===e.agfId);
+      required(a?.avoidance?.phase==='outbound'&&a.currentNodeId===a.avoidance.plan.viaNodeId,
+        'avoidance arrival outside the explicit retreat');
+      a.status='waiting_avoidance';a.avoidance.phase='waiting';
+      record('AVOIDANCE_REACHED',{agfId:a.id,taskId:a.taskId,planId:a.avoidance.plan.planId,nodeId:a.currentNodeId});
+      if(a.avoidance.pausedOther){
+        const other=agfs.find(other=>other.id===a.avoidance.otherAgfId);
+        required(other?.status==='waiting_interference'&&other.movement,'paused interference partner was lost');
+        other.status=other.movement.movement==='empty'?'moving_empty':'moving_loaded';other.movement.waitingReason=null;
+        schedule(now,'SEGMENT_REQUEST',{agfId:other.id});
+      }
+    } else if(e.type==='AVOIDANCE_RETURNED'){
+      const a=agfs.find(a=>a.id===e.agfId),avoidance=a?.avoidance;
+      required(avoidance?.phase==='returning'&&a.currentNodeId===avoidance.resumeNodeId,'invalid avoidance return');
+      a.movement=avoidance.originalMovement;a.movement.retryScheduled=false;a.movement.waitingReason=null;
+      a.movementGeneration++;
+      a.status=a.movement.movement==='empty'?'moving_empty':a.movement.movement==='loaded'?'moving_loaded':
+        a.movement.movement==='wait'?'moving_to_wait':'moving_to_charge';a.avoidance=null;
+      record('AVOIDANCE_COMPLETED',{agfId:a.id,taskId:a.taskId,planId:avoidance.plan.planId,nodeId:a.currentNodeId});
+      schedule(now,'SEGMENT_REQUEST',{agfId:a.id});
+    } else if(e.type==='PICKUP_FORK_INSERTED'||e.type==='DROPOFF_FORK_INSERTED'){
+      const a=agfs.find(a=>a.id===e.agfId),pickup=e.type==='PICKUP_FORK_INSERTED';
+      required(a?.taskId===e.taskId&&a.status===(pickup?'positioning_for_pickup':'positioning_for_dropoff'),
+        'fork insertion without positioning');
+      a.status=pickup?'picking_fork_inserted':'dropping_fork_inserted';
+      const node=graphNodes.get(a.currentNodeId);
+      if(a.handling.groupId)traffic.setHandlingPhase?.({agfId:a.id,groupId:a.handling.groupId,
+        phase:a.status,resourceIds:node.handlingResourceIds??[]});
+      record(e.type,{agfId:a.id,taskId:a.taskId,nodeId:a.currentNodeId,operation:pickup?'pickup':'dropoff'});
+      schedule(now+a.handling.forkInsertedMs,pickup?'PICKUP':'DROPOFF',{taskId:a.taskId});wakeTraffic();
     } else if (e.type === 'PICKUP') {
       const t=tasks.get(e.taskId), a=agfs.find(a=>a.id===t?.agfId);
-      required(t?.status==='moving_empty' && a?.taskId===t.id && a.status==='moving_empty',
+      required(t?.status==='moving_empty' && a?.taskId===t.id && ['moving_empty','picking_fork_inserted'].includes(a.status),
         'pickup without assignment');
+      if(graphMode)required(a.currentNodeId===resolveInterfaceNode(topology,t.originId),
+        'pickup before individual interface arrival');
       if (t.kind==='01') {
         const l=lines.get(pallets.get(t.palletId).lineId);
         required(l.includes(t.palletId),'01 pallet missing at line');
@@ -809,6 +1020,7 @@ export function simulate(rawScenario) {
         temps.delete(t.palletId);
       }
       if (t.palletId) pallets.get(t.palletId).stage='on_agf_'+t.kind;
+      if(graphMode)clearHandling(a);
       t.status='moving_loaded';t.pickupAt=now;
       a.status='moving_loaded';a.area=t.originArea;a.carriedPalletId=t.palletId??('EMPTY-STACK-'+t.id);
       record('TASK_PICKED',{taskId:t.id,kind:t.kind,agfId:a.id,palletId:t.palletId??null});
@@ -817,6 +1029,8 @@ export function simulate(rawScenario) {
     } else if (e.type === 'DROPOFF') {
       const t=tasks.get(e.taskId),a=agfs.find(a=>a.id===t?.agfId);
       required(t?.status==='moving_loaded' && a?.taskId===t.id,'drop without pickup');
+      if(graphMode)required(a.currentNodeId===resolveInterfaceNode(topology,t.destinationId),
+        'dropoff before individual interface arrival');
       completeDrop(t,a);
     } else if (e.type === 'WRAP_FINISHED') {
       required(wrapper.processing===e.palletId && !wrapper.readyToRelease,
@@ -843,11 +1057,26 @@ export function simulate(rawScenario) {
       gates.get(e.shutterId).passable=e.passable;
       record('SHUTTER_STATE_CHANGED',{shutterId:e.shutterId,passable:e.passable});
       wakeTraffic();
+    } else if(e.type==='TURN_COMPLETED'){
+      const a=agfs.find(a=>a.id===e.agfId),turn=a?.turn;
+      required(a?.status==='turning'&&turn?.startedAt===e.startedAt&&turn.completedAt===now,
+        'turn completion without a stopped turn');
+      a.headingDeg=turn.targetHeadingDeg;a.heading=cardinalHeading(a.headingDeg);
+      a.status=a.movement.movement==='empty'?'moving_empty':a.movement.movement==='loaded'?'moving_loaded':
+        a.movement.movement==='wait'?'moving_to_wait':'moving_to_charge';
+      a.turn=null;
+      record('TURN_COMPLETED',{agfId:a.id,taskId:a.taskId,nodeId:a.currentNodeId,startedAt:turn.startedAt,
+        headingDeg:a.headingDeg,angleDeg:turn.angleDeg,turnDurationMs:now-turn.startedAt});
+      // Retain the stopped node's explicit resources until the outgoing segment
+      // owns its lane as well. Release at segment exit; no same-time entry gap.
+      schedule(now,'SEGMENT_REQUEST',{agfId:a.id});wakeTraffic();
     } else if(e.type==='SEGMENT_REQUEST'){
       const a=agfs.find(agf=>agf.id===e.agfId),movement=a?.movement;
       required(a&&movement&&movement.stepIndex<movement.steps.length,'segment request without movement');
+      if(a.status==='waiting_interference')continue;
       movement.retryScheduled=false;
       const step=movement.steps[movement.stepIndex],edge=graphEdges.get(step.edgeId);
+      if(beginTurn(a,step))continue;
       if(step.shutterId&&!gates.get(step.shutterId)?.passable){
         if(movement.waitingReason!=='SHUTTER'){
           movement.waitingReason='SHUTTER';a.status='waiting_traffic';
@@ -868,10 +1097,11 @@ export function simulate(rawScenario) {
           if(movement.waitingReason!=='RESOURCE'){
             movement.waitingReason='RESOURCE';a.status='waiting_traffic';
             record('SEGMENT_WAITING',{taskId:movement.taskId,agfId:a.id,edgeId:step.edgeId,
-              blockers:entered.blockers,reason:'OCCUPIED'});
+              blockers:entered.blockers,reason:entered.reason??'OCCUPIED'});
             const deadlocks=traffic.detectDeadlocks();
             if(deadlocks.length)record('DEADLOCK_DETECTED',{cycles:deadlocks,recoveryPolicy:'detect-only'});
           }
+          tryAvoidance(a,entered.blockers,edge,entered.reason);
         }else{
           if(waitingPlaces.get(step.fromNodeId)===a.id){
             waitingPlaces.set(step.fromNodeId,null);
@@ -891,10 +1121,10 @@ export function simulate(rawScenario) {
             ...(step.displayPath?{displayPath:clone(step.displayPath)}:{})};
           a.status=movement.movement==='empty'?'moving_empty':movement.movement==='loaded'?'moving_loaded':
             movement.movement==='wait'?'moving_to_wait':'moving_to_charge';
-          a.heading=heading(step.fromNodeId,step.toNodeId);
+          a.headingDeg=heading(step.fromNodeId,step.toNodeId);a.heading=cardinalHeading(a.headingDeg);
           record('SEGMENT_ENTERED',{taskId:movement.taskId,agfId:a.id,edgeId:step.edgeId,
             laneId:entered.laneId,fromNodeId:step.fromNodeId,toNodeId:step.toNodeId,
-            movement:movement.movement,heading:a.heading,modelDurationMs:step.durationMs});
+            movement:movement.movement,heading:a.heading,headingDeg:a.headingDeg,modelDurationMs:step.durationMs});
           schedule(now+step.durationMs,'SEGMENT_EXITED',{agfId:a.id});
           // Resume other waiters only after this AGF has its moving status/current
           // segment. Waking it while still waiting would queue a duplicate entry.
@@ -904,7 +1134,14 @@ export function simulate(rawScenario) {
     } else if(e.type==='SEGMENT_EXITED'){
       const a=agfs.find(agf=>agf.id===e.agfId),movement=a?.movement,current=movement?.current;
       required(a&&movement&&current,'segment exit without movement');
-      traffic.release(a.id);a.currentNodeId=current.toNodeId;a.area=graphNodes.get(a.currentNodeId).areaId;
+      const edge=graphEdges.get(current.edgeId),nextStep=movement.steps[movement.stepIndex+1],nextEdge=graphEdges.get(nextStep?.edgeId);
+      const opposite={east:'west',west:'east',north:'south',south:'north',forward:'reverse',reverse:'forward'};
+      const groupDirection=(edge,traversal)=>traversal==='forward'?edge?.noOvertakingForwardDirection:opposite[edge?.noOvertakingForwardDirection];
+      const keepFollowingOrder=!!edge.noOvertakingGroupId&&
+        (nextEdge?.noOvertakingGroupId===edge.noOvertakingGroupId&&groupDirection(edge,current.traversal??
+          movement.steps[movement.stepIndex].traversal)===groupDirection(nextEdge,nextStep.traversal)||
+          !nextStep&&graphNodes.get(current.toNodeId).handlingGroupId===edge.noOvertakingGroupId);
+      traffic.release(a.id,{keepFollowingOrder});a.currentNodeId=current.toNodeId;a.area=graphNodes.get(a.currentNodeId).areaId;
       record('SEGMENT_EXITED',{taskId:movement.taskId,agfId:a.id,edgeId:current.edgeId,
         laneId:current.laneId,nodeId:a.currentNodeId,movement:movement.movement});
       movement.current=null;movement.stepIndex++;
@@ -935,7 +1172,8 @@ export function simulate(rawScenario) {
       record('CHARGE_ENDED',{agfId:a.id,chargerId:e.chargerId,batteryPct:a.batteryPct});
       if (!postTaskPolicy&&chargeQueue.length) startCharge(chargeQueue.shift());
     } else throw new Error('unsupported event '+e.type);
-    wakeDrops(); wakePickups(); issue02(); issue03(); chargeIdleAgfs(); dispatch(); settleWaiting(); scheduleBlockedRetries();
+    for(let i=pendingInterferences.length-1;i>=0;i--)if(evaluateInterference(pendingInterferences[i]))pendingInterferences.splice(i,1);
+    wakeDrops(); wakePickups(); issue02(); issue03(); chargeIdleAgfs(); dispatch(); settleWaiting(); scheduleBlockedRetries();wakeAvoidance();
   }
   if (batteryLedger) {
     batteryLedger.advance(now,durationMs,tasks);

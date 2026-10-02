@@ -5,9 +5,24 @@ export const states={idle:'待機',moving_empty:'空走・荷受け',moving_load
   moving_to_wait:'倉庫待機場所へ復帰',hp_wait:'倉庫内待機',dispatch_pending:'次動作判定',
   waiting_hp_instruction:'HP選択待ち',waiting_hp_capacity:'HP満杯・復帰保留',waiting_hp_route:'HP経路保留',
   handling_pickup:'荷受け',handling_dropoff:'荷下ろし',waiting_pickup:'荷受け許可待ち',
+  turning:'旋回中',positioning_for_pickup:'荷受け姿勢へ移行',picking_fork_inserted:'フォーク挿入済み・荷受け',
+  positioning_for_dropoff:'荷下ろし姿勢へ移行',dropping_fork_inserted:'フォーク挿入済み・荷下ろし',
+  waiting_motion_configuration:'走行・荷役設定待ち',
+  waiting_avoidance:'退避完了・復帰待ち',waiting_interference:'干渉解消・退避待ち',wait_pickup:'荷受け許可待ち',
   waiting_traffic:'交通待ち',waiting_charge:'充電待ち',moving_to_charge:'充電場所へ移動',charging:'充電中',queued:'割当待ち',completed:'完了'};
 export const stateLabel=(status,graphMode=false)=>graphMode&&status==='moving_empty'?'空走':
   graphMode&&status==='moving_loaded'?'積載走行':states[status]??status;
+export const headingLabel=(heading,headingDeg)=>{
+  const cardinal=({north:'北 ↑',south:'南 ↓',east:'東 →',west:'西 ←'})[heading];
+  if(!Number.isFinite(headingDeg))return cardinal??'未確定';
+  const normalized=((headingDeg%360)+360)%360,exact=({0:'東 →',90:'南 ↓',180:'西 ←',270:'北 ↑'})[normalized];
+  return (exact?exact+' · ':'')+normalized.toFixed(1)+'°';
+};
+export const turnDescription=(agf,timeMs)=>{
+  if(agf.status!=='turning'||!agf.turn)return '';
+  const t=agf.turn,remaining=Math.max(0,t.completedAt-timeMs)/1000;
+  return `${t.fromHeadingDeg.toFixed(1)}° → ${t.targetHeadingDeg.toFixed(1)}° / 必要角度 ${t.angleDeg}° / 残り ${remaining.toFixed(1)}秒 / 並進速度0`;
+};
 export const taskNames={'01':'製品の包装投入','02':'製品の倉庫入庫','03':'空パレット補充','04':'仮置きから再投入','05':'仮置きから入庫'};
 export const reasons={LOCATION_PERMISSION:'入庫許可なし',SAME_ROW_ACTIVE:'同じ行の置きタスク完了待ち',LOCATION_FULL_OR_RESERVED:'入庫先が満杯または予約済み',
   NO_ASSIGNED_STORAGE:'対象用途の行なし',ROW_PRIORITY_UNRESOLVED:'同用途の行優先順位が未設定',ASSIGNED_STORAGE_FULL:'対象系列／特注領域が満杯',
@@ -36,6 +51,18 @@ Object.assign(eventNames,{PRODUCTION_DUE:'生産タイミング到来',EMPTY_PAL
   PRODUCTION_RECOVERY_WAIT_NEXT_TAKT:'補充済み・次タクト待ち',PRODUCTION_RETRY_WAITING_BUFFER:'再生産・系列バッファ空き待ち',
   PICKUP_PERMISSION_GRANTED:'荷受け許可・再開'});
 Object.assign(reasons,{EMPTY_PALLET:'空パレット待ち',RECOVERY_POLICY_UNSET:'再開方式未設定・生産保留',LINE_BUFFER_FULL:'系列バッファ空き待ち'});
+Object.assign(reasons,{TURN_RATE_UNRESOLVED:'旋回角速度が未設定・停止保留',HANDLING_PHASES_UNRESOLVED:'荷役姿勢・フォーク挿入後の時間が未設定',
+  AVOIDANCE_TIE_UNRESOLVED:'回避側の同率判断が未確定',AVOIDANCE_ROUTE_UNRESOLVED:'明示された退避経路なし',
+  NO_AVOIDANCE_CANDIDATE:'移動可能かつ明示退避経路のあるAGFなし',HANDLING_POSITIONING:'設備前の姿勢移行完了待ち',
+  TURN_RESOURCE_OCCUPIED:'旋回位置の占有解放待ち',STOP_AT_EXPLICIT_NODE_BEFORE_AVOIDANCE:'明示停止位置で退避待ち',
+  NO_OVERTAKING:'同方向の前方AGF待ち・追越禁止',POSITIONING_BLOCKED:'設備前の姿勢移行完了待ち'});
+Object.assign(eventNames,{TURN_STARTED:'停止旋回開始',TURN_COMPLETED:'停止旋回完了',MOTION_CONFIGURATION_WAITING:'走行・荷役設定待ち',
+  TASK_POSITIONING_STARTED:'設備前の姿勢移行開始',PICKUP_FORK_INSERTED:'荷受けフォーク挿入',DROPOFF_FORK_INSERTED:'荷下ろしフォーク挿入',
+  AVOIDANCE_STARTED:'干渉回避開始',AVOIDANCE_COMPLETED:'干渉回避完了',AVOIDANCE_HELD:'干渉回避保留'});
+Object.assign(eventNames,{AVOIDANCE_REACHED:'退避位置到着',AVOIDANCE_RETURN_STARTED:'元経路へ復帰開始',
+  AVOIDANCE_TIE_UNRESOLVED:'回避側の同率判断が未確定',AVOIDANCE_UNAVAILABLE:'明示された退避経路なし',
+  HEADING_INITIALIZED:'合成初期走行方向の設定',HANDLING_RESOURCE_WAITING:'設備前の姿勢移行空き待ち',
+  INTERFERENCE_DETECTED:'明示された干渉入力',INTERFERENCE_DEFERRED:'停止位置での干渉判断待ち'});
 export const areaName=id=>id==='PZ'?'パレタイズ':id==='WH'?'製品倉庫':id;
 export const locationName=id=>({ 'WRAP-INPUT':'包装機 投入','WRAP-OUTPUT':'包装機 回収',OT1:'仮置き1',OT2:'仮置き2',OT3:'仮置き3',
   'PILLAR-WAIT-W':'柱前西','PILLAR-WAIT-E':'柱前東',

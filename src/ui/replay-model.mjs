@@ -22,14 +22,17 @@ export function effectiveStatus(agf,snapshot) {
   if(agf.status==='idle'&&snapshot.waitingPlaces?.[agf.currentNodeId]===agf.id)return 'hp_wait';
   if(snapshot.tasks.find(task=>task.id===agf.taskId)?.status==='wait_drop')return 'wait_drop';
   const movement=agf.movement;
-  if(movement&&!movement.current&&movement.stepIndex===movement.steps.length){
+  if(['moving_empty','moving_loaded'].includes(agf.status)&&movement&&!movement.current&&movement.stepIndex===movement.steps.length){
     if(agf.status==='moving_empty')return 'handling_pickup';
     if(agf.status==='moving_loaded')return 'handling_dropoff';
   }
   return agf.status;
 }
-export const workingStatuses=['moving_empty','moving_loaded','handling_pickup','handling_dropoff'];
+export const workingStatuses=['moving_empty','moving_loaded','handling_pickup','handling_dropoff','turning',
+  'positioning_for_pickup','picking_fork_inserted','positioning_for_dropoff','dropping_fork_inserted'];
 export const durationStatuses=['idle','moving_empty','handling_pickup','moving_loaded','handling_dropoff',
+  'turning','positioning_for_pickup','picking_fork_inserted','positioning_for_dropoff','dropping_fork_inserted',
+  'waiting_motion_configuration','waiting_avoidance','waiting_interference',
   'waiting_traffic','wait_drop','waiting_pickup','moving_to_wait','hp_wait','moving_to_charge','charging','waiting_charge',
   'waiting_hp_instruction','waiting_hp_capacity','waiting_hp_route'];
 
@@ -91,7 +94,10 @@ export function analyzeRun(run) {
     idleMs:sum('idle')+sum('hp_wait'),hpWaitMs:sum('hp_wait'),waitReturnMs:sum('moving_to_wait'),
     hpBlockedMs:sum('waiting_hp_instruction')+sum('waiting_hp_capacity')+sum('waiting_hp_route'),
     dropWaitMs:sum('wait_drop'),pickupWaitMs:sum('waiting_pickup'),chargeMs:sum('charging'),
-    trafficWaitMs:sum('waiting_traffic'),
+    trafficWaitMs:sum('waiting_traffic')+sum('waiting_avoidance')+sum('waiting_interference'),avoidanceWaitMs:sum('waiting_avoidance'),
+    turningMs:sum('turning'),positioningMs:sum('positioning_for_pickup')+sum('positioning_for_dropoff'),
+    forkHandlingMs:sum('picking_fork_inserted')+sum('dropping_fork_inserted'),
+    motionConfigurationWaitMs:sum('waiting_motion_configuration'),
     chargeWaitMs:sum('waiting_charge'),chargeTravelMs:sum('moving_to_charge'),
     requestWaitMs:tasks.reduce((n,t)=>n+Math.max(0,(t.assignedAt??durationMs)-t.requestedAt),0)};
 }

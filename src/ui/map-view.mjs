@@ -16,6 +16,8 @@ export const MAP_VIEWBOX=[0,0,1400,850];
 const sx=1400/1100,sy=850/970;
 const text=(x,y,label,cls='',attrs='')=>`<text x="${x}" y="${y}" class="${cls}" transform="translate(${x} ${y}) scale(${1/sx} ${1/sy}) translate(${-x} ${-y})" ${attrs}>${esc(label)}</text>`;
 const rect=(x,y,w,h,cls='',id='')=>`<rect data-map-id="${id}" x="${x}" y="${y}" width="${w}" height="${h}" rx="8" class="${cls}"/>`;
+const markerHeading=(heading,degrees)=>Number.isFinite(degrees)&&degrees%90!==0?
+  degrees.toFixed(0)+'°':({east:'→',west:'←',north:'↑',south:'↓'})[heading]??'·';
 
 export function initMap({svg,onSelectAgf,onSelectBlock}) {
   let box=[...MAP_VIEWBOX],drag=null,snapshot=null,selected='AGF1';
@@ -103,9 +105,11 @@ export function initMap({svg,onSelectAgf,onSelectBlock}) {
       const status=effectiveStatus(agf,snapshot);
       const positionLabel=agf.displayPosition?`合成グラフ位置 ${locationName(agf.currentNodeId??agf.movement?.current?.edgeId??'')}`:'所属エリアの仮位置';
       const parked=agf.displayPosition&&!agf.movement?.current&&['HP1','HP2','PILLAR-WAIT-W','PILLAR-WAIT-E','CHARGE-PLACE1','CHARGE-PLACE2'].includes(agf.currentNodeId);
-      const body=parked?`<rect class="agf-halo" x="-17" y="-13" width="77" height="26" rx="8"/><rect x="-13" y="-12" width="26" height="24" rx="6" class="agf-body"/>${text(0,6,index+1,'agf-number align-center')}${text(18,6,agf.batteryPct.toFixed(1)+'%','map-small',`data-battery-text="${agf.id}"`)}`:
-        `<rect class="agf-halo" x="-33" y="-25" width="104" height="50" rx="15"/><rect x="-23" y="-18" width="46" height="36" rx="9" class="agf-body"/>${text(0,6,index+1,'agf-number align-center')}${agf.heading?text(0,-27,{east:'→',west:'←',north:'↑',south:'↓'}[agf.heading]??'·','heading-label'):''}${text(35,-4,agf.batteryPct.toFixed(1)+'%','map-small',`data-battery-text="${agf.id}"`)}${text(35,13,agf.carriedPalletId?'▣ 積載':'□ 空車','map-small')}`;
-      return `<g data-agf="${esc(agf.id)}" data-heading="${esc(agf.heading??'unresolved')}" role="button" tabindex="0" aria-label="${esc(agf.id+' '+(stateLabel(status,!!agf.movement))+' '+positionLabel)}" class="agf-marker${agf.id===selected?' selected':''}" transform="translate(${x},${y})">
+      const headingDeg=agf.displayPosition?.headingDeg??agf.headingDeg??({east:0,south:90,west:180,north:270})[agf.heading];
+      const orientation=Number.isFinite(headingDeg)?headingDeg:0;
+      const body=parked?`<rect class="agf-halo" x="-17" y="-13" width="77" height="26" rx="8"/><g class="agf-orientation" transform="rotate(${orientation})"><rect x="-13" y="-12" width="26" height="24" rx="6" class="agf-body"/><path class="agf-forks" d="M13 -5 H20 M13 5 H20"/></g>${text(0,6,index+1,'agf-number align-center')}${text(23,6,agf.batteryPct.toFixed(1)+'%','map-small',`data-battery-text="${agf.id}"`)}`:
+        `<rect class="agf-halo" x="-33" y="-25" width="104" height="50" rx="15"/><g class="agf-orientation" transform="rotate(${orientation})"><rect x="-23" y="-18" width="46" height="36" rx="9" class="agf-body"/><path class="agf-forks" d="M23 -7 H33 M23 7 H33"/></g>${text(0,6,index+1,'agf-number align-center')}${agf.heading?text(0,-27,markerHeading(agf.heading,headingDeg),'heading-label'):''}${text(38,-4,agf.batteryPct.toFixed(1)+'%','map-small',`data-battery-text="${agf.id}"`)}${text(38,13,agf.carriedPalletId?'▣ 積載':'□ 空車','map-small')}`;
+      return `<g data-agf="${esc(agf.id)}" data-heading="${esc(agf.heading??'unresolved')}" data-heading-deg="${headingDeg??'unresolved'}" data-motion-state="${esc(status)}" role="button" tabindex="0" aria-label="${esc(agf.id+' '+(stateLabel(status,!!agf.movement))+' '+positionLabel)}" class="agf-marker${agf.id===selected?' selected':''}" transform="translate(${x},${y})">
         <title>${esc(agf.id+'：'+positionLabel+' / '+(agf.heading??'向き未確定')+' / '+(agf.carriedPalletId?'積載':'空車'))}</title>
         <path class="agf-leader" d="M0 0 H${labelX}"/><circle class="agf-position" cx="0" cy="0" r="3"/>
         <g class="agf-label" transform="translate(${labelX},0)">${body}</g></g>`;
@@ -148,8 +152,11 @@ export function initMap({svg,onSelectAgf,onSelectBlock}) {
       marker.setAttribute('transform',`translate(${position.x},${position.y})`);
       const heading=position.agf.heading;
       marker.setAttribute('data-heading',heading??'unresolved');
+      const headingDeg=position.agf.displayPosition?.headingDeg??position.agf.headingDeg??({east:0,south:90,west:180,north:270})[heading];
+      marker.setAttribute('data-heading-deg',headingDeg??'unresolved');
+      marker.querySelector('.agf-orientation')?.setAttribute('transform',`rotate(${Number.isFinite(headingDeg)?headingDeg:0})`);
       const arrow=marker.querySelector('.heading-label');
-      if(arrow)arrow.textContent={east:'→',west:'←',north:'↑',south:'↓'}[heading]??'·';
+      if(arrow)arrow.textContent=markerHeading(heading,headingDeg);
       marker.querySelector('.agf-label')?.setAttribute('transform',`translate(${position.labelX},0)`);
       marker.querySelector('.agf-leader')?.setAttribute('d',`M0 0 H${position.labelX}`);
     }

@@ -137,8 +137,12 @@ test('synthetic replay paths cross the wall only through fire shutters and never
       }
     }
   }
-  const entry=graph.edges.find(e=>e.id==='E08'),exit=graph.edges.find(e=>e.id==='E09');
-  assert.equal(entry.fromNodeId,'WH-GATE');assert.equal(entry.toNodeId,'PZ-ENTRY');
+  const entry=graph.edges.filter(e=>e.splitSourceEdgeId==='E08').sort((a,b)=>a.splitPartIndex-b.splitPartIndex),exit=graph.edges.find(e=>e.id==='E09');
+  assert.equal(entry.length,3);
+  assert.equal(entry[0].fromNodeId,'WH-GATE');assert.equal(entry.at(-1).toNodeId,'PZ-ENTRY');
+  assert.ok(entry.every((e,i)=>!i||entry[i-1].toNodeId===e.fromNodeId));
+  assert.deepEqual([entry[0].displayPath[0],...entry.map(e=>e.displayPath[1])],
+    [{x:682.5,y:475},{x:682.5,y:390},{x:192,y:390},{x:192,y:300}]);
   assert.equal(exit.fromNodeId,'PZ-EXIT');assert.equal(exit.toNodeId,'WH-GATE');
-  assert.ok([entry,exit].every(e=>e.lanes.every(l=>l.direction==='forward')));
+  assert.ok([...entry,exit].every(e=>e.lanes.every(l=>l.direction==='forward')));
 });
