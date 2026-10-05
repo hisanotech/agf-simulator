@@ -107,6 +107,7 @@ export function buildRunConditions(run,{runId=run.runId??null,executedAt=run.exe
   }
   add('PRODUCTION','settings','source',s.productionEvents?'explicit-events':s.productStreams?'product-streams':'line-intervals',evidence('production'));
   add('PRODUCTION','settings','model',s.productionModel??'legacy_external_pallets',s.productionModel===undefined?'legacy-model':evidence('production'));
+  if(s.lineMagazineMapPolicy)add('PRODUCTION','settings','lineMagazineMapPolicy',s.lineMagazineMapPolicy,evidence('lineMagazineMap'),'系列・マガジン対応の固定方針');
   for(let i=0;i<8;i++){
     const id='L'+(i+1),streams=s.productStreams?.filter(stream=>stream.sourceLineId===id),normal=streams?.find(stream=>stream.productType==='normal'&&stream.loadType==='full');
     add('PRODUCTION',id,'intervalMin',normal?.intervalMin??s.lineIntervalsMin?.[i],evidence('production'),lineNames[i]+' 搬出間隔（分）');

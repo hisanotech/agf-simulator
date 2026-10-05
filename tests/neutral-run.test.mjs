@@ -3,14 +3,24 @@ import assert from 'node:assert/strict';
 import {createDemoScenario} from '../src/ui/scenario.mjs';
 import {simulate} from '../src/core/simulate.mjs';
 import {configuredNeutralScenario} from './fixtures/neutral-scenario.mjs';
-for(const preset of ['standard','extended'])test(`${preset} keeps unknown magazine mapping and recovery policy unset`,()=>{
+for(const preset of ['standard','extended'])test(`${preset} uses the confirmed fixed magazine map while recovery remains unset`,()=>{
   const s=createDemoScenario(preset);
   assert.equal(s.productionModel,'empty_pallet_supply');
   assert.deepEqual(Object.keys(s.lineMagazineMap),Array.from({length:8},(_,i)=>'L'+(i+1)));
-  assert.ok(Object.values(s.lineMagazineMap).every(x=>x===null));
+  assert.deepEqual(s.lineMagazineMap,{L1:'M4',L2:'M4',L3:'M5',L4:'M3',L5:'M2',L6:'M5',L7:'M2',L8:'M1'});
+  assert.equal(s.lineMagazineMapPolicy,'fixed');
+  assert.equal(s.evidence.lineMagazineMap,'user-confirmed-fixed-magazine-mapping');
   assert.equal(s.magazineEmptyRecoveryPolicy,null);
   assert.equal(s.magazineUses.length,0);
-  assert.throws(()=>simulate(s),/PRODUCTION_CONFIG|WAREHOUSE_CONFIG/);
+  s.durationMin=1;
+  assert.doesNotThrow(()=>simulate(s));
+});
+
+test('a missing or unknown magazine still prevents an ordinary Run after the mapping is confirmed',()=>{
+  for(const value of [undefined,'M404']){
+    const s=createDemoScenario();s.durationMin=1;s.lineMagazineMap.L8=value;
+    assert.throws(()=>simulate(s),/PRODUCTION_CONFIG/);
+  }
 });
 test('ordinary Run begins with neutral equipment and stop occupancy, never charged fixture stock',()=>{
   const s=configuredNeutralScenario();s.durationMin=1;

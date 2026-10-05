@@ -1,6 +1,7 @@
 import {WAREHOUSE_BLOCKS,NORMAL_WAITING_PRIORITY} from '../map/warehouse-layout.mjs';
 import {syntheticWarehousePolicy} from '../../examples/synthetic-warehouse-policy.mjs';
 import {escapeHtml as esc,locationName} from './format.mjs';
+import {CONFIRMED_LINE_MAGAZINE_MAP} from './scenario.mjs';
 
 const rowIds=WAREHOUSE_BLOCKS.flatMap(b=>Array.from({length:b.rows},(_,i)=>`${b.id}-R${String(i+1).padStart(2,'0')}`));
 const label=(type,load)=>(type==='normal'?'普通銘柄':'特注銘柄')+'・'+(load==='full'?'満載':'端数');
@@ -149,26 +150,38 @@ export function loadSyntheticSettingsExample(s){
 }
 
 const roman=['I','II','III','IV','V','VI','VII','VIII'];
+export function renderSupplySettings(s){
+  const fixed=s.lineMagazineMapPolicy==='fixed',mapping=fixed?CONFIRMED_LINE_MAGAZINE_MAP:s.lineMagazineMap;
+  return `<h3>空パレット供給・整列機初期装填</h3>
+    <p class="notice">${fixed?'8系列と5マガジンはユーザー確認済みの固定対応です。この画面では変更できません。':'全系列の対応を明示するまでRunは開始できません。ここでの変更はこの検証シナリオだけに反映します。'}空時の再開方式は自動選択しません。</p>
+    <div class="fields supply-mapping">${Array.from({length:8},(_,i)=>{const id='L'+(i+1);return `<label>GW${roman[i]} / ${id} 使用マガジン<select data-line-magazine="${id}" aria-label="${id} 使用マガジン"${fixed?' disabled':''}><option value="">未設定</option>${s.magazines.map(m=>`<option value="${esc(m.id)}" ${mapping?.[id]===m.id?'selected':''}>${esc(locationName(m.id))}（${esc(m.id)}）</option>`).join('')}</select></label>`;}).join('')}</div>
+    <label>マガジン0枚停止後の再開方式<select id="magazine-recovery-policy"><option value="">未設定 · 補充後も生産保留</option><option value="immediate_retry">保留生産を補充直後に再試行</option><option value="next_takt">次のタクトから生産</option></select></label>
+    <p class="muted">現場の再開方式は未確定です。選択値はこのRunの明示条件として保存します。</p>
+    <div class="supply-initial fields">${s.magazines.map(m=>`<label>${m.id} 初期枚数<input type="number" min="0" max="${m.capacity}" step="1" value="${m.quantity}" data-initial-magazine="${m.id}" aria-label="${m.id} 初期枚数"></label>`).join('')}${s.aligners.map(a=>`<label>${a.id} 初期枚数<select data-initial-aligner="${a.id}" aria-label="${a.id} 初期枚数"><option value="10" ${a.quantity===10?'selected':''}>10枚</option><option value="0" ${a.quantity===0?'selected':''}>0枚 · 明示検証条件</option></select></label>`).join('')}</div>`;
+}
 function populateSupplySettings(s){
   const root=document.getElementById('supply-settings');
   if(!root)return;
   root.hidden=s.productionModel!=='empty_pallet_supply';
   if(root.hidden){root.replaceChildren();return;}
-  root.innerHTML=`<h3>空パレット供給・整列機初期装填</h3>
-    <p class="notice">8系列と5マガジンの実対応は未確定です。全系列の対応を明示するまで通常Runは開始できません。空時の再開方式も自動選択しません。</p>
-    <div class="fields supply-mapping">${Array.from({length:8},(_,i)=>{const id='L'+(i+1);return `<label>GW${roman[i]} / ${id} 使用マガジン<select data-line-magazine="${id}" aria-label="${id} 使用マガジン"><option value="">未設定</option>${s.magazines.map(m=>`<option value="${m.id}" ${s.lineMagazineMap?.[id]===m.id?'selected':''}>${m.id}</option>`).join('')}</select></label>`;}).join('')}</div>
-    <label>マガジン0枚停止後の再開方式<select id="magazine-recovery-policy"><option value="">未設定 · 補充後も生産保留</option><option value="immediate_retry">保留生産を補充直後に再試行</option><option value="next_takt">次のタクトから生産</option></select></label>
-    <p class="muted">現場の再開方式は未確定です。選択値はこのRunの明示条件として保存します。</p>
-    <div class="supply-initial fields">${s.magazines.map(m=>`<label>${m.id} 初期枚数<input type="number" min="0" max="${m.capacity}" step="1" value="${m.quantity}" data-initial-magazine="${m.id}" aria-label="${m.id} 初期枚数"></label>`).join('')}${s.aligners.map(a=>`<label>${a.id} 初期枚数<select data-initial-aligner="${a.id}" aria-label="${a.id} 初期枚数"><option value="10" ${a.quantity===10?'selected':''}>10枚</option><option value="0" ${a.quantity===0?'selected':''}>0枚 · 明示検証条件</option></select></label>`).join('')}</div>`;
+  root.innerHTML=renderSupplySettings(s);
   document.getElementById('magazine-recovery-policy').value=s.magazineEmptyRecoveryPolicy??'';
+}
+/** Ordinary Runs keep the confirmed correspondence even if form controls were altered. */
+export function lineMagazineMapFromSettings(s,values={}){
+  return s.lineMagazineMapPolicy==='fixed'?{...CONFIRMED_LINE_MAGAZINE_MAP}:
+    Object.fromEntries(Array.from({length:8},(_,i)=>{const id='L'+(i+1);return [id,values[id]||null];}));
 }
 function readSupplySettings(s){
   if(s.productionModel!=='empty_pallet_supply')return;
-  s.lineMagazineMap=Object.fromEntries(Array.from({length:8},(_,i)=>{const id='L'+(i+1);return [id,document.querySelector(`[data-line-magazine="${id}"]`).value||null];}));
+  const values=s.lineMagazineMapPolicy==='fixed'?{}:Object.fromEntries(
+    [...document.querySelectorAll('[data-line-magazine]')].map(input=>[input.dataset.lineMagazine,input.value]));
+  s.lineMagazineMap=lineMagazineMapFromSettings(s,values);
   s.magazineEmptyRecoveryPolicy=document.getElementById('magazine-recovery-policy').value||null;
   s.magazines=s.magazines.map(m=>({...m,quantity:Number(document.querySelector(`[data-initial-magazine="${m.id}"]`).value)}));
   s.aligners=s.aligners.map(a=>({id:a.id,quantity:Number(document.querySelector(`[data-initial-aligner="${a.id}"]`).value)}));
-  s.evidence.lineMagazineMap=Object.values(s.lineMagazineMap).every(Boolean)?'explicit-scenario-setting':'unconfigured';
+  s.evidence.lineMagazineMap=s.lineMagazineMapPolicy==='fixed'?'user-confirmed-fixed-magazine-mapping':
+    Object.values(s.lineMagazineMap).every(Boolean)?'explicit-scenario-setting':'unconfigured';
   s.evidence.magazineEmptyRecoveryPolicy=s.magazineEmptyRecoveryPolicy?'explicit-scenario-setting':'unresolved';
   s.evidence.inventory=s.magazines.every(m=>m.quantity===10)&&s.aligners.every(a=>a.quantity===10)?'user-confirmed-neutral-start':'explicit-scenario-initial-inventory';
 }

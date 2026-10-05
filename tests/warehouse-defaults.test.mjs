@@ -17,8 +17,8 @@ for(const preset of ['standard','extended'])test(`${preset} starts with the user
   const preview=createInitialPreview(scenario);
   assert.deepEqual(preview.scenario.warehousePolicy,scenario.warehousePolicy);
   assert.ok(preview.final.tasks.length===0&&preview.final.pallets.length===0);
-  // The row-allocation approval supplies no missing magazine mapping or recovery policy.
-  assert.ok(Object.values(scenario.lineMagazineMap).every(value=>value===null));
+  // The supply mapping was subsequently confirmed, but recovery is still unresolved.
+  assert.deepEqual(scenario.lineMagazineMap,{L1:'M4',L2:'M4',L3:'M5',L4:'M3',L5:'M2',L6:'M5',L7:'M2',L8:'M1'});
   assert.equal(scenario.magazineEmptyRecoveryPolicy,null);
 });
 

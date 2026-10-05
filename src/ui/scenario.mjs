@@ -3,7 +3,12 @@ import syntheticTopology from '../../examples/synthetic-operational-topology.jso
 import {defaultProductStreams,THEORETICAL_LINE_INTERVALS_MIN} from '../core/production-streams.mjs';
 import {syntheticWarehousePolicy} from '../../examples/synthetic-warehouse-policy.mjs';
 
-/** All inventory, input streams and timing here are explicit, reproducible sample assumptions. */
+// User-confirmed fixed supply correspondence. This does not define CAD positions.
+export const CONFIRMED_LINE_MAGAZINE_MAP=Object.freeze({
+  L1:'M4',L2:'M4',L3:'M5',L4:'M3',L5:'M2',L6:'M5',L7:'M2',L8:'M1'
+});
+
+/** Confirmed defaults carry evidence; unmeasured geometry/timing stay model assumptions. */
 export function createDemoScenario(preset='standard') {
   if(preset==='standard'||preset==='extended'){
     const s=createLegacyScenario('physical');s.preset=preset;
@@ -13,9 +18,10 @@ export function createDemoScenario(preset='standard') {
     s.productStreams=defaultProductStreams(undefined,s.lineStartOffsetsMin);
     s.evidence.production='theoretical-pallet-discharge-100pct';
     s.productionModel='empty_pallet_supply';
-    s.lineMagazineMap=Object.fromEntries(Array.from({length:8},(_,i)=>['L'+(i+1),null]));
+    s.lineMagazineMap={...CONFIRMED_LINE_MAGAZINE_MAP};
+    s.lineMagazineMapPolicy='fixed';
     s.magazineEmptyRecoveryPolicy=null;
-    s.evidence.lineMagazineMap='unconfigured';
+    s.evidence.lineMagazineMap='user-confirmed-fixed-magazine-mapping';
     s.evidence.magazineEmptyRecoveryPolicy='unresolved';
     s.evidence.inventory='user-confirmed-neutral-start';
     // User requested this existing example as the editable initial allocation.

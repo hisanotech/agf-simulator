@@ -12,6 +12,7 @@ export const evidenceLabel=evidence=>({
   'theoretical-pallet-discharge-100pct':'設備能力100%の理論タクト',
   'explicit-scenario-setting':'この実行の明示条件',
   'user-requested-example-default':'ユーザー指定の初期行割当・既存例と同じ値',
+  'user-confirmed-fixed-magazine-mapping':'ユーザー確認済み・固定対応',
   'user-confirmed-initial-logical-direction-policy':'確認済みのシミュレーション初期通行方針'
 })[evidence]??(String(evidence??'').includes('legacy')?'旧回帰モデルの条件':'この実行の設定・仮定');
 
@@ -40,6 +41,7 @@ export function customerConditionRows(run){
   add('mode','基本条件','AGF選定方式',selectionLabel(s.mode));
   const graph=s.motionModel==='synthetic_graph';
   add('motion.model','基本条件','走行時間の根拠',graph?'合成経路の距離・速度から計算':'設定した固定移動時間');
+  if(s.lineMagazineMapPolicy)add('line.magazinePolicy','系列の搬出条件','系列・マガジン対応',s.lineMagazineMapPolicy==='fixed'?'固定対応':'検証シナリオの明示対応','','',s.evidence?.lineMagazineMap);
   for(let i=0;i<8;i++){
     const lineId='L'+(i+1),target=LINE_LABELS[i],streams=s.productStreams?.filter(stream=>stream.sourceLineId===lineId&&stream.enabled);
     add('line.'+lineId+'.magazine','系列の搬出条件','使用マガジン',s.lineMagazineMap?.[lineId]?customerLocationName(s.lineMagazineMap[lineId]):null,'',target,s.evidence?.lineMagazineMap);

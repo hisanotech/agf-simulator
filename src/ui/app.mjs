@@ -86,7 +86,7 @@ function scenarioFromSettings() {
 function markDirty(value=true) {dirty=value;$('dirty-state').hidden=!value;}
 function friendlyError(error) {
   const message=error.message??String(error);
-  if(/lineMagazineMap/.test(message))return 'GWI〜GWVIIIの全8系列に、存在するマガジンを指定してください。実対応は未確定のため初期値を設定していません。';
+  if(/lineMagazineMap/.test(message))return 'GWI〜GWVIIIの全8系列に、存在するマガジンが必要です。基準Run・追加仕様は確認済みの固定対応です。検証シナリオでは不足している対応を確認してください。';
   if(/magazineEmptyRecoveryPolicy/.test(message))return '空パレット0枚停止後の再開方式を確認してください。未設定のままでは補充後も生産を保留します。';
   if(/MOTION_CONFIG/.test(message))return '停止旋回・荷役姿勢の設定を確認してください。旋回角速度は正のdeg/s、4相の時間は0以上の分で明示します。未確定値は補完しません。';
   if(/waiting return target|normal waiting place|shared normal waiting priority/.test(message))return '共通の帰還先はHP1 → HP2 → 柱前東 → 柱前西です。4か所すべてへの合成経路が接続されている必要があります。AGF別の固定割当は使用できません。';
@@ -136,7 +136,9 @@ function showInitialPreview(){
   pause();result=null;analysis=null;comparison=null;runId='';timeMs=0;currentIndex=0;
   preview=createInitialPreview(base);$('clock').textContent=clock(0);$('seek').value='0';
   $('end-clock').textContent=clock(base.durationMin*60000);
-  $('run-state').textContent='未実行 · 初期状態';$('run-context').textContent='倉庫行割当は初期値を設定済み · 系列→マガジン対応を設定して実行';
+  $('run-state').textContent='未実行 · 初期状態';$('run-context').textContent=base.lineMagazineMapPolicy==='fixed'?
+    '倉庫行割当・系列マガジンの固定対応を設定済み · 実行して結果を確認':
+    '検証シナリオの初期状態 · 実行して結果を確認';
   $('analysis-run').textContent='未実行';$('analysis-body').innerHTML='<p class="notice">実行後に保存済みRunの結果と条件を表示します。</p>';
   syncRunControls();renderSnapshot();
 }
