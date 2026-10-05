@@ -68,7 +68,7 @@ Then open http://localhost:8000/ . No frontend packages or build process are nee
 
 - Four AGFs, two exclusive charger slots, scenario-configurable consumption and charging rates.
 - Independent per-line minute intervals or an explicit external production event stream. Interval-generated events have inputKind=synthetic-interval, never PLC history.
-- Task 01 → wrapper (input 1, process 1, output 2) → label → exit-ready → task 02 → explicitly declared synthetic warehouse slot. The same pallet ID persists across stages. Same-row task issuance is held and location reservations prevent overbooking.
+- Task 01 → wrapper (one input handoff holding 1PL, internal conveyor holding up to 5PL including the pallet undergoing wrapping, a single wrapping processor, one output handoff holding 1PL) → label → exit-ready → task 02 → explicitly declared synthetic warehouse slot. The handoff and internal capacities are user-confirmed on 2026-10-02; conveyor positions and transfer durations remain unverified. The same pallet ID persists across stages. Same-row task issuance is held and location reservations prevent overbooking. Explicit legacy regression scenarios retain their older output-2PL model separately from the neutral baseline Run.
 - Task 03 only on observed magazine consumption down to the trigger, with an explicitly ready aligner and a +10 refill only on drop-off.
 - UI-requested tasks 04/05 use preloaded synthetic temporary pallets; reentry/storage permission and individual destination must be explicitly supplied; duplicate reservations are rejected.
 - Destination-area-first/lowest-battery selection, optional explicitly selected cross-area fallback (wait is the core default), independent low-battery comparison.
@@ -123,6 +123,6 @@ Industrial Simulation Dashboardの5画面（搬送モニター・設定・タス
 
 ## 追加仕様のローカル統合（2026-09-29）
 
-系列／特注行割当、満載・端数と2段積み、種別別搬出、HP復帰・充電優先を既存エンジンへ追加。新しい「倉庫配置・HP復帰 · 要設定」シナリオを選び、明示設定して実行します。実際の割当は未設定です。[追加契約](docs/warehouse-product-wait-contract.md)に入力、根拠、制限、再現手順を記載しています。1400×850の概念図と4区分の設定画面を使用します。
+系列／特注行割当、満載・端数と2段積み、種別別搬出、HP復帰・充電優先を既存エンジンへ追加。通常・追加仕様シナリオの倉庫行割当には、ユーザー指定により「合成検証用の行割当を読込」と同じ値を編集可能な初期値として設定します。実CAD位置・経路の承認は含みません。系列→マガジンの固定対応表は確認待ちです。[追加契約](docs/warehouse-product-wait-contract.md)に入力、根拠、制限、再現手順を記載しています。1400×850の概念図と4区分の設定画面を使用します。
 
 `node scripts/check-integrated-acceptance.mjs` で180分の正常・復旧・充電境界と同一入力比較を検証できます。出力はGit除外のprivate配下です。現場スループット・確定ETA・M8完了を表しません。

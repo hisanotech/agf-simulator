@@ -1,0 +1,8 @@
+[data-settings-invalid]{border:2px solid #f87171!important;background:#422534!important;box-shadow:0 0 0 2px #f8717126;color:#fff!important;scroll-margin:100px 20px}
+[data-settings-invalid]:focus{outline:3px solid #fbbf24;outline-offset:3px}
+.settings-field-error{display:block;color:#fecaca;font-size:12px;line-height:1.6;margin-top:6px;white-space:normal;max-width:32rem}
+.settings-invalid>td,.settings-invalid>th{background:#f8717112}
+.settings-category.settings-invalid{border-color:#f87171}
+.settings-category.settings-invalid>summary{color:#fecaca}
+.settings-category.settings-invalid>summary::after{content:'⚠ 要確認';margin-left:auto;font-size:12px;color:#fecaca}
+.settings-error-summary{border:1px solid #f87171;background:#422534;color:#fecaca;border-radius:8px;padding:14px 16px;margin-bottom:16px;font-size:13px;line-height:1.6}

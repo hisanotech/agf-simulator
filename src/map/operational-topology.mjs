@@ -79,12 +79,51 @@ export function validateOperationalTopology(graph){
     required(['yes','no-alternating','controlled'].includes(edge.lanePolicy.simultaneousPassing),
       'invalid passing policy '+edge.id);
     required(Array.isArray(edge.occupancyResourceIds),'occupancy resources required '+edge.id);
+    if(edge.mergeConflictResourceId!==undefined)
+      required(typeof edge.mergeConflictResourceId==='string'&&edge.mergeConflictResourceId.length>0&&
+        edge.occupancyResourceIds.includes(edge.mergeConflictResourceId),
+        'declared merge resource must be included in occupancy resources '+edge.id);
+    if(edge.mergeConflictEvidence==='explicit-synthetic-existing-device-stop-not-site-clearance'){
+      const stop=nodes.get(edge.toNodeId);
+      required(stop.equipmentId&&stop.accessNodeId===edge.fromNodeId&&
+        edge.mergeConflictResourceId==='DEVICE-STOP:'+stop.interfaceId&&
+        stop.occupancyResourceIds?.includes(edge.mergeConflictResourceId),
+        'device merge must use its existing individual stop resource '+edge.id);
+    }
+    if(edge.atomicPassageId!==undefined){
+      required(typeof edge.atomicPassageId==='string'&&edge.atomicPassageId.length>0,
+        'invalid atomic passage '+edge.id);
+      required(edge.atomicPassageEvidence==='explicit-synthetic-shared-lane-passage-not-site-clearance',
+        'synthetic atomic passage evidence required '+edge.id);
+      required(edge.lanes.length===1&&edge.lanePolicy.simultaneousPassing==='no-alternating',
+        'atomic passage requires an explicitly exclusive single lane '+edge.id);
+    }
     if(edge.noOvertakingGroupId!==undefined){
       required(typeof edge.noOvertakingGroupId==='string'&&edge.noOvertakingGroupId.length>0,
         'invalid no-overtaking group '+edge.id);
       required(typeof edge.noOvertakingForwardDirection==='string'&&edge.noOvertakingForwardDirection.length>0,
         'no-overtaking forward direction required '+edge.id);
     }
+  }
+  const passages=new Map();
+  for(const edge of edges.values())if(edge.atomicPassageId){
+    const passage=passages.get(edge.atomicPassageId)??[];
+    passage.push(edge);passages.set(edge.atomicPassageId,passage);
+  }
+  for(const [id,parts] of passages){
+    required(parts.length>=2,'atomic passage must declare multiple connected parts '+id);
+    const laneResource=parts[0].lanes[0].resourceId??parts[0].lanes[0].id;
+    required(parts.every(edge=>(edge.lanes[0].resourceId??edge.lanes[0].id)===laneResource),
+      'atomic passage must retain one shared lane resource '+id);
+    const seen=new Set([parts[0]]),pending=[parts[0]];
+    while(pending.length){
+      const edge=pending.shift();
+      for(const other of parts)if(!seen.has(other)&&
+        [edge.fromNodeId,edge.toNodeId].some(node=>[other.fromNodeId,other.toNodeId].includes(node))){
+        seen.add(other);pending.push(other);
+      }
+    }
+    required(seen.size===parts.length,'atomic passage parts must be connected '+id);
   }
   required(Array.isArray(graph.interfaceBindings)&&graph.interfaceBindings.every(binding=>
     binding.pattern&&nodes.has(binding.nodeId)),'invalid interface bindings');

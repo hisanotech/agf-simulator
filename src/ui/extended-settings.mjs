@@ -73,10 +73,16 @@ export function readExtendedSettings(s){
   for(const [owner,rows] of Object.entries(priorities)){
     if(rows.some(r=>r.value===''))continue;
     const values=rows.map(r=>Number(r.value));
-    if(new Set(values).size!==values.length||values.some(n=>!Number.isInteger(n)||n<1))throw new Error(`${owner}の行優先順位は重複のない正整数にしてください。`);
+    if(new Set(values).size!==values.length||values.some(n=>!Number.isInteger(n)||n<1)){
+      const error=new Error(`${owner}の行優先順位は重複のない正整数にしてください。`);
+      error.settingsFieldSelectors=rows.filter(r=>values.filter(n=>n===Number(r.value)).length>1||!Number.isInteger(Number(r.value))||Number(r.value)<1)
+        .map(r=>`[data-row-priority="${r.rowId}"]`);
+      throw error;
+    }
     rowPriority[owner]=rows.sort((a,b)=>Number(a.value)-Number(b.value)).map(r=>r.rowId);
   }
-  s.warehousePolicy={evidence:'explicit-scenario-setting',rowAssignments:assignments,rowPriority};
+  const unchanged=JSON.stringify(assignments)===JSON.stringify(s.warehousePolicy.rowAssignments)&&JSON.stringify(rowPriority)===JSON.stringify(s.warehousePolicy.rowPriority);
+  s.warehousePolicy={evidence:unchanged?s.warehousePolicy.evidence:'explicit-scenario-setting',rowAssignments:assignments,rowPriority};
   s.postTaskPolicy={evidence:'user-confirmed-shared-priority',waitingPriority:[...NORMAL_WAITING_PRIORITY]};
 }
 

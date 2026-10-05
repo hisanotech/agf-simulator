@@ -103,6 +103,79 @@ test('a planned merge approach acquires nothing when the far endpoint already ha
     lookaheadSteps:[{edgeId:'CHANGE',fromNodeId:'N2',toNodeId:'S1',traversal:'forward'}]});
   assert.equal(entered.entered,false);assert.deepEqual(traffic.snapshot().owners,{});
 });
+test('a rear approach cannot pre-reserve a future merge zone that its already-ahead group leader needs to leave',()=>{
+  const group={noOvertakingGroupId:'ENTRY',noOvertakingForwardDirection:'east'};
+  const traffic=createTrafficController([edge('APPROACH',{fromNodeId:'BEFORE',toNodeId:'A'}),
+    edge('MERGE',{fromNodeId:'A',toNodeId:'B',...group,mergeConflictResourceId:'ZONE',occupancyResourceIds:['ZONE']}),
+    edge('MIDDLE',{fromNodeId:'B',toNodeId:'C',...group}),
+    edge('LEAVE',{fromNodeId:'C',toNodeId:'D',...group,occupancyResourceIds:['ZONE']})],{
+    nodes:['BEFORE','A','B','C','D'].map(id=>({id,exclusiveTraffic:true}))});
+  traffic.setNodeOccupant({agfId:'AHEAD',nodeId:'C'});
+  assert.equal(traffic.reserveResources({agfId:'AHEAD',resourceIds:[],groupId:'ENTRY',groupDirection:'east',
+    fromNodeId:'C',edgeId:'LEAVE',requestOrder:1}).entered,true);
+  const rear=traffic.tryEnter({agfId:'REAR',edgeId:'APPROACH',traversal:'forward',requestOrder:2,
+    lookaheadSteps:[{edgeId:'MERGE',fromNodeId:'A',toNodeId:'B',traversal:'forward'}]});
+  assert.equal(rear.entered,false);
+  assert.equal(rear.reason,'NO_OVERTAKING');
+  assert.equal(traffic.snapshot().owners.ZONE,undefined);
+  assert.equal(enter(traffic,'AHEAD','LEAVE').entered,true);
+  assert.equal(traffic.snapshot().owners.ZONE,'AHEAD');
+});
+test('a declared three-part alternating passage reserves its final stop before entry and releases its span only after crossing',()=>{
+  const passage=(id,fromNodeId,toNodeId)=>edge(id,{fromNodeId,toNodeId,atomicPassageId:'EXPLICIT-PASSAGE',
+    lanes:[{id:id+'-L1',resourceId:'ORIGINAL-PASSAGE-LANE',direction:'both'}],occupancyResourceIds:['PASSAGE']});
+  const traffic=createTrafficController([passage('P1','A','B'),passage('P2','B','C'),passage('P3','C','D')],{
+    nodes:['A','B','C','D'].map(id=>({id,exclusiveTraffic:true}))});
+  traffic.setNodeOccupant({agfId:'FORWARD',nodeId:'A'});traffic.setNodeOccupant({agfId:'OPPOSING',nodeId:'D'});
+  const p2={edgeId:'P2',fromNodeId:'B',toNodeId:'C',traversal:'forward'};
+  const p3={edgeId:'P3',fromNodeId:'C',toNodeId:'D',traversal:'forward'};
+  const request=()=>traffic.tryEnter({agfId:'FORWARD',edgeId:'P1',traversal:'forward',lookaheadSteps:[p2,p3]});
+  assert.equal(request().reason,'TARGET_NODE_OCCUPIED');assert.deepEqual(traffic.snapshot().owners,{});
+  traffic.depart({agfId:'OPPOSING',fromNodeId:'D'});
+  const entered=request();assert.equal(entered.entered,true);
+  assert.equal(traffic.snapshot().nodeReservations.D,'FORWARD');
+  traffic.depart({agfId:'FORWARD',fromNodeId:'A'});
+  traffic.release('FORWARD',{retainResourceIds:entered.futureResourceIds});traffic.commitArrival({agfId:'FORWARD',nodeId:'B'});
+  assert.equal(traffic.snapshot().owners['ORIGINAL-PASSAGE-LANE'],'FORWARD');
+  assert.equal(traffic.tryEnter({agfId:'OPPOSING',edgeId:'P3',traversal:'reverse'}).entered,false);
+  const middle=traffic.tryEnter({agfId:'FORWARD',edgeId:'P2',traversal:'forward',lookaheadSteps:[p3]});
+  traffic.depart({agfId:'FORWARD',fromNodeId:'B'});
+  traffic.release('FORWARD',{retainResourceIds:middle.futureResourceIds});traffic.commitArrival({agfId:'FORWARD',nodeId:'C'});
+  assert.equal(traffic.snapshot().owners['ORIGINAL-PASSAGE-LANE'],'FORWARD');
+  assert.equal(traffic.tryEnter({agfId:'FORWARD',edgeId:'P3',traversal:'forward'}).entered,true);
+  traffic.depart({agfId:'FORWARD',fromNodeId:'C'});traffic.release('FORWARD');traffic.commitArrival({agfId:'FORWARD',nodeId:'D'});
+  assert.equal(traffic.snapshot().owners['ORIGINAL-PASSAGE-LANE'],undefined);
+});
+test('adjacent explicit lane-change and device-stop merges precheck the occupied final stop before either approach endpoint is reserved',()=>{
+  const traffic=createTrafficController([edge('MAIN',{fromNodeId:'A',toNodeId:'B'}),
+    edge('CHANGE',{fromNodeId:'B',toNodeId:'C',mergeConflictResourceId:'CHANGE-ZONE',occupancyResourceIds:['CHANGE-ZONE']}),
+    edge('DEVICE',{fromNodeId:'C',toNodeId:'D',mergeConflictResourceId:'DEVICE-STOP',occupancyResourceIds:['DEVICE-STOP']})],{
+    nodes:['A','B','C','D'].map(id=>({id,exclusiveTraffic:true}))});
+  traffic.setNodeOccupant({agfId:'DEPARTING',nodeId:'D'});
+  const entrant=traffic.tryEnter({agfId:'NEW',edgeId:'MAIN',traversal:'forward',lookaheadSteps:[
+    {edgeId:'CHANGE',fromNodeId:'B',toNodeId:'C',traversal:'forward'},
+    {edgeId:'DEVICE',fromNodeId:'C',toNodeId:'D',traversal:'forward'}]});
+  assert.equal(entrant.entered,false);assert.equal(entrant.reason,'TARGET_NODE_OCCUPIED');
+  assert.deepEqual(traffic.snapshot().owners,{});assert.deepEqual(traffic.snapshot().nodeReservations,{});
+  assert.equal(traffic.tryEnter({agfId:'DEPARTING',edgeId:'DEVICE',traversal:'reverse'}).entered,true);
+});
+test('an explicit merge approach followed immediately by an atomic passage checks the entire declared span before partial endpoint reservation',()=>{
+  const traffic=createTrafficController([edge('MAIN',{fromNodeId:'A',toNodeId:'B'}),
+    edge('CHANGE',{fromNodeId:'B',toNodeId:'C',mergeConflictResourceId:'CHANGE-ZONE',occupancyResourceIds:['CHANGE-ZONE']}),
+    edge('P1',{fromNodeId:'C',toNodeId:'D',atomicPassageId:'FIRE',occupancyResourceIds:['FIRE-LANE']}),
+    edge('P2',{fromNodeId:'D',toNodeId:'E',atomicPassageId:'FIRE',occupancyResourceIds:['FIRE-LANE']}),
+    edge('ORDINARY',{fromNodeId:'E',toNodeId:'F'})],{
+    nodes:['A','B','C','D','E','F'].map(id=>({id,exclusiveTraffic:true}))});
+  traffic.setNodeOccupant({agfId:'OPPOSING',nodeId:'E'});
+  const lookaheadSteps=[['CHANGE','B','C'],['P1','C','D'],['P2','D','E'],['ORDINARY','E','F']]
+    .map(([edgeId,fromNodeId,toNodeId])=>({edgeId,fromNodeId,toNodeId,traversal:'forward'}));
+  const request=()=>traffic.tryEnter({agfId:'APPROACHING',edgeId:'MAIN',traversal:'forward',lookaheadSteps});
+  assert.equal(request().entered,false);assert.deepEqual(traffic.snapshot().owners,{});
+  traffic.depart({agfId:'OPPOSING',fromNodeId:'E'});
+  assert.equal(request().entered,true);assert.equal(traffic.snapshot().nodeReservations.E,'APPROACHING');
+  assert.equal(traffic.snapshot().nodeReservations.F,undefined);
+  assert.equal(traffic.snapshot().owners['ORDINARY-L1'],undefined);
+});
 
 const graph=()=>({schemaVersion:'operational-topology-v1',datasetKind:'synthetic',evidence:'synthetic-assumption',
   coordinateSystem:'synthetic-display',readiness:{operationalRoutingReady:true,physicalEtaAllowed:false},

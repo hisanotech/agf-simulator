@@ -124,7 +124,12 @@
       "x": 840,
       "y": 240,
       "approvalState": "synthetic-validated",
-      "evidence": "synthetic-internal-junction-not-device-stop"
+      "evidence": "synthetic-internal-junction-not-device-stop",
+      "exclusiveTraffic": true,
+      "occupancyResourceIds": [
+        "NODE:PZ-OT"
+      ],
+      "conflictEvidence": "explicit-synthetic-junction-exclusion-not-site-clearance"
     },
     {
       "id": "PZ-MAG",
@@ -195,7 +200,12 @@
       "x": 900,
       "y": 745,
       "approvalState": "synthetic-validated",
-      "evidence": "synthetic-internal-junction-not-device-stop"
+      "evidence": "synthetic-internal-junction-not-device-stop",
+      "exclusiveTraffic": true,
+      "occupancyResourceIds": [
+        "NODE:WH-ALIGN"
+      ],
+      "conflictEvidence": "explicit-synthetic-junction-exclusion-not-site-clearance"
     },
     {
       "id": "WH-CHARGE",
@@ -2047,7 +2057,12 @@
       "y": 745,
       "approvalState": "synthetic-validated",
       "corridorId": "WH-SERVICE-ALIGN",
-      "evidence": "synthetic-assumption"
+      "evidence": "synthetic-assumption",
+      "exclusiveTraffic": true,
+      "occupancyResourceIds": [
+        "NODE:WH-AL1-ACCESS"
+      ],
+      "conflictEvidence": "explicit-synthetic-junction-exclusion-not-site-clearance"
     },
     {
       "id": "WH-AL2-ACCESS",
@@ -2057,7 +2072,12 @@
       "y": 745,
       "approvalState": "synthetic-validated",
       "corridorId": "WH-SERVICE-ALIGN",
-      "evidence": "synthetic-assumption"
+      "evidence": "synthetic-assumption",
+      "exclusiveTraffic": true,
+      "occupancyResourceIds": [
+        "NODE:WH-AL2-ACCESS"
+      ],
+      "conflictEvidence": "explicit-synthetic-junction-exclusion-not-site-clearance"
     },
     {
       "id": "WH-AL3-ACCESS",
@@ -2067,7 +2087,12 @@
       "y": 745,
       "approvalState": "synthetic-validated",
       "corridorId": "WH-SERVICE-ALIGN",
-      "evidence": "synthetic-assumption"
+      "evidence": "synthetic-assumption",
+      "exclusiveTraffic": true,
+      "occupancyResourceIds": [
+        "NODE:WH-AL3-ACCESS"
+      ],
+      "conflictEvidence": "explicit-synthetic-junction-exclusion-not-site-clearance"
     },
     {
       "id": "WH-AL4-ACCESS",
@@ -2077,7 +2102,12 @@
       "y": 745,
       "approvalState": "synthetic-validated",
       "corridorId": "WH-SERVICE-ALIGN",
-      "evidence": "synthetic-assumption"
+      "evidence": "synthetic-assumption",
+      "exclusiveTraffic": true,
+      "occupancyResourceIds": [
+        "NODE:WH-AL4-ACCESS"
+      ],
+      "conflictEvidence": "explicit-synthetic-junction-exclusion-not-site-clearance"
     },
     {
       "id": "WH-AL5-ACCESS",
@@ -2087,7 +2117,12 @@
       "y": 745,
       "approvalState": "synthetic-validated",
       "corridorId": "WH-SERVICE-ALIGN",
-      "evidence": "synthetic-assumption"
+      "evidence": "synthetic-assumption",
+      "exclusiveTraffic": true,
+      "occupancyResourceIds": [
+        "NODE:WH-AL5-ACCESS"
+      ],
+      "conflictEvidence": "explicit-synthetic-junction-exclusion-not-site-clearance"
     },
     {
       "id": "WH-AL1-PICKUP",
@@ -5494,7 +5529,9 @@
       "splitSourceEdgeId": "E08",
       "splitPartIndex": 0,
       "splitSourceDistanceMm": 15000,
-      "modelDistanceEvidence": "explicit-synthetic-equal-segment-allocation-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-equal-segment-allocation-not-display-length",
+      "mergeConflictResourceId": "OUTDOOR-JUNCTION",
+      "conflictEvidence": "explicit-synthetic-shared-outdoor-passage-not-site-clearance"
     },
     {
       "id": "E08-PART2",
@@ -5644,8 +5681,8 @@
     {
       "id": "E09",
       "fromNodeId": "PZ-EXIT",
-      "toNodeId": "WH-GATE",
-      "distanceMm": 18000,
+      "toNodeId": "E08-TURN1",
+      "distanceMm": 9000,
       "speedMmPerSec": {
         "empty": 900,
         "loaded": 700,
@@ -5655,7 +5692,8 @@
       "lanes": [
         {
           "id": "E09-L1",
-          "direction": "forward"
+          "direction": "forward",
+          "resourceId": "E09-L1"
         }
       ],
       "lanePolicy": {
@@ -5700,11 +5738,89 @@
         },
         {
           "x": 682.5,
+          "y": 390
+        }
+      ],
+      "noOvertakingGroupId": "OUTDOOR-EXIT",
+      "noOvertakingForwardDirection": "forward",
+      "splitSourceEdgeId": "E09",
+      "splitPartIndex": 0,
+      "splitSourceDistanceMm": 18000,
+      "modelDistanceEvidence": "explicit-synthetic-equal-segment-allocation-not-display-length",
+      "crossingEvidence": "explicit-synthetic-existing-outdoor-junction-not-site-path"
+    },
+    {
+      "id": "E09-PART2",
+      "fromNodeId": "E08-TURN1",
+      "toNodeId": "WH-GATE",
+      "distanceMm": 9000,
+      "speedMmPerSec": {
+        "empty": 900,
+        "loaded": 700,
+        "charge": 800,
+        "wait": 900
+      },
+      "lanes": [
+        {
+          "id": "E09-L1-PART2",
+          "direction": "forward",
+          "resourceId": "E09-L1"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "controlled"
+      },
+      "occupancyResourceIds": [
+        "OUTDOOR-JUNCTION"
+      ],
+      "shutterId": "SH-EAST",
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 390
+        },
+        {
+          "x": 682.5,
           "y": 475
         }
       ],
       "noOvertakingGroupId": "OUTDOOR-EXIT",
-      "noOvertakingForwardDirection": "forward"
+      "noOvertakingForwardDirection": "forward",
+      "splitSourceEdgeId": "E09",
+      "splitPartIndex": 1,
+      "splitSourceDistanceMm": 18000,
+      "modelDistanceEvidence": "explicit-synthetic-equal-segment-allocation-not-display-length",
+      "crossingEvidence": "explicit-synthetic-existing-outdoor-junction-not-site-path",
+      "mergeConflictResourceId": "OUTDOOR-JUNCTION",
+      "conflictEvidence": "explicit-synthetic-shared-outdoor-passage-not-site-clearance"
     },
     {
       "id": "E11",
@@ -6195,8 +6311,8 @@
     {
       "id": "E21",
       "fromNodeId": "WH-E-NORTH",
-      "toNodeId": "WH-W-NORTH",
-      "distanceMm": 6000,
+      "toNodeId": "WH-E-NORTH-WALL",
+      "distanceMm": 2000,
       "speedMmPerSec": {
         "empty": 1000,
         "loaded": 800,
@@ -6206,7 +6322,80 @@
       "lanes": [
         {
           "id": "E21-L1",
-          "direction": "both"
+          "direction": "both",
+          "resourceId": "E21-L1"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "LOGICAL-MERGE:WH-E-CROSS-WH-E-NORTH"
+      ],
+      "shutterId": "SH-FIRE-NORTH",
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 700,
+          "y": 562.5
+        },
+        {
+          "x": 665,
+          "y": 562.5
+        }
+      ],
+      "splitSourceEdgeId": "E21",
+      "splitPartIndex": 0,
+      "splitSourceDistanceMm": 6000,
+      "modelDistanceEvidence": "explicit-synthetic-equal-segment-allocation-not-display-length",
+      "mergeConflictResourceId": "LOGICAL-MERGE:WH-E-CROSS-WH-E-NORTH",
+      "crossingEvidence": "explicit-synthetic-existing-main-aisle-junction-not-site-path",
+      "atomicPassageId": "SYNTHETIC-FIRE-PASSAGE:E21",
+      "atomicPassageEvidence": "explicit-synthetic-shared-lane-passage-not-site-clearance"
+    },
+    {
+      "id": "E21-PART2",
+      "fromNodeId": "WH-E-NORTH-WALL",
+      "toNodeId": "WH-W-NORTH-WALL",
+      "distanceMm": 2000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "E21-L1-PART2",
+          "direction": "both",
+          "resourceId": "E21-L1"
         }
       ],
       "lanePolicy": {
@@ -6244,20 +6433,99 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 665,
+          "y": 562.5
+        },
+        {
+          "x": 435,
+          "y": 562.5
+        }
+      ],
+      "splitSourceEdgeId": "E21",
+      "splitPartIndex": 1,
+      "splitSourceDistanceMm": 6000,
+      "modelDistanceEvidence": "explicit-synthetic-equal-segment-allocation-not-display-length",
+      "crossingEvidence": "explicit-synthetic-existing-main-aisle-junction-not-site-path",
+      "atomicPassageId": "SYNTHETIC-FIRE-PASSAGE:E21",
+      "atomicPassageEvidence": "explicit-synthetic-shared-lane-passage-not-site-clearance"
+    },
+    {
+      "id": "E21-PART3",
+      "fromNodeId": "WH-W-NORTH-WALL",
+      "toNodeId": "WH-W-NORTH",
+      "distanceMm": 2000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "E21-L1-PART3",
+          "direction": "both",
+          "resourceId": "E21-L1"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "LOGICAL-MERGE:WH-W-CROSS-WH-W-NORTH"
+      ],
+      "shutterId": "SH-FIRE-NORTH",
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 435,
           "y": 562.5
         },
         {
           "x": 400,
           "y": 562.5
         }
-      ]
+      ],
+      "splitSourceEdgeId": "E21",
+      "splitPartIndex": 2,
+      "splitSourceDistanceMm": 6000,
+      "modelDistanceEvidence": "explicit-synthetic-equal-segment-allocation-not-display-length",
+      "mergeConflictResourceId": "LOGICAL-MERGE:WH-W-CROSS-WH-W-NORTH",
+      "crossingEvidence": "explicit-synthetic-existing-main-aisle-junction-not-site-path",
+      "atomicPassageId": "SYNTHETIC-FIRE-PASSAGE:E21",
+      "atomicPassageEvidence": "explicit-synthetic-shared-lane-passage-not-site-clearance"
     },
     {
       "id": "E22",
       "fromNodeId": "WH-E-SOUTH",
-      "toNodeId": "WH-W-SOUTH",
-      "distanceMm": 6000,
+      "toNodeId": "WH-E-SOUTH-WALL",
+      "distanceMm": 2000,
       "speedMmPerSec": {
         "empty": 1000,
         "loaded": 800,
@@ -6267,7 +6535,80 @@
       "lanes": [
         {
           "id": "E22-L1",
-          "direction": "both"
+          "direction": "both",
+          "resourceId": "E22-L1"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "LOGICAL-MERGE:WH-E-CROSS-WH-E-SOUTH"
+      ],
+      "shutterId": "SH-FIRE-SOUTH",
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 700,
+          "y": 769.5
+        },
+        {
+          "x": 665,
+          "y": 769.5
+        }
+      ],
+      "splitSourceEdgeId": "E22",
+      "splitPartIndex": 0,
+      "splitSourceDistanceMm": 6000,
+      "modelDistanceEvidence": "explicit-synthetic-equal-segment-allocation-not-display-length",
+      "mergeConflictResourceId": "LOGICAL-MERGE:WH-E-CROSS-WH-E-SOUTH",
+      "crossingEvidence": "explicit-synthetic-existing-main-aisle-junction-not-site-path",
+      "atomicPassageId": "SYNTHETIC-FIRE-PASSAGE:E22",
+      "atomicPassageEvidence": "explicit-synthetic-shared-lane-passage-not-site-clearance"
+    },
+    {
+      "id": "E22-PART2",
+      "fromNodeId": "WH-E-SOUTH-WALL",
+      "toNodeId": "WH-W-SOUTH-WALL",
+      "distanceMm": 2000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "E22-L1-PART2",
+          "direction": "both",
+          "resourceId": "E22-L1"
         }
       ],
       "lanePolicy": {
@@ -6305,14 +6646,93 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 665,
+          "y": 769.5
+        },
+        {
+          "x": 435,
+          "y": 769.5
+        }
+      ],
+      "splitSourceEdgeId": "E22",
+      "splitPartIndex": 1,
+      "splitSourceDistanceMm": 6000,
+      "modelDistanceEvidence": "explicit-synthetic-equal-segment-allocation-not-display-length",
+      "crossingEvidence": "explicit-synthetic-existing-main-aisle-junction-not-site-path",
+      "atomicPassageId": "SYNTHETIC-FIRE-PASSAGE:E22",
+      "atomicPassageEvidence": "explicit-synthetic-shared-lane-passage-not-site-clearance"
+    },
+    {
+      "id": "E22-PART3",
+      "fromNodeId": "WH-W-SOUTH-WALL",
+      "toNodeId": "WH-W-SOUTH",
+      "distanceMm": 2000,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 1000,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "E22-L1-PART3",
+          "direction": "both",
+          "resourceId": "E22-L1"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "LOGICAL-MERGE:WH-W-CROSS-WH-W-SOUTH"
+      ],
+      "shutterId": "SH-FIRE-SOUTH",
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 435,
           "y": 769.5
         },
         {
           "x": 400,
           "y": 769.5
         }
-      ]
+      ],
+      "splitSourceEdgeId": "E22",
+      "splitPartIndex": 2,
+      "splitSourceDistanceMm": 6000,
+      "modelDistanceEvidence": "explicit-synthetic-equal-segment-allocation-not-display-length",
+      "mergeConflictResourceId": "LOGICAL-MERGE:WH-W-CROSS-WH-W-SOUTH",
+      "crossingEvidence": "explicit-synthetic-existing-main-aisle-junction-not-site-path",
+      "atomicPassageId": "SYNTHETIC-FIRE-PASSAGE:E22",
+      "atomicPassageEvidence": "explicit-synthetic-shared-lane-passage-not-site-clearance"
     },
     {
       "id": "E05",
@@ -6439,7 +6859,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:L8",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "DEVICE-M1",
@@ -6504,7 +6926,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:M1",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "DEVICE-L7",
@@ -6569,7 +6993,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:L7",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "DEVICE-M2",
@@ -6634,7 +7060,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:M2",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "DEVICE-L5",
@@ -6699,7 +7127,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:L5",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "DEVICE-M3",
@@ -6764,7 +7194,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:M3",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "DEVICE-L4",
@@ -6829,7 +7261,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:L4",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "DEVICE-WRAP-INPUT",
@@ -6894,7 +7328,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:WRAP-INPUT",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "DEVICE-WRAP-OUTPUT",
@@ -6959,7 +7395,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:WRAP-OUTPUT",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "DEVICE-L2",
@@ -7024,7 +7462,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:L2",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "DEVICE-M4",
@@ -7089,7 +7529,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:M4",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "DEVICE-L1",
@@ -7154,7 +7596,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:L1",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "DEVICE-L3",
@@ -7219,7 +7663,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:L3",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "DEVICE-M5",
@@ -7284,7 +7730,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:M5",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "DEVICE-L6",
@@ -7349,7 +7797,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:L6",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "DEVICE-OT1",
@@ -7414,7 +7864,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:OT1",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "DEVICE-OT2",
@@ -7479,7 +7931,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:OT2",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "DEVICE-OT3",
@@ -7544,7 +7998,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:OT3",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "E12",
@@ -8005,7 +8461,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:AL1",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "DEVICE-AL2",
@@ -8070,7 +8528,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:AL2",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "DEVICE-AL3",
@@ -8135,7 +8595,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:AL3",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "DEVICE-AL4",
@@ -8200,7 +8662,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:AL4",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "DEVICE-AL5",
@@ -8265,7 +8729,9 @@
         }
       ],
       "evidence": "synthetic-device-interface-not-site-stop",
-      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length"
+      "modelDistanceEvidence": "explicit-synthetic-device-branch-distance-not-display-length",
+      "mergeConflictResourceId": "DEVICE-STOP:AL5",
+      "mergeConflictEvidence": "explicit-synthetic-existing-device-stop-not-site-clearance"
     },
     {
       "id": "PZ-A1-MAIN-1",

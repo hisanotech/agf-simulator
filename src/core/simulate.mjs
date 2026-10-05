@@ -399,6 +399,20 @@ export function simulate(rawScenario) {
     traffic?.clearHandlingPhase?.(agf.id);traffic?.releaseResources?.(agf.id,node.handlingResourceIds??[]);
     traffic?.leaveGroup?.(agf.id);agf.handling=null;wakeTraffic();
   };
+  const reservationLookahead=movement=>{
+    const nextSteps=movement.steps.slice(movement.stepIndex+1);
+    const current=graphEdges.get(movement.steps[movement.stepIndex]?.edgeId);
+    let passageId=current?.atomicPassageId??null;
+    const steps=[];
+    for(const step of nextSteps){
+      const edge=graphEdges.get(step.edgeId);
+      if(passageId){if(edge?.atomicPassageId!==passageId)break;}
+      else if(edge?.atomicPassageId)passageId=edge.atomicPassageId;
+      else if(!edge?.mergeConflictResourceId)break;
+      steps.push(step);
+    }
+    return steps;
+  };
   const beginWrapperDelivery=(task,agf)=>{
     // A pending delivery stays at its individual pickup interface. The immutable
     // path determines the first valid departure heading; no display-only move.
@@ -407,7 +421,7 @@ export function simulate(rawScenario) {
       nextType:'DROPOFF',delayMs:minute(times.dropoffMin),current:null,waitingReason:'WRAPPER_INPUT',
       retryScheduled:false,wrapperDeparture:true,requestOrder:history.length};
     agf.wrapperWaitStartedAt=now;agf.departurePlanned=false;
-    task.waitReason='WRAPPER_INPUT';task.wrapperWaitStartedAt=now;
+    task.waitReason='WRAPPER_INPUT';task.wrapperWaitStartedAt=now;task.wrapperInputWaitMs??=0;
     const step=agf.movement.steps[0];
     const available=wrapper.permission&&wrapper.input.length+wrapperInputReservations.size<scenario.wrapper.inputCapacity;
     agf.movement.wrapperOrientationPending=!available;
@@ -435,8 +449,15 @@ export function simulate(rawScenario) {
           edgeIds:t.loadedRoute.steps.map(s=>s.edgeId),modelDistanceMm:t.loadedRoute.modelDistanceMm,
           modelDurationMs:t.loadedRoute.modelDurationMs,etaStatus:t.loadedRoute.etaStatus});
       }
-      if(!wrapper.permission||traffic.isBeingOvertaken?.(a.id)||a.movement.retryScheduled)continue;
-      a.status='waiting_wrapper_input';a.movement.retryScheduled=true;a.departurePlanned=true;
+      if(traffic.isBeingOvertaken?.(a.id)){
+        if(a.status!=='waiting_traffic'||a.movement.waitingReason!=='OVERTAKING'){
+          a.status='waiting_traffic';a.movement.waitingReason='OVERTAKING';a.departurePlanned=false;
+          record('WRAPPER_DEPARTURE_WAITING',{agfId:a.id,taskId:a.taskId,nodeId:a.currentNodeId,reason:'OVERTAKING'});
+        }
+        continue;
+      }
+      if(!wrapper.permission||a.movement.retryScheduled)continue;
+      a.movement.retryScheduled=true;a.departurePlanned=true;
       if(a.movement.steps.length)schedule(now,'SEGMENT_REQUEST',{agfId:a.id});
       else completeRoute(a);
     }
@@ -490,6 +511,9 @@ export function simulate(rawScenario) {
     const other=pair.find(a=>a.id!==selected.id);
     selected.avoidance={plan,originalMovement:selected.movement,resumeNodeId:selected.currentNodeId,
       otherAgfId:other.id,pausedOther:other.status==='waiting_interference',conflictGroupId,phase:'outbound'};
+    // The explicit detour replaces the planned arrival path. Its old lookahead
+    // reservations must not survive after their resource owners are released.
+    traffic.cancelNodeReservation(selected.id);
     traffic.release(selected.id);
     record('AVOIDANCE_STARTED',{agfId:selected.id,taskId:selected.taskId,otherAgfId:selected.avoidance.otherAgfId,
       planId:plan.planId,conflictGroupId,selectionReason:selection.reason,selectionEvidence:selection.evidence,
@@ -515,6 +539,8 @@ export function simulate(rawScenario) {
         record('OVERTAKING_WAITING',{agfId:agf.id,blockedAgfId:front.id,taskId:agf.taskId,
           planId:plan.planId,blockers:lease.blockers,reason:lease.reason});continue;
       }
+      traffic.cancelNodeReservation(agf.id);
+      traffic.release(agf.id,{retainResourceIds:graphNodes.get(agf.currentNodeId).occupancyResourceIds??[]});
       traffic.leaveGroup(agf.id);
       agf.overtaking={plan,originalMovement:movement,continuation};
       record('OVERTAKING_STARTED',{agfId:agf.id,blockedAgfId:front.id,taskId:agf.taskId,planId:plan.planId,
@@ -986,6 +1012,14 @@ export function simulate(rawScenario) {
     timingStatus:graphMode?'synthetic-graph-assumption':'scenario-assumption'});
   chargeIdleAgfs();
   const operatorPhase=e=>e.type==='ALIGNER_REFILL_OPERATED'?2:e.type==='SEGMENT_REQUEST'?1:0;
+  const advanceWrapperWait=endMs=>{
+    const elapsed=endMs-now;
+    if(elapsed<=0)return;
+    for(const agf of agfs)if(agf.status==='waiting_wrapper_input'){
+      const task=tasks.get(agf.taskId);
+      if(task)task.wrapperInputWaitMs=(task.wrapperInputWaitMs??0)+elapsed;
+    }
+  };
   while(queue.length) {
     // A displayed-time operator input follows endogenous events already visible
     // at that instant, including dynamically scheduled pickup/drop events. This
@@ -999,6 +1033,7 @@ export function simulate(rawScenario) {
     const e=queue.shift();
     if (e.timeMs>durationMs) break;
     if(e.movementGeneration!==undefined&&agfs.find(a=>a.id===e.agfId)?.movementGeneration!==e.movementGeneration)continue;
+    advanceWrapperWait(e.timeMs);
     batteryLedger?.advance(now,e.timeMs,tasks);
     now=e.timeMs;
     if (e.type === 'PRODUCTION_DUE'||e.type==='PALLET_EXITED') {
@@ -1237,8 +1272,20 @@ export function simulate(rawScenario) {
         if(beginTurn(a,step,'WRAPPER_WAIT_READY'))continue;
         movement.wrapperOrientationPending=false;
       }
-      if(movement.wrapperDeparture&&(!wrapperInputReservations.has(a.taskId)||!wrapper.permission||traffic.isBeingOvertaken?.(a.id))){
-        a.status='waiting_wrapper_input';continue;
+      if(movement.wrapperDeparture&&traffic.isBeingOvertaken?.(a.id)){
+        if(a.status!=='waiting_traffic'||movement.waitingReason!=='OVERTAKING'){
+          a.status='waiting_traffic';movement.waitingReason='OVERTAKING';a.departurePlanned=false;
+          record('WRAPPER_DEPARTURE_WAITING',{agfId:a.id,taskId:a.taskId,nodeId:a.currentNodeId,reason:'OVERTAKING'});
+        }
+        continue;
+      }
+      if(movement.wrapperDeparture&&(!wrapperInputReservations.has(a.taskId)||!wrapper.permission)){
+        if(a.status!=='waiting_wrapper_input'){
+          a.status='waiting_wrapper_input';movement.waitingReason='WRAPPER_INPUT';a.departurePlanned=false;
+          record('WRAPPER_INPUT_WAITING',{agfId:a.id,taskId:a.taskId,nodeId:a.currentNodeId,
+            reason:wrapper.permission?'WRAPPER_INPUT_FULL_OR_RESERVED':'WRAPPER_PERMISSION'});
+        }
+        continue;
       }
       if(beginTurn(a,step))continue;
       if(step.shutterId&&!gates.get(step.shutterId)?.passable){
@@ -1258,12 +1305,11 @@ export function simulate(rawScenario) {
       }else{
         const entered=traffic.tryEnter({agfId:a.id,edgeId:step.edgeId,traversal:step.traversal,
           requestOrder:movement.requestOrder,fromNodeId:step.fromNodeId,toNodeId:step.toNodeId,
-          lookaheadSteps:graphEdges.get(movement.steps[movement.stepIndex+1]?.edgeId)?.mergeConflictResourceId?
-            [movement.steps[movement.stepIndex+1]]:[],
+          lookaheadSteps:reservationLookahead(movement),
           ...(a.overtaking?{overtakingPlanId:a.overtaking.plan.planId}:{})});
         if(!entered.entered){
           if(movement.waitingReason!=='RESOURCE'){
-            movement.waitingReason='RESOURCE';a.status=movement.wrapperDeparture?'waiting_wrapper_input':'waiting_traffic';
+            movement.waitingReason='RESOURCE';a.status='waiting_traffic';
             if(movement.wrapperDeparture)a.departurePlanned=false;
             record('SEGMENT_WAITING',{taskId:movement.taskId,agfId:a.id,edgeId:step.edgeId,
               blockers:entered.blockers,reason:entered.reason??'OCCUPIED'});
@@ -1275,8 +1321,7 @@ export function simulate(rawScenario) {
           traffic.depart?.({agfId:a.id,fromNodeId:step.fromNodeId});
           if(movement.wrapperDeparture){
             movement.wrapperDeparture=false;a.departurePlanned=true;tasks.get(a.taskId).waitReason=null;
-            const waitMs=now-a.wrapperWaitStartedAt;
-            tasks.get(a.taskId).wrapperInputWaitMs=(tasks.get(a.taskId).wrapperInputWaitMs??0)+waitMs;
+            const waitMs=tasks.get(a.taskId).wrapperInputWaitMs??0;
             record('WRAPPER_INPUT_WAIT_ENDED',{agfId:a.id,taskId:a.taskId,waitMs});
           }
           if(waitingPlaces.get(step.fromNodeId)===a.id){
@@ -1358,6 +1403,7 @@ export function simulate(rawScenario) {
     wakeDrops(); wakePickups(); issue02(); issue03(); chargeIdleAgfs(); dispatch(); settleWaiting(); scheduleBlockedRetries();wakeAvoidance();
     if(!['SEGMENT_REQUEST','HANDLING_REQUEST'].includes(e.type))wakeWrapperInputs();
   }
+  advanceWrapperWait(durationMs);
   if (batteryLedger) {
     batteryLedger.advance(now,durationMs,tasks);
     now=durationMs;

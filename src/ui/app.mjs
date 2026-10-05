@@ -11,6 +11,7 @@ import {eventCsv,conditionCsv,conditionCsvFilename} from './export.mjs';
 import {customerConditionsCsv,transportResultsCsv,agfResultsCsv,customerCsvFilename} from './customer-export.mjs';
 import {appendRunInput,createInitialPreview} from './run-input.mjs';
 import {warehouseOwnerLegend} from './warehouse-colors.mjs';
+import {nativeInvalidFields,applySettingsError,clearSettingsErrors} from './settings-validation.mjs';
 import {WAREHOUSE_BLOCKS} from '../map/warehouse-layout.mjs';
 import {escapeHtml as esc,clock,states,stateLabel,taskNames,reasons,eventNames,areaName,locationName,badge,productLabel,headingLabel,turnDescription} from './format.mjs';
 
@@ -30,6 +31,7 @@ document.querySelector('.map-legend').insertAdjacentHTML('afterend',warehouseOwn
 organizeSettings();
 
 function populateSettings(scenario) {
+  clearSettingsErrors($('settings-form'));
   populateExtendedSettings(scenario);
   $('duration').value=scenario.durationMin;$('lineCapacity').value=scenario.lineCapacity;
   $('fallback').value=scenario.fallback;$('mode').value=scenario.mode;
@@ -58,9 +60,7 @@ function syncBatteryFields(){const active=$('battery-model').value==='active_tim
   $('consumptionPct').disabled=active;$('consumptionPct').parentElement.hidden=active;
 }
 function scenarioFromSettings() {
-  if(!$('settings-form').checkValidity()) {
-    $('settings-form').querySelectorAll('details').forEach(el=>el.open=true);
-    showView('settings');$('settings-form').reportValidity();
+  if(nativeInvalidFields($('settings-form')).length) {
     throw new Error('設定値の入力範囲・単位を確認してください。');
   }
   const scenario=structuredClone(base);
@@ -102,12 +102,12 @@ function friendlyError(error) {
   if(/capacity|overflow|underflow/.test(message))return '設備容量または在荷条件を満たせません。搬出間隔・バッファ容量・手動使用回数を確認してください。';
   return message;
 }
-function showError(error){$('error').textContent=friendlyError(error);$('error').hidden=false;
-  if(/WAREHOUSE_CONFIG|PRODUCTION_CONFIG/.test(error.message??'')){
-    showView('settings');$('settings-form').querySelectorAll('details').forEach(el=>el.open=true);
+function showError(error,{settings=false}={}){$('error').textContent=friendlyError(error);$('error').hidden=false;
+  if(settings||/WAREHOUSE_CONFIG|PRODUCTION_CONFIG/.test(error.message??'')){
+    showView('settings');applySettingsError($('settings-form'),error);
   }
 }
-function clearError(){$('error').hidden=true;$('notification').hidden=true;}
+function clearError(){$('error').hidden=true;$('notification').hidden=true;clearSettingsErrors($('settings-form'));}
 function notify(message){$('notification').textContent=message;$('notification').hidden=false;}
 function showView(view) {
   if(!['monitor','settings','tasks','analysis','comparison'].includes(view))view='monitor';
@@ -136,11 +136,11 @@ function showInitialPreview(){
   pause();result=null;analysis=null;comparison=null;runId='';timeMs=0;currentIndex=0;
   preview=createInitialPreview(base);$('clock').textContent=clock(0);$('seek').value='0';
   $('end-clock').textContent=clock(base.durationMin*60000);
-  $('run-state').textContent='未実行 · 初期状態';$('run-context').textContent='系列→マガジン対応と倉庫行割当を設定して実行';
+  $('run-state').textContent='未実行 · 初期状態';$('run-context').textContent='倉庫行割当は初期値を設定済み · 系列→マガジン対応を設定して実行';
   $('analysis-run').textContent='未実行';$('analysis-body').innerHTML='<p class="notice">実行後に保存済みRunの結果と条件を表示します。</p>';
   syncRunControls();renderSnapshot();
 }
-function execute(){clearError();try{const candidate=simulate(scenarioFromSettings());adoptRun(candidate);notify('設定を反映して計算しました。再生・シークで各時刻の状態を確認できます。');}catch(error){showError(error);}}
+function execute(){clearError();try{const candidate=simulate(scenarioFromSettings());adoptRun(candidate);notify('設定を反映して計算しました。再生・シークで各時刻の状態を確認できます。');return true;}catch(error){showError(error,{settings:true});return false;}}
 function pause(){if(frame!==null)cancelAnimationFrame(frame);frame=null;anchor=null;$('play').setAttribute('aria-pressed','false');}
 function play(){if(!result||frame!==null)return;if(timeMs>=analysis.durationMs)setTime(0);
   anchor={sim:timeMs,wall:null,speed:numeric('speed')};$('play').setAttribute('aria-pressed','true');
@@ -265,16 +265,16 @@ function reserve(event){event.preventDefault();$('reservation-error').hidden=tru
  }catch(error){$('reservation-error').textContent=friendlyError(error);$('reservation-error').hidden=false;}}
 function compare(){pause();clearError();try{const scenario=scenarioFromSettings();comparison=compareRuns(scenario);
   $('comparison-body').innerHTML=renderComparison(comparison);showView('comparison');notify('2方式を同一入力で比較しました。比較条件はこの結果に保持しています。');
- }catch(error){showError(error);}}
+ }catch(error){showError(error,{settings:true});}}
 
 populateSettings(base);
-$('load-storage-example').addEventListener('click',()=>{loadSyntheticSettingsExample(base);markDirty();notify('合成検証用の例を読み込みました。現場の行割当・固定HPではありません。「実行」で反映します。');});
+$('load-storage-example').addEventListener('click',()=>{clearError();try{const candidate=structuredClone(base);loadSyntheticSettingsExample(candidate);base=candidate;markDirty();notify('行割当を初期値と同じ値に戻しました。「実行」で反映します。');}catch(error){showError(error,{settings:true});}});
 for(let i=1;i<=4;i++)$('log-agf').add(new Option('AGF'+i,'AGF'+i));
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
 $('settings-form').addEventListener('submit',event=>event.preventDefault());
-$('settings-form').addEventListener('input',event=>{markDirty();if(event.target.id==='battery-model')syncBatteryFields();});$('mode').addEventListener('change',()=>markDirty());
+$('settings-form').addEventListener('input',event=>{markDirty();clearSettingsErrors($('settings-form'));if(event.target.id==='battery-model')syncBatteryFields();});$('mode').addEventListener('change',()=>markDirty());
 $('scenario-select').addEventListener('change',()=>{pause();base=createDemoScenario($('scenario-select').value);populateSettings(base);markDirty();notify('シナリオを設定欄に読み込みました。「実行」で反映します。');});
-$('run').addEventListener('click',execute);$('run-settings').addEventListener('click',()=>{execute();if(!dirty)showView('monitor');});
+$('run').addEventListener('click',execute);$('run-settings').addEventListener('click',()=>{if(execute())showView('monitor');});
 $('reset').addEventListener('click',()=>{pause();clearError();base=createDemoScenario($('scenario-select').value);populateSettings(base);markDirty(false);showInitialPreview();});
 $('compare').addEventListener('click',compare);$('compare-page').addEventListener('click',compare);
 $('play').addEventListener('click',play);$('pause').addEventListener('click',pause);$('stop').addEventListener('click',()=>{pause();setTime(0);});

@@ -93,8 +93,13 @@ test('lane changes declare a reservable station conflict zone while opposite str
     for(const id of [change.fromNodeId,change.toNodeId]){
       assert.equal(nodeMap.get(id).mergeConflictResourceId,resource,id);
       assert.ok(!nodeMap.get(id).occupancyResourceIds.includes(resource),id+' straight stop must not occupy both lanes');
-      for(const approach of graph.edges.filter(e=>e.id!==change.id&&[e.fromNodeId,e.toNodeId].includes(id)))
-        assert.ok(!approach.occupancyResourceIds.includes(resource),approach.id+' straight travel must not reserve the crossing');
+      for(const approach of graph.edges.filter(e=>e.id!==change.id&&[e.fromNodeId,e.toNodeId].includes(id))){
+        const sameCrossing=approach.mergeConflictResourceId===resource&&
+          [approach.fromNodeId,approach.toNodeId].every(endpoint=>[change.fromNodeId,change.toNodeId].includes(endpoint));
+        if(sameCrossing)assert.ok(approach.occupancyResourceIds.includes(resource),
+          approach.id+' fire-shutter attachment must reserve the same physical synthetic crossing');
+        else assert.ok(!approach.occupancyResourceIds.includes(resource),approach.id+' straight travel must not reserve the crossing');
+      }
     }
     assert.ok(change.occupancyResourceIds.includes(resource));
   }

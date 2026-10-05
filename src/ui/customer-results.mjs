@@ -27,11 +27,18 @@ const roundedTenths=groups=>{
 
 export function customerPendingReason(task,agf){
   const status=agf?.status,reason=task.waitReason??agf?.movement?.waitingReason??'';
-  if(status==='waiting_wrapper_input'||task.status==='waiting_wrapper_input'||String(reason).startsWith('WRAPPER_INPUT'))return '包装機入口待ち';
+  // A reservation reason can remain through the departure turn until actual
+  // segment entry. Describe the saved activity before interpreting that reason.
+  if(status==='waiting_wrapper_input')return '包装機入口待ち';
+  if(status==='turning')return '旋回中';
+  if(['moving_empty','moving_loaded','moving_to_charge','moving_to_wait'].includes(status))return '搬送中';
+  if(['handling_pickup','handling_dropoff','positioning_for_pickup','picking_fork_inserted',
+    'positioning_for_dropoff','dropping_fork_inserted'].includes(status))return '荷役中';
   if(status==='waiting_motion_configuration')return '走行・荷役条件の設定待ち';
-  if(/UNREACHABLE|UNRESOLVED|NO_ASSIGNED_STORAGE/.test(reason))return '経路・搬送条件の確認待ち';
   if(['waiting_traffic','waiting_avoidance','waiting_interference'].includes(status))return '通行待ち';
   if(['waiting_charge','waiting_charge_place','charging'].includes(status))return '充電待ち';
+  if(task.status==='waiting_wrapper_input'||String(reason).startsWith('WRAPPER_INPUT'))return '包装機入口待ち';
+  if(/UNREACHABLE|UNRESOLVED|NO_ASSIGNED_STORAGE/.test(reason))return '経路・搬送条件の確認待ち';
   if(!task.agfId||task.status==='queued')return 'AGF割当待ち';
   if(task.status==='wait_drop'||task.status==='wait_pickup'||/PERMISSION|LOCATION|MAGAZINE|ALIGNER/.test(reason))return '設備待ち';
   return '搬送中';

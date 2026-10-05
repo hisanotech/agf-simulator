@@ -73,6 +73,37 @@ test('wrapper permission release reevaluates waiting reservations and permits on
   assert.deepEqual(simulate(s).events,r.events);
 });
 
+test('wrapper waiting clocks agree with replay and exclude departure turning and traffic',()=>{
+  const run=simulate(wrapperWaitingScenario());
+  const analysis=analyzeRun(run);
+  const recorded=run.final.tasks.reduce((sum,t)=>sum+(t.wrapperInputWaitMs??0),0);
+  assert.equal(recorded,analysis.wrapperInputWaitMs);
+  const first=run.events.find(e=>e.type==='WRAPPER_INPUT_WAIT_ENDED');
+  assert.ok(first);
+  const task=run.final.tasks.find(t=>t.id===first.taskId);
+  const pickup=run.events.find(e=>e.type==='TASK_PICKED'&&e.taskId===task.id);
+  assert.ok(run.events.some(e=>e.type==='TURN_STARTED'&&e.agfId===first.agfId&&e.timeMs>=pickup.timeMs&&e.timeMs<first.timeMs));
+  assert.equal(first.waitMs,0);
+  assert.equal(task.wrapperInputWaitMs,0);
+});
+
+test('an unrelated production event preserves a reserved delivery shutter wait and its saved duration category',()=>{
+  const scenario=wrapperWaitingScenario();scenario.durationMin=1;
+  scenario.agfs.forEach((agf,index)=>{agf.blocked=index>0;});
+  scenario.productionEvents=scenario.productionEvents.slice(0,2);
+  scenario.productionEvents[1].timeMs=10000;
+  scenario.operationalTopology.edges.find(edge=>edge.id==='DELIVER0').shutterId='SYN-CLOSED';
+  scenario.operationalTopology.shutters=[{id:'SYN-CLOSED',initiallyPassable:false}];
+  const run=simulate(scenario),agf=run.final.agfs[0],task=run.final.tasks.find(task=>task.id===agf.taskId);
+  assert.ok(run.events.some(event=>event.type==='SHUTTER_WAITING'&&event.agfId===agf.id));
+  assert.equal(agf.status,'waiting_traffic');
+  assert.equal(agf.movement.waitingReason,'SHUTTER');
+  assert.ok(run.final.wrapper.reservedInputTaskIds.includes(task.id));
+  assert.equal(task.wrapperInputWaitMs,0);
+  assert.equal(analyzeRun(run).wrapperInputWaitMs,0);
+  assert.ok(analyzeRun(run).agfs[0].durations.waiting_traffic>0);
+});
+
 function overtakingScenario(){
   const s=wrapperWaitingScenario();s.wrapper.permission=false;s.durationMin=2;
   const g=s.operationalTopology;
@@ -118,6 +149,20 @@ test('wrapper reservation during an active bypass never starts the stopped front
   const depart=r.events.find(e=>e.type==='SEGMENT_ENTERED'&&e.agfId==='AGF1'&&e.movement==='loaded');
   assert.ok(depart&&depart.sequence>completed.sequence);
   assert.deepEqual(simulate(s).events,r.events);
+});
+
+test('wrapper permission returning between bypass events records the departure wait transition for replay',()=>{
+  for(const timeMs of [9000,15000]){
+    const scenario=overtakingScenario();
+    scenario.permissionEvents=[{timeMs,target:'wrapper',targetId:'WRAP-INPUT',permitted:true}];
+    const run=simulate(scenario),completed=run.events.find(event=>event.type==='OVERTAKING_COMPLETED');
+    assert.ok(completed);
+    const departure=run.events.find(event=>event.type==='SEGMENT_ENTERED'&&event.agfId==='AGF1'&&event.movement==='loaded');
+    assert.ok(departure&&departure.sequence>completed.sequence);
+    const recordedWait=run.final.tasks.reduce((sum,task)=>sum+(task.wrapperInputWaitMs??0),0);
+    assert.equal(recordedWait,analyzeRun(run).wrapperInputWaitMs,'permission returned at '+timeMs);
+    assert.deepEqual(simulate(scenario).events,run.events);
+  }
 });
 test('an occupied rejoin node rejects exceptional passing and holds the follower before entry',()=>{
   const s=overtakingScenario();s.agfs[2].currentNodeId='AHEAD';

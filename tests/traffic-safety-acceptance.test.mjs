@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {configuredNeutralScenario} from './fixtures/neutral-scenario.mjs';
+import {createDemoScenario} from '../src/ui/scenario.mjs';
 import {integratedAcceptanceScenario} from '../examples/integrated-acceptance.mjs';
 import {simulate} from '../src/core/simulate.mjs';
 import {projectAgfPosition} from '../src/core/motion-projection.mjs';
@@ -27,6 +28,14 @@ function assertTrafficAndClock(run){
       const movement=agf.movement,next=movement?.steps[movement.stepIndex],afterNext=movement?.steps[movement.stepIndex+1];
       const plannedTargets=[movement?.current?.toNodeId,next?.toNodeId,
         ...(afterNext&&edges.get(afterNext.edgeId)?.mergeConflictResourceId?[afterNext.toNodeId]:[])];
+      let passageId=edges.get(next?.edgeId)?.atomicPassageId??null;
+      for(const step of movement?.steps.slice(movement.stepIndex+1)??[]){
+        const futureEdge=edges.get(step.edgeId);
+        if(passageId){if(futureEdge?.atomicPassageId!==passageId)break;}
+        else if(futureEdge?.atomicPassageId)passageId=futureEdge.atomicPassageId;
+        else if(!futureEdge?.mergeConflictResourceId)break;
+        plannedTargets.push(step.toNodeId);
+      }
       assert.ok(plannedTargets.includes(nodeId),`${agfId} has an unplanned target reservation at ${event.sequence}`);
       assert.equal(traffic.owners['node:'+nodeId],agfId,`${agfId} reservation has no atomic resource owner`);
       assert.ok(!traffic.nodeOccupants[nodeId]||traffic.nodeOccupants[nodeId]===agfId,
@@ -87,12 +96,20 @@ function assertActiveEnergy(run){
   }
 }
 
-for(const [name,build] of [['neutral',configuredNeutralScenario],['mixed integrated',integratedAcceptanceScenario]]){
+const defaultMotionNeutralScenario=()=>{
+  const scenario=configuredNeutralScenario();
+  scenario.motionControl=createDemoScenario().motionControl;
+  return scenario;
+};
+for(const [name,build] of [['neutral',configuredNeutralScenario],['default provisional motion',defaultMotionNeutralScenario],
+  ['mixed integrated',integratedAcceptanceScenario]]){
   test(`three-hour ${name} synthetic traffic keeps exclusive nodes, lane resources, projection, clocks and energy consistent`,()=>{
     for(const mode of ['area_first','low_battery_first']){
       const scenario=build();scenario.mode=mode;const run=simulate(scenario);
       assert.equal(run.events.at(-1).timeMs,10800000);
       assertTrafficAndClock(run);assertActiveEnergy(run);
+      if(name==='default provisional motion')assert.equal(run.events.filter(e=>e.type==='DEADLOCK_DETECTED').length,0,
+        'the default provisional timing must not leave a reciprocal approach gridlock');
       assert.ok(run.metrics.completed>0);
     }
   });

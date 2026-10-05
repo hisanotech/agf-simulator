@@ -11,6 +11,7 @@ export const evidenceLabel=evidence=>({
   'supplier-assumption-user-relayed':'供給元の想定・ユーザー共有',
   'theoretical-pallet-discharge-100pct':'設備能力100%の理論タクト',
   'explicit-scenario-setting':'この実行の明示条件',
+  'user-requested-example-default':'ユーザー指定の初期行割当・既存例と同じ値',
   'user-confirmed-initial-logical-direction-policy':'確認済みのシミュレーション初期通行方針'
 })[evidence]??(String(evidence??'').includes('legacy')?'旧回帰モデルの条件':'この実行の設定・仮定');
 

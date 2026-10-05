@@ -67,9 +67,11 @@ Object.assign(eventNames,{AVOIDANCE_REACHED:'退避位置到着',AVOIDANCE_RETUR
   INTERFERENCE_DETECTED:'明示された干渉入力',INTERFERENCE_DEFERRED:'停止位置での干渉判断待ち'});
 export const areaName=id=>id==='PZ'?'パレタイズ':id==='WH'?'製品倉庫':id;
 Object.assign(eventNames,{WRAPPER_INPUT_WAITING:'包装機入口待ち',WRAPPER_INPUT_RESERVED:'包装機入口の受入枠予約',
+  WRAPPER_DEPARTURE_WAITING:'包装機入口への出発待ち',
   WRAPPER_INPUT_WAIT_ENDED:'包装機入口待ち解除',WRAPPER_CONVEYOR_ACCEPTED:'包装機内部へ受渡し',WRAPPER_EXIT_WAITING:'包装機出口の空き待ち',
   OVERTAKING_WAITING:'包装機入口待ちAGFの横通過待ち',OVERTAKING_STARTED:'包装機入口待ちAGFの横通過開始',OVERTAKING_COMPLETED:'正規レーンへの復帰完了'});
 Object.assign(reasons,{WRAPPER_INPUT:'包装機入口待ち',WRAPPER_INPUT_FULL_OR_RESERVED:'包装機入口が使用中または予約済み',
+  OVERTAKING:'横通過の完了待ち',
   WRAPPER_PERMISSION:'包装機受入許可待ち',OVERTAKING_RESOURCE_OCCUPIED:'横通過の対象領域・復帰先の空き待ち'});
 export const locationName=id=>({ 'WRAP-INPUT':'包装機 投入','WRAP-OUTPUT':'包装機 回収',OT1:'仮置き1',OT2:'仮置き2',OT3:'仮置き3',
   'PILLAR-WAIT-W':'柱前西','PILLAR-WAIT-E':'柱前東',

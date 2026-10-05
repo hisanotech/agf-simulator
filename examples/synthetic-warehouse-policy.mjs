@@ -1,4 +1,5 @@
-/** Opt-in synthetic allocation for tests and UI review. Never an initial site allocation. */
+/** Synthetic row allocation, also chosen by the user as the editable UI default.
+ * This symbolic allocation does not approve physical geometry or CAD routes. */
 export function syntheticWarehousePolicy(){
   const groups=[['WB1',1,3,'L1'],['WB1',4,7,'L2'],['WB2',1,3,'L3'],
     ['WB3',1,4,'L4'],['WB3',5,8,'L5'],['WB3',9,13,'L6'],['EB1',1,3,'L7'],

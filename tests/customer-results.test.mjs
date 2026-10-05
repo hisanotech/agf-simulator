@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createDemoScenario,createLegacyScenario,initialAgfFromSettings} from '../src/ui/scenario.mjs';
 import {renderAnalysis,renderComparison} from '../src/ui/analysis-view.mjs';
 import {analyzeRun,durationTenths} from '../src/ui/replay-model.mjs';
+import {simulate} from '../src/core/simulate.mjs';
 
 function fixture(){
   const scenario=createDemoScenario();scenario.durationMin=1;scenario.lineIntervalsMin=[10,20,30,40,50,60,70,80];
@@ -41,6 +42,20 @@ test('official completion events agree for all AGFs all transport kinds and ever
   assert.equal(data.agfs[2].chargeCount,1);assert.equal(data.agfs[3].chargeCount,0);
   assert.equal(data.pendingTasks.find(t=>t.kind==='01').reason,'包装機入口待ち');
 });
+
+test('unfinished transport reason follows actual saved activity rather than a retained wrapper input reason',async()=>{
+  const {customerPendingReason,customerRunSummary}=await import('../src/ui/customer-results.mjs'),run=fixture();
+  const task=run.final.tasks.find(task=>task.id==='T4'),agf=run.final.agfs.find(agf=>agf.taskId===task.id);
+  task.waitReason='WRAPPER_INPUT';
+  for(const [status,expected] of [['turning','旋回中'],['moving_loaded','搬送中'],['handling_dropoff','荷役中'],
+    ['positioning_for_pickup','荷役中'],['waiting_traffic','通行待ち'],['waiting_wrapper_input','包装機入口待ち']]){
+    agf.status=status;
+    assert.equal(customerPendingReason(task,agf),expected,status);
+    assert.equal(customerRunSummary(run).pendingTasks.find(row=>row.kind==='01').reason,expected,status);
+  }
+  task.waitReason=null;agf.status='waiting_wrapper_input';
+  assert.equal(customerPendingReason(task,agf),'包装機入口待ち');
+});
 test('final status alone is not customer completion and initial charging stop never counts as charge',async()=>{
   const {customerRunSummary}=await import('../src/ui/customer-results.mjs'),run=fixture();
   run.events=run.events.filter(e=>!['TASK_COMPLETED','CHARGE_STARTED'].includes(e.type));run.snapshots=run.events.map(()=>structuredClone(run.final));
@@ -67,6 +82,36 @@ test('customer CSV files have Japanese headers and remain separate from internal
   assert.match(agf,/AGF,搬送完了件数,搬送01,搬送02,搬送03,搬送04,搬送05,最終バッテリー/);
   for(const csv of [conditions,transport,agf])assert.doesNotMatch(csv,/area_first|TASK_COMPLETED|waiting_wrapper_input|synthetic-assumption/);
   assert.ok(agf.includes('70.1'));assert.ok(transport.includes('搬送01'));
+});
+
+test('customer achievement CSVs reconcile actual completed transports charging starts and final battery from a reproducible legacy charge Run',async()=>{
+  const {transportResultsCsv,agfResultsCsv}=await import('../src/ui/customer-export.mjs');
+  const scenario=createLegacyScenario('charge'),run=simulate(scenario);
+  const transportRows=transportResultsCsv(run).slice(1).split('\r\n').slice(1).map(row=>row.split(','));
+  const agfRows=agfResultsCsv(run).slice(1).split('\r\n').slice(1).map(row=>row.split(','));
+  const completions=run.events.filter(event=>event.type==='TASK_COMPLETED');
+  assert.ok(completions.length>0);
+  assert.ok(run.events.some(event=>event.type==='CHARGE_STARTED'));
+  assert.equal(transportRows.reduce((sum,row)=>sum+Number(row[3]),0),completions.length);
+  assert.equal(agfRows.reduce((sum,row)=>sum+Number(row[1]),0),completions.length);
+  for(const row of transportRows){
+    const kind=row[0].replace('搬送','');
+    assert.equal(Number(row[3]),completions.filter(event=>event.kind===kind).length);
+    assert.equal(Number(row[2]),Number(row[3])+Number(row[4]));
+  }
+  for(const row of agfRows){
+    const agf=run.final.agfs.find(agf=>agf.id===row[0]);
+    assert.equal(Number(row[1]),row.slice(2,7).reduce((sum,value)=>sum+Number(value),0));
+    assert.equal(Number(row[7]),Number(agf.batteryPct.toFixed(1)));
+    assert.equal(Number(row[8]),run.events.filter(event=>event.type==='CHARGE_STARTED'&&event.agfId===agf.id).length);
+  }
+});
+
+test('customer conditions CSV quotes saved display names containing commas quotes and newlines',async()=>{
+  const {customerConditionsCsv}=await import('../src/ui/customer-export.mjs'),run=fixture();
+  run.scenario.agfs[0].id='合成機体, "試験"\n1';
+  const csv=customerConditionsCsv(run);
+  assert.match(csv,/"合成機体, ""試験""\n1"/);
 });
 test('comparison reports actual saved condition differences using Japanese names',()=>{
   const left=fixture(),right=fixture();right.scenario.mode='low_battery_first';right.scenario.lineIntervalsMin[0]=15;

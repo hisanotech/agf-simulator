@@ -4,6 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="dark light"><title>AGF SIMULATOR | 搬送シミュレーション</title>
   <link rel="stylesheet" href="./src/ui/dashboard.css">
+  <link rel="stylesheet" href="./src/ui/settings-validation.css">
 </head>
 <body>
   <header class="topbar">
@@ -46,7 +47,7 @@
         <section class="panel"><div class="panel-heading"><h2>停止旋回・荷役姿勢</h2><span class="badge sample">暫定初期値・実機未検証</span></div><div id="motion-settings"></div></section></div>
 <section id="extended-settings" hidden>
 <section class="panel section"><div class="panel-heading"><h2>搬出種別・頻度</h2><span class="badge sample">決定的な間隔生成</span></div><p class="muted">既定間隔は8系列の理論パレット排出タクト（設備能力100%）。各種別の初回は間隔＋合成ずらし後、以降は指定間隔。初期ONは普通銘柄・満載のみ。OFFの種別は生成しません。</p><div class="table-scroll"><table><thead><tr><th>系列</th><th>種別</th><th>ON</th><th>間隔（分）</th><th>初回ずらし（分）</th></tr></thead><tbody id="product-stream-fields"></tbody></table></div><div id="supply-settings"></div></section>
-<section class="panel section"><div class="panel-heading"><h2>倉庫の行割当・入庫順位</h2><button type="button" id="load-storage-example">合成検証用の行割当を読込</button></div><p class="notice">実際の行割当は未設定です。全8系列に最低1行が必要。特注ONには特注領域が必要です。同用途は1ブロック内で連続させ、複数行の優先順位は明示入力してください。ブロック間の隣接条件は未対応です。例の読込は現場仕様の承認を意味しません。</p><div class="table-scroll allocation-scroll"><table><thead><tr><th>行</th><th>用途（1行1用途）</th><th>同用途内の優先順位</th></tr></thead><tbody id="warehouse-row-fields"></tbody></table></div></section>
+<section class="panel section"><div class="panel-heading"><h2>倉庫の行割当・入庫順位</h2><button type="button" id="load-storage-example">合成検証用の行割当を読込</button></div><p class="notice">行割当・優先順位には、ユーザー指定により既存の合成検証例と同じ初期値を入れています。必要に応じて変更できます。全8系列に最低1行、特注ONには特注領域が必要です。同用途は1ブロック内で連続させてください。実CADの位置・経路の承認を意味しません。</p><div class="table-scroll allocation-scroll"><table><thead><tr><th>行</th><th>用途（1行1用途）</th><th>同用途内の優先順位</th></tr></thead><tbody id="warehouse-row-fields"></tbody></table></div></section>
 <section class="panel section"><div class="panel-heading"><h2>タスク・充電完了後の倉庫待機場所への復帰</h2></div><p class="muted">充電が最優先。次タスクに選定されなければ、HP1 → HP2 → 柱前東 → 柱前西の順で未占有・未予約の場所を選び、帰還開始時に予約します。到着時に占有へ移行。復帰中は新規割当不可。待機済みAGFの並べ替えは行いません。PZと充電場所を通常待機先にはしません。</p><div id="hp-target-fields" class="agf-setting-grid"></div><p class="method-note">優先順位は利用者確認済みで全AGF共通です。初期配置だけのAGF・停止位置の対応とは別です。停止座標・経路・所要時間は合成仮定。初期倉庫は空の合成在庫です。</p></section>
 </section></form>
         <div class="settings-footer"><span>在庫はシナリオ別の合成入力です。追加仕様シナリオは初期空庫。現場の在庫を表しません。</span><button class="primary" id="run-settings">設定を反映して実行 →</button></div>

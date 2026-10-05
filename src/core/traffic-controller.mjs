@@ -71,14 +71,27 @@ export function createTrafficController(edges,{nodes=[]}={}){
     }
     return candidate.order<member.order;
   };
-  const groupBlocked=(agfId,groupId,direction,requestOrder,edgeId=null,ignoreAgfId=null,positionNodeId=null)=>{
-    const member=joinGroup(agfId,groupId,direction,requestOrder,positionNodeId);
+  const blockersInGroup=(member,edgeId=null,ignoreAgfId=null)=>{
+    const {agfId,groupId,direction}=member;
     const positioning=[...handling].filter(([id,state])=>id!==agfId&&id!==ignoreAgfId&&state.groupId===groupId&&
       positioningPhases.has(state.phase)&&(!state.blockedEdgeIds||state.blockedEdgeIds.includes(edgeId))).map(([id])=>id);
     if(positioning.length)return {blockers:positioning,reason:'HANDLING_POSITIONING'};
     const leaders=ordered().filter(other=>other.agfId!==agfId&&other.agfId!==ignoreAgfId&&other.groupId===groupId&&
       other.direction===direction&&aheadOf(other,member)).map(other=>other.agfId);
     return leaders.length?{blockers:leaders,reason:'NO_OVERTAKING'}:null;
+  };
+  const groupBlocked=(agfId,groupId,direction,requestOrder,edgeId=null,ignoreAgfId=null,positionNodeId=null)=>
+    blockersInGroup(joinGroup(agfId,groupId,direction,requestOrder,positionNodeId),edgeId,ignoreAgfId);
+  const futureGroupBlocked=(agfId,edge,step,requestOrder,ignoreAgfId=null)=>{
+    if(!edge.noOvertakingGroupId)return null;
+    const groupId=edge.noOvertakingGroupId,direction=groupDirection(edge,step.traversal);
+    const current=following.get(agfId);
+    const member={agfId,groupId,direction,requestOrder,positionNodeId:step.fromNodeId,
+      order:current?.groupId===groupId&&current.direction===direction?current.order:groupSequence+1};
+    // Preview the future constraint without registering the vehicle in a group
+    // it has not entered. A rear approach must not reserve a shared conflict
+    // zone that its already-ahead leader still needs in order to leave.
+    return blockersInGroup(member,step.edgeId,ignoreAgfId);
   };
   const wait=(agfId,blockers,requestOrder,reason)=>{
     const unique=[...new Set(blockers)].sort();
@@ -107,21 +120,39 @@ export function createTrafficController(edges,{nodes=[]}={}){
       const targetBlockers=exclusiveNodes.has(to)?[nodeOccupants.get(to),nodeReservations.get(to)].filter(id=>id&&id!==agfId):[];
       if(targetBlockers.length)return wait(agfId,targetBlockers,requestOrder,'TARGET_NODE_OCCUPIED');
       required(Array.isArray(lookaheadSteps),'traffic lookahead must be explicit route steps');
-      const nextStep=lookaheadSteps[0],nextEdge=nextStep&&edgeMap.get(nextStep.edgeId);
       const futureResources=[],futureNodes=[];
-      if(nextEdge?.mergeConflictResourceId){
-        required(nextStep.fromNodeId===to&&['forward','reverse'].includes(nextStep.traversal)&&
-          nextStep.fromNodeId===(nextStep.traversal==='forward'?nextEdge.fromNodeId:nextEdge.toNodeId)&&
-          nextStep.toNodeId===(nextStep.traversal==='forward'?nextEdge.toNodeId:nextEdge.fromNodeId),
+      let passageId=edge.atomicPassageId??null;
+      const futureSteps=[];
+      // Adjacent explicit merges may lead directly into one declared atomic
+      // passage. Check its far end before holding an approach junction that
+      // the opposite vehicle would need to leave. Ordinary travel ends this
+      // narrow reservation span; it is never a whole-route reservation.
+      for(const step of lookaheadSteps){
+        const futureEdge=edgeMap.get(step.edgeId);
+        if(passageId){if(futureEdge?.atomicPassageId!==passageId)break;}
+        else if(futureEdge?.atomicPassageId)passageId=futureEdge.atomicPassageId;
+        else if(!futureEdge?.mergeConflictResourceId)break;
+        futureSteps.push(step);
+      }
+      let previousNodeId=to;
+      for(const futureStep of futureSteps){
+        const futureEdge=edgeMap.get(futureStep.edgeId);
+        required(futureStep.fromNodeId===previousNodeId&&['forward','reverse'].includes(futureStep.traversal)&&
+          futureStep.fromNodeId===(futureStep.traversal==='forward'?futureEdge.fromNodeId:futureEdge.toNodeId)&&
+          futureStep.toNodeId===(futureStep.traversal==='forward'?futureEdge.toNodeId:futureEdge.fromNodeId),
           'declared merge lookahead endpoint mismatch');
-        required(nextEdge.lanes.some(lane=>allowed(lane,nextStep.traversal)),'merge lookahead direction forbidden');
-        futureNodes.push(...[nextStep.fromNodeId,nextStep.toNodeId].filter(id=>exclusiveNodes.has(id)));
+        required(futureEdge.lanes.some(lane=>allowed(lane,futureStep.traversal)),'merge lookahead direction forbidden');
+        const futureFollowing=futureGroupBlocked(agfId,futureEdge,futureStep,requestOrder,lease?.blockedAgfId);
+        if(futureFollowing)return wait(agfId,futureFollowing.blockers,requestOrder,futureFollowing.reason);
+        futureNodes.push(...[futureStep.fromNodeId,futureStep.toNodeId].filter(id=>exclusiveNodes.has(id)));
         const futureBlockers=futureNodes.flatMap(id=>[nodeOccupants.get(id),nodeReservations.get(id)])
           .filter(id=>id&&id!==agfId);
         if(futureBlockers.length)return wait(agfId,futureBlockers,requestOrder,'TARGET_NODE_OCCUPIED');
-        futureResources.push(nextEdge.mergeConflictResourceId,...nextEdge.lanes.map(lane=>lane.resourceId??lane.id),
-          ...nextEdge.occupancyResourceIds,...futureNodes.map(id=>'node:'+id),
-          ...(nextEdge.lanePolicy.simultaneousPassing==='yes'?[]:['edge:'+nextEdge.id]));
+        futureResources.push(...(futureEdge.mergeConflictResourceId?[futureEdge.mergeConflictResourceId]:[]),
+          ...futureEdge.lanes.map(lane=>lane.resourceId??lane.id),
+          ...futureEdge.occupancyResourceIds,...futureNodes.map(id=>'node:'+id),
+          ...(futureEdge.lanePolicy.simultaneousPassing==='yes'?[]:['edge:'+futureEdge.id]));
+        previousNodeId=futureStep.toNodeId;
       }
       const localPositioning=[...handling].filter(([id,state])=>id!==agfId&&id!==lease?.blockedAgfId&&
         positioningPhases.has(state.phase)&&state.blockedEdgeIds?.includes(edgeId)).map(([id])=>id);
