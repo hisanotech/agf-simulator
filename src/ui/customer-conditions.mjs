@@ -6,6 +6,7 @@ export const evidenceLabel=evidence=>({
   'provisional-derived':'暫定値・カタログから導出（停止旋回の実測値ではありません）',
   'provisional-simulation':'暫定シミュレーション値',
   'synthetic-assumption':'合成モデルの仮定','synthetic':'合成条件',
+  'private-dxf-proportions-provisional':'非公開図面の相対寸法に基づく暫定モデル・実測距離未確認',
   'unresolved':'未確定','unconfigured':'未設定','user-confirmed':'確認済み',
   'user-confirmed-neutral-start':'確認済みの初期条件',
   'supplier-assumption-user-relayed':'供給元の想定・ユーザー共有',
@@ -40,6 +41,12 @@ export function customerConditionRows(run){
   add('warehouse.initialStock','基本条件','初期製品在庫',(s.warehouse??[]).reduce((n,slot)=>n+(slot.palletIds?.length??0),0),'PL');
   add('mode','基本条件','AGF選定方式',selectionLabel(s.mode));
   const graph=s.motionModel==='synthetic_graph';
+  if(graph&&s.operationalTopology?.metricLayoutProfile){
+    const profile=s.operationalTopology.metricLayoutProfile;
+    add('map.unit','AGF走行条件','座標・区間距離の単位','mm','','',profile.evidence);
+    add('map.profile','AGF走行条件','縮尺モデル',profile.sourceKind==='private-dxf-proportions'?'非公開図面の相対寸法を反映':'架空mmモデル','','',profile.evidence);
+    add('map.scaleVerified','AGF走行条件','実寸・停止位置の照合','未確認','','',profile.evidence);
+  }
   add('motion.model','基本条件','走行時間の根拠',graph?'合成経路の距離・速度から計算':'設定した固定移動時間');
   if(s.lineMagazineMapPolicy)add('line.magazinePolicy','系列の搬出条件','系列・マガジン対応',s.lineMagazineMapPolicy==='fixed'?'固定対応':'検証シナリオの明示対応','','',s.evidence?.lineMagazineMap);
   for(let i=0;i<8;i++){

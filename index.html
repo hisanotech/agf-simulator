@@ -27,7 +27,7 @@
       <section id="view-monitor" class="view" aria-labelledby="monitor-title">
         <div class="page-heading"><div><p class="eyebrow">OPERATIONS OVERVIEW</p><h1 id="monitor-title">搬送モニター</h1></div><span class="muted">表示時刻の設備・車両状態</span></div>
         <div class="monitor-metrics" id="metrics"></div>
-        <div class="monitor-layout"><section class="map-panel panel"><div class="panel-heading"><div><h2>フロアマップ</h2><span class="muted">G01～G17概念図 · 合成グラフ位置または概念エリア表示</span></div><div class="map-actions"><button id="open-cad-map">CADレビュー</button><button id="map-warehouse">製品倉庫</button><button id="map-out" aria-label="マップ縮小">−</button><button id="map-in" aria-label="マップ拡大">＋</button><button id="map-fit">全体表示</button></div></div>
+        <div class="monitor-layout"><section class="map-panel panel"><div class="panel-heading"><div><h2>フロアマップ</h2><span class="muted" id="map-scale-label">概念配置・距離モデル</span></div><div class="map-actions"><button id="open-cad-map">CADレビュー</button><button id="map-palletizing">パレタイズ拡大</button><button id="map-warehouse">製品倉庫</button><button id="map-out" aria-label="マップ縮小">−</button><button id="map-in" aria-label="マップ拡大">＋</button><button id="map-fit">全体表示</button></div></div>
           <div class="map-canvas"><svg id="map" viewBox="0 0 1400 850" role="group" aria-label="搬送エリアの概念図。ドラッグで移動、ホイールで拡大縮小、設備を選択"></svg><div class="map-stamp">SCHEMATIC <span>実寸ではありません</span></div></div>
           <div class="map-legend"><span><i class="line-key dashed"></i>概念通路</span><span><i class="line-key"></i>選択AGFの合成経路</span><span>実CAD承認経路：未登録</span><span>□ 空車 / ▣ 積載</span></div>
           <div id="route-detail" class="route-detail"></div>

@@ -2,6 +2,7 @@ import {warehouseLocations,NORMAL_WAITING_PRIORITY} from '../map/warehouse-layou
 import syntheticTopology from '../../examples/synthetic-operational-topology.json' with {type:'json'};
 import {defaultProductStreams,THEORETICAL_LINE_INTERVALS_MIN} from '../core/production-streams.mjs';
 import {syntheticWarehousePolicy} from '../../examples/synthetic-warehouse-policy.mjs';
+import {convertTopologyToMetric} from '../map/metric-layout.mjs';
 
 // User-confirmed fixed supply correspondence. This does not define CAD positions.
 export const CONFIRMED_LINE_MAGAZINE_MAP=Object.freeze({
@@ -9,7 +10,7 @@ export const CONFIRMED_LINE_MAGAZINE_MAP=Object.freeze({
 });
 
 /** Confirmed defaults carry evidence; unmeasured geometry/timing stay model assumptions. */
-export function createDemoScenario(preset='standard') {
+export function createDemoScenario(preset='standard',{metricProfile=null}={}) {
   if(preset==='standard'||preset==='extended'){
     const s=createLegacyScenario('physical');s.preset=preset;
     s.wrapper={...s.wrapper,inputCapacity:1,outputCapacity:1,conveyorCapacity:5};
@@ -45,9 +46,18 @@ export function createDemoScenario(preset='standard') {
     s.aligners=s.aligners.map(a=>({id:a.id,quantity:10}));
     s.temporaryPallets=[];
     s.alignerRefillEvents=[];
-    return s;
+    return withMetricLayout(s,metricProfile);
   }
-  return createLegacyScenario(preset);
+  return withMetricLayout(createLegacyScenario(preset),metricProfile);
+}
+
+function withMetricLayout(scenario,profile){
+  if(profile&&scenario.operationalTopology){
+    scenario.operationalTopology=convertTopologyToMetric(scenario.operationalTopology,profile);
+    scenario.evidence.coordinates=profile.evidence;
+    scenario.evidence.distance=profile.evidence;
+  }
+  return scenario;
 }
 
 /** Explicit legacy/regression fixtures, never the neutral ordinary Run. */

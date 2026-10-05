@@ -2,6 +2,8 @@ import {simulate} from '../core/simulate.mjs';
 import {projectBatteryPct,batteryModel} from '../core/battery-model.mjs';
 import {projectAgfPosition} from '../core/motion-projection.mjs';
 import {createDemoScenario,initialAgfFromSettings} from './scenario.mjs';
+import {syntheticMetricLayout} from '../../examples/synthetic-metric-layout.mjs';
+import {loadLocalMetricProfile} from './metric-profile.mjs';
 import {snapshotIndexAt,replayFrameTime,analyzeRun,compareRuns,effectiveStatus,workingStatuses} from './replay-model.mjs';
 import {initMap,renderWarehouseBlock,describeSlot} from './map-view.mjs';
 import {renderAnalysis,renderComparison,metric} from './analysis-view.mjs';
@@ -23,7 +25,12 @@ const batteryFields=[['reservePct','選定残量下限（%）'],['chargeStartPct
   ['consumptionPct','旧方式：1タスク消費（ポイント）'],['chargeMinPerPct','1ポイント充電に要する時間（分）']];
 const numeric=id=>Number($(id).value);
 const input=(id,label,value,min=0,step=.1,max='')=>`<label>${esc(label)}<input id="${id}" type="number" min="${min}" step="${step}" ${max!==''?`max="${max}"`:''} value="${value}" required></label>`;
-let base=createDemoScenario(),result=null,preview=null,analysis=null,comparison=null,runId='',runNumber=0;
+let metricProfile=syntheticMetricLayout,metricProfileError=null;
+try{const local=await loadLocalMetricProfile({hostname:location.hostname,fetchProfile:fetch});
+  if(local.profile)metricProfile=local.profile;
+}catch(error){metricProfileError=error;}
+const createScenario=preset=>createDemoScenario(preset,{metricProfile});
+let base=createScenario(),result=null,preview=null,analysis=null,comparison=null,runId='',runNumber=0;
 let timeMs=0,currentIndex=-1,batterySecond=-1,selectedAgf='AGF1',activeView='monitor',dirty=false,frame=null,anchor=null;
 let selectedBlock='WB1',reservationKind='05';
 const map=initMap({svg:$('map'),onSelectAgf:selectAgf,onSelectBlock:openWarehouse});
@@ -86,6 +93,8 @@ function scenarioFromSettings() {
 function markDirty(value=true) {dirty=value;$('dirty-state').hidden=!value;}
 function friendlyError(error) {
   const message=error.message??String(error);
+  const overflow=/line buffer overflow at L([1-8]) \/ (\d+)/.exec(message);
+  if(overflow)return `系列${overflow[1]}：${Number(overflow[2])/60000}分で製品バッファ容量を超える生産入力になりました。搬出間隔とAGFの処理能力を確認してください。${result?'前回の計算結果は保持しています。':''}`;
   if(/lineMagazineMap/.test(message))return 'GWI〜GWVIIIの全8系列に、存在するマガジンが必要です。基準Run・追加仕様は確認済みの固定対応です。検証シナリオでは不足している対応を確認してください。';
   if(/magazineEmptyRecoveryPolicy/.test(message))return '空パレット0枚停止後の再開方式を確認してください。未設定のままでは補充後も生産を保留します。';
   if(/MOTION_CONFIG/.test(message))return '停止旋回・荷役姿勢の設定を確認してください。旋回角速度は正のdeg/s、4相の時間は0以上の分で明示します。未確定値は補完しません。';
@@ -184,6 +193,10 @@ function renderHeadings(agfs){for(const a of agfs){
 }}
 function selectAgf(id){selectedAgf=id;renderSnapshot();}
 function renderSnapshot(){const run=result??preview;if(!run)return;const snap=snapshot();
+  const profile=run.scenario.operationalTopology?.metricLayoutProfile;
+  $('map-scale-label').textContent=profile?
+    (profile.sourceKind==='private-dxf-proportions'?'非公開図面の相対寸法を反映 · mm暫定モデル · 実停止位置未確認':'架空mmモデル · 実図面の縮尺未確認'):
+    'G01～G17概念図 · 旧回帰モデル';
   const completed=snap.tasks.filter(t=>t.status==='completed').length;
   const held=snap.tasks.filter(t=>t.status!=='completed'&&t.waitReason).length;
   const working=snap.agfs.filter(a=>workingStatuses.includes(effectiveStatus(a,snap))).length;
@@ -275,15 +288,15 @@ for(let i=1;i<=4;i++)$('log-agf').add(new Option('AGF'+i,'AGF'+i));
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
 $('settings-form').addEventListener('submit',event=>event.preventDefault());
 $('settings-form').addEventListener('input',event=>{markDirty();clearSettingsErrors($('settings-form'));if(event.target.id==='battery-model')syncBatteryFields();});$('mode').addEventListener('change',()=>markDirty());
-$('scenario-select').addEventListener('change',()=>{pause();base=createDemoScenario($('scenario-select').value);populateSettings(base);markDirty();notify('シナリオを設定欄に読み込みました。「実行」で反映します。');});
+$('scenario-select').addEventListener('change',()=>{pause();base=createScenario($('scenario-select').value);populateSettings(base);markDirty();notify('シナリオを設定欄に読み込みました。「実行」で反映します。');});
 $('run').addEventListener('click',execute);$('run-settings').addEventListener('click',()=>{if(execute())showView('monitor');});
-$('reset').addEventListener('click',()=>{pause();clearError();base=createDemoScenario($('scenario-select').value);populateSettings(base);markDirty(false);showInitialPreview();});
+$('reset').addEventListener('click',()=>{pause();clearError();base=createScenario($('scenario-select').value);populateSettings(base);markDirty(false);showInitialPreview();});
 $('compare').addEventListener('click',compare);$('compare-page').addEventListener('click',compare);
 $('play').addEventListener('click',play);$('pause').addEventListener('click',pause);$('stop').addEventListener('click',()=>{pause();setTime(0);});
 $('speed').addEventListener('change',()=>{const wasPlaying=frame!==null;pause();if(wasPlaying)play();});
 $('seek').addEventListener('input',()=>{pause();setTime(numeric('seek'));});
 $('next-event').addEventListener('click',()=>{pause();const next=result.events.find(e=>e.timeMs>timeMs);setTime(next?.timeMs??analysis.durationMs);});
-$('map-fit').addEventListener('click',map.fit);$('map-in').addEventListener('click',()=>map.zoom(.8));$('map-out').addEventListener('click',()=>map.zoom(1.25));$('map-warehouse').addEventListener('click',map.warehouse);
+$('map-fit').addEventListener('click',map.fit);$('map-in').addEventListener('click',()=>map.zoom(.8));$('map-out').addEventListener('click',()=>map.zoom(1.25));$('map-warehouse').addEventListener('click',map.warehouse);$('map-palletizing').addEventListener('click',map.palletizing);
 $('agf-list').addEventListener('click',event=>{const b=event.target.closest('[data-select-agf]');if(b)selectAgf(b.dataset.selectAgf);});
 $('log-agf').addEventListener('change',renderLog);$('log-task').addEventListener('input',renderLog);$('task-kind').addEventListener('change',renderTasks);$('task-state').addEventListener('change',renderTasks);
 $('warehouse-tier').addEventListener('change',renderWarehouse);$('block-tabs').addEventListener('click',event=>{const b=event.target.closest('[data-block-tab]');if(b){selectedBlock=b.dataset.blockTab;renderWarehouse();}});
@@ -302,3 +315,4 @@ $('agf-results-csv').addEventListener('click',()=>{if(result)downloadCsv(agfResu
 initCadPanel({showError:error=>{$('cad-error').textContent=friendlyError(error);$('cad-error').hidden=false;},clearError:()=>{$('cad-error').hidden=true;}});
 for(const id of ['open-cad','open-cad-map'])$(id).addEventListener('click',()=>{pause();$('cad-dialog').showModal();});
 showInitialPreview();showView(location.hash.slice(1)||'monitor');
+if(metricProfileError)showError(metricProfileError);

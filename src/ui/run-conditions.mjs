@@ -21,6 +21,7 @@ const evidenceNames={'user-confirmed':'ユーザー確認済み','user-confirmed
   'user-confirmed-driving-and-handling':'ユーザー確認済み（走行・荷役）',
   'theoretical-pallet-discharge-100pct':'設備能力100%の理論タクト','synthetic-phases':'初回ずらしの合成仮定',
   'synthetic-intervals':'合成の搬出間隔','unreviewed':'未レビュー','legacy-model':'旧モデルの再現用',
+  'private-dxf-proportions-provisional':'非公開図面の相対寸法に基づく暫定モデル・縮尺未校正',
   'legacy-per-task':'旧タスク単位の再現用'};
 const labels={id:'Run ID',executedAt:'実行日時',durationMin:'実行時間（分）',durationMs:'実行時間（ms）',preset:'Scenario名 / preset',
   motionModel:'走行モデル',physicalEtaAllowed:'実測ETAとしての使用',initialPosition:'初期位置',initialArea:'初期エリア',
@@ -36,6 +37,7 @@ const labels={id:'Run ID',executedAt:'実行日時',durationMin:'実行時間（
   emptyMin:'空走の固定時間（分）',loadedMin:'積載走行の固定時間（分）',pickupMin:'荷受け（分）',dropoffMin:'荷下ろし（分）',
   wrapMin:'包装（分）',labelMin:'ラベル（分）',exitMin:'出口移送（分）',chargeTravelMin:'充電場所までの固定移動（分）',
   distanceMm:'合成モデル距離（mm）',fromNodeId:'始点',toNodeId:'終点',accessScopes:'搬送・動作の通行対象',block:'ブロック',row:'行',
+  coordinateUnit:'モデル座標の単位',metricLayoutProfile:'このRunの縮尺プロファイル・根拠',displayPath:'Runのmm経路点（旧入力は描画座標）',
   owner:'系列・用途',rowPriority:'同用途内の行優先順位',theoreticalPL:'理論容量（PL）',assignedPL:'割当済み行の容量（PL）',
   turnRateDegPerSec:'旋回角速度（deg/s）',turnRateEvidence:'旋回角速度の根拠',turningConsumesBattery:'旋回時間を消費対象に含める',
   turningBatteryEvidence:'旋回の電池消費対象の根拠',avoidanceTieBreakPolicy:'同状態の回避候補タイブレーク',
@@ -135,13 +137,13 @@ export function buildRunConditions(run,{runId=run.runId??null,executedAt=run.exe
   }
   if(graph){
     const topology=s.operationalTopology;
-    for(const key of ['graphId','revision','coordinateSystem','datasetKind','readiness'])add('GRAPH','settings',key,topology?.[key],topology?.evidence??'synthetic-assumption');
+    for(const key of ['graphId','revision','coordinateSystem','coordinateUnit','datasetKind','readiness','metricLayoutProfile'])add('GRAPH','settings',key,topology?.[key],topology?.metricLayoutProfile?.evidence??topology?.evidence??'synthetic-assumption');
     for(const edge of topology?.edges??[]){
-      for(const key of ['fromNodeId','toNodeId','distanceMm','accessScopes','lanePolicy','lanes','occupancyResourceIds','shutterId','noOvertakingGroupId','noOvertakingForwardDirection'])add('GRAPH_EDGE',edge.id,key,edge[key],topology.evidence??'synthetic-assumption');
+      for(const key of ['fromNodeId','toNodeId','distanceMm','displayPath','accessScopes','lanePolicy','lanes','occupancyResourceIds','shutterId','noOvertakingGroupId','noOvertakingForwardDirection'])add('GRAPH_EDGE',edge.id,key,edge[key],topology.metricLayoutProfile?.evidence??topology.evidence??'synthetic-assumption');
       for(const movement of ['empty','loaded','charge','wait'])add('GRAPH_SPEED',edge.id,movement,edge.speedMmPerSec?.[movement],topology.evidence??'synthetic-assumption',
         edge.id+' '+({empty:'空走',loaded:'積載',charge:'充電移動',wait:'待機場所へ復帰'})[movement]+'（mm/s）');
     }
-    for(const node of topology?.nodes??[])for(const key of ['interfaceId','kind','handlingGroupId','handlingResourceIds','occupancyResourceIds'])
+    for(const node of topology?.nodes??[])for(const key of ['x','y','interfaceId','kind','handlingGroupId','handlingResourceIds','occupancyResourceIds'])
       if(node[key]!==undefined)add('GRAPH_NODE',node.id,key,node[key],node.evidence??topology.evidence??'synthetic-assumption');
     for(const plan of topology?.avoidancePlans??[])for(const [key,value] of Object.entries(plan))
       add('AVOIDANCE_PLAN',plan.id,key,value,plan.evidence??'unresolved');

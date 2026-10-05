@@ -10,7 +10,17 @@
 | CADレビュー | `reviewed-topology-v2` | 非公開図面上で確認した点・接続・通行候補 | 距離・交通条件不足のため物理走行不可 |
 | 合成運行 | `operational-topology-v1` | 架空座標・距離・速度による区間走行、交通制御、UI回帰 | `motionModel: synthetic_graph`でのみ実行可 |
 
-合成運行グラフは実CADの代替物ではない。`datasetKind=synthetic`、`evidence=synthetic-assumption`、`coordinateSystem=synthetic-display`、`physicalEtaAllowed=false`を必須とし、合成距離・時間を実測距離・確定ETAとして表示しない。
+合成運行グラフは実CADの代替物ではない。`datasetKind=synthetic`、`evidence=synthetic-assumption`、`physicalEtaAllowed=false`を必須とし、合成距離・時間を実測距離・確定ETAとして表示しない。旧回帰入力は `coordinateSystem=synthetic-display`、縮尺を揃えるモデルは `coordinateSystem=synthetic-mm` とする。
+
+### mm配置モデル（2026-10-05）
+
+`src/map/metric-layout.mjs` は明示された `metric-layout-profile-v1` の軸アンカーから、旧概念座標をmmへ変換する。ノードと経路点、設備・建屋の描画は同じ変換を使い、mmモデルの各 `distanceMm` はそのmm経路の長さと一致しなければならない。曲がりの分割はmm区間長を保持する。画面は縦横同じ倍率で投影し、文字・AGF記号の表示サイズを設備位置から分離する。旧入力の独立距離・等分分割は過去Run再現用に保持する。
+
+任意の `xBands` はPZの個別間隔補正とWHの等間隔配置を分離し、外通路では宣言された帯の間を補間する。接続や未指定の曲がりノードは追加しない。設備の概念枠・文字は描画記号であり、荷役面中心を保存済み停止点に揃えても実設備の大きさ・実停止位置の承認を意味しない。
+
+公開UIの既定は `examples/synthetic-metric-layout.mjs` の架空寸法。ローカルのループバックホストでのみ、無視対象の `private/metric-layout-profile.json` があれば使用する。実図由来の値・画像・比較ログは公開ファイルへ転記しない。非公開プロファイルも縮尺・原点・設備停止位置・現場通行承認へ自動昇格しない。`metricScaleVerified=false`、`physicalEtaAllowed=false` を維持し、旧待機／充電場所を校正アンカーにしない。
+
+保存済みScenarioはプロファイルのID・改訂・根拠・アンカー、全ノード座標・全経路点・距離・速度を保持し、Run条件と条件CSVから再現できる。新しい配置を読み込んでも保存済みRunを書き換えない。
 
 ## 2. グラフ契約
 
@@ -39,7 +49,7 @@
 
 合成グラフを指定したシナリオだけが`ROUTE_PLANNED`、`SEGMENT_REQUEST`、`SEGMENT_WAITING`、`SEGMENT_ENTERED`、`SEGMENT_EXITED`、`ROUTE_COMPLETED`等を生成する。既存の固定時間シナリオは従来語彙と結果を維持する。
 
-AGF位置は保存済みの`movement.current`、`enteredAt`、`exitAt`から区間の表示用折れ線に沿って補間する。`displayPath`は描画専用であり、長さを距離や時間へ転用しない。UIは再探索、予約、状態変更を行わない。経路・位置・交通待ち分析・CSVは同じイベント／スナップショットを根拠とする。
+AGF位置は保存済みの`movement.current`、`enteredAt`、`exitAt`から区間の折れ線に沿って補間する。旧 `synthetic-display` の `displayPath` は描画専用。`synthetic-mm` はmmモデル座標として距離と一致させるが、実測CAD距離・確定ETAではない。UIは再探索、予約、状態変更を行わない。経路・位置・交通待ち分析・CSVは同じイベント／スナップショットを根拠とする。
 
 ## 5. 公開合成フィクスチャと受入範囲
 

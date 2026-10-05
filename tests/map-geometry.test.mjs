@@ -11,11 +11,13 @@ const svg={innerHTML:'',attributes:{},setAttribute(key,value){this.attributes[ke
 const map=initMap({svg,onSelectAgf(){},onSelectBlock(){}});
 map.render(simulate(createDemoScenario('manual')).final,'AGF1');
 const html=svg.innerHTML;
-test('landscape display fills a 1400 by 850 canvas while preserving the shared schematic projection',()=>{
+test('landscape display uses equal scale on both axes within a 1400 by 850 canvas',()=>{
   assert.equal(svg.attributes.viewBox,'0 0 1400 850');
-  const [,sx,sy]=html.match(/data-schematic="landscape" transform="scale\(([^ ]+) ([^)]+)\)"/);
-  assert.equal(1100*Number(sx),1400);assert.equal(970*Number(sy),850);
-  assert.ok(1050*Number(sx)/1400>.95); // building bands use the available width
+  const transform=html.match(/data-schematic="landscape"[^>]*transform="([^"]+)"/)?.[1];
+  assert.ok(transform);
+  const scales=transform.match(/scale\(([^)]+)\)/)?.[1].trim().split(/[ ,]+/).map(Number);
+  assert.ok(scales?.length&&scales[0]>0);assert.equal(scales[0],scales[1]??scales[0]);
+  assert.ok(1100*scales[0]<=1400&&970*scales[0]<=850);
   map.zoom(.8);map.fit();assert.equal(svg.attributes.viewBox,'0 0 1400 850');
 });
 const attrs=tag=>Object.fromEntries([...tag.matchAll(/([\w-]+)="([^"]*)"/g)].map(([,k,v])=>[k,v]));

@@ -1,3 +1,5 @@
+import {validateMetricLayoutProfile,metricPathLength} from './metric-layout.mjs';
+
 const required=(condition,message)=>{if(!condition)throw new Error(message);};
 const movements=new Set(['empty','loaded','charge','wait']);
 const laneDirections=new Set(['forward','reverse','both']);
@@ -17,7 +19,13 @@ export function validateOperationalTopology(graph){
   required(graph?.schemaVersion==='operational-topology-v1','Expected operational-topology-v1');
   required(graph.datasetKind==='synthetic','public synthetic validator rejects non-synthetic datasets');
   required(graph.evidence==='synthetic-assumption','synthetic evidence is required');
-  required(graph.coordinateSystem==='synthetic-display','synthetic display coordinate system is required');
+  const metric=graph.coordinateSystem==='synthetic-mm';
+  required(metric||graph.coordinateSystem==='synthetic-display','synthetic display or metric coordinate system is required');
+  if(metric){
+    required(graph.coordinateUnit==='mm','metric coordinateUnit must be mm');
+    validateMetricLayoutProfile(graph.metricLayoutProfile);
+    required(graph.readiness?.metricScaleVerified===false,'unverified metric topology must retain its metric readiness');
+  }
   required(graph.readiness?.operationalRoutingReady===true&&graph.readiness?.physicalEtaAllowed===false,
     'synthetic routing must not claim physical ETA');
   const nodes=uniqueMap(graph.nodes,'nodes'),edges=uniqueMap(graph.edges,'edges');
@@ -54,6 +62,7 @@ export function validateOperationalTopology(graph){
     for(const movement of ['empty','loaded','charge',...(edge.accessScopes?.some(s=>s.movement==='wait')?['wait']:[])])required(Number.isFinite(edge.speedMmPerSec?.[movement])&&
       edge.speedMmPerSec[movement]>0,'invalid speed '+edge.id+'/'+movement);
     required(edge.approvalState==='synthetic-validated','invalid edge approval '+edge.id);
+    if(metric)required(edge.displayPath,'metric distance requires its millimeter path '+edge.id);
     if(edge.displayPath){
       const points=edge.displayPath,from=nodes.get(edge.fromNodeId),to=nodes.get(edge.toNodeId);
       required(Array.isArray(points)&&points.length>=2&&points.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)),
@@ -61,6 +70,11 @@ export function validateOperationalTopology(graph){
       required(points[0].x===from.x&&points[0].y===from.y&&points.at(-1).x===to.x&&points.at(-1).y===to.y,
         'display path endpoints must match nodes '+edge.id);
       required(points.every((p,i)=>!i||p.x!==points[i-1].x||p.y!==points[i-1].y),'zero display segment '+edge.id);
+      if(metric){
+        const length=metricPathLength(points);
+        required(Math.abs(length-edge.distanceMm)<=Math.max(1e-6,length*1e-9),
+          'metric distance must match millimeter path '+edge.id);
+      }
     }
     required(Array.isArray(edge.accessScopes),'accessScopes required '+edge.id);
     for(const scope of edge.accessScopes){
@@ -103,6 +117,17 @@ export function validateOperationalTopology(graph){
         'invalid no-overtaking group '+edge.id);
       required(typeof edge.noOvertakingForwardDirection==='string'&&edge.noOvertakingForwardDirection.length>0,
         'no-overtaking forward direction required '+edge.id);
+    }
+  }
+  if(metric){
+    const splitTotals=new Map();
+    for(const edge of edges.values())if(edge.splitSourceEdgeId)
+      splitTotals.set(edge.splitSourceEdgeId,(splitTotals.get(edge.splitSourceEdgeId)??0)+edge.distanceMm);
+    for(const edge of edges.values())if(edge.splitSourceEdgeId){
+      const total=splitTotals.get(edge.splitSourceEdgeId);
+      required(Number.isFinite(edge.splitSourceDistanceMm)&&
+        Math.abs(edge.splitSourceDistanceMm-total)<=Math.max(1e-6,total*1e-9),
+        'metric split source distance must match its segment total '+edge.id);
     }
   }
   const passages=new Map();
@@ -241,8 +266,8 @@ export function findOperationalPath(graph,startNodeId,endNodeId,{movement,taskTy
     modelDurationMs:steps.reduce((sum,step)=>sum+step.durationMs,0),steps};
 }
 
-// Display coordinates locate synthetic turns only. Distances are apportioned
-// equally from the input model distance, never measured from the drawing.
+// Legacy display models retain explicit equal distance allocation. Metric models
+// split their own millimeter geometry, retaining one scheduling/replay basis.
 // The caller must use the returned graph for both scheduling and replay.
 export function splitSyntheticDisplayTurns(input){
   validateOperationalTopology(input);
@@ -263,9 +288,10 @@ export function splitSyntheticDisplayTurns(input){
       graph.nodes.push(node);nodeMap.set(id,node);ids.push(id);
     }
     ids.push(source.toNodeId);
-    const distances=[],equal=source.distanceMm/segments;
+    const distances=[],metric=graph.coordinateSystem==='synthetic-mm',equal=source.distanceMm/segments;
     for(let index=0,allocated=0;index<segments;index++){
-      const distance=index===segments-1?source.distanceMm-allocated:equal;
+      const distance=metric?Math.hypot(points[index+1].x-points[index].x,points[index+1].y-points[index].y):
+        index===segments-1?source.distanceMm-allocated:equal;
       distances.push(distance);allocated+=distance;
     }
     const partIds=[];
@@ -280,7 +306,8 @@ export function splitSyntheticDisplayTurns(input){
         occupancyResourceIds:[...new Set([...source.occupancyResourceIds,...shared,...junctionResources])],
         displayPath:[points[index],points[index+1]],splitSourceEdgeId:source.id,splitPartIndex:index,
         splitSourceDistanceMm:source.distanceMm,
-        modelDistanceEvidence:'explicit-synthetic-equal-segment-allocation-not-display-length'});
+        modelDistanceEvidence:metric?'explicit-unverified-metric-profile-polyline-length':
+          'explicit-synthetic-equal-segment-allocation-not-display-length'});
     }
     splitMap.set(source.id,partIds);
   }
