@@ -61,7 +61,18 @@ test('G07/G08 normal entry reaches the HO-facing south opening without overshoot
   assert.ok(Math.abs(entry.cx-ho.cx)<ho.w/2&&entry.y>ho.bottom);
   assert.ok(hi.right<ho.x&&entry.right<out.x);
   assert.equal(west.cy,wh.y);assert.ok(item('WH-W-GATE').class.includes('inactive'));
-  assert.ok(west.right<entry.cx);
+  assert.ok(west.cx<east.cx);
+});
+test('08a four exterior shutters correspond to HO and PGW1-PGW3 sides without treating warehouse names as building ends',()=>{
+  const entry=box('PZ-IN'),exit=box('PZ-S-OUT'),west=box('WH-W-GATE');
+  const one=equipment('PGW1'),three=equipment('PGW3'),ho=equipment('HO'),two=equipment('PGW2');
+  assert.ok(exit.cx>=one.x&&exit.cx<=three.right,'exit lies on PGW1-PGW3 side');
+  assert.ok(exit.cx-entry.cx>two.cx-ho.cx,'exit separation exceeds one equipment pitch');
+  assert.ok(entry.right<exit.x,'opening symbols cannot overlap');
+  assert.ok(Math.abs(west.cx-entry.cx)<Math.abs(west.cx-wh.x),'west SH is the entry-side opening, not the building west end');
+  assert.ok(Math.abs(west.cx-entry.cx)<Math.abs(west.cx-exit.cx));
+  assert.ok(Math.abs(east.cx-exit.cx)<Math.abs(east.cx-entry.cx));
+  assert.notEqual(west.cx,entry.cx);assert.notEqual(east.cx,exit.cx);
 });
 test('G09 opposite logical lanes share one region with equipment-front connections; equipment order is retained',()=>{
   const a=numbers('PZ-A1'),b=numbers('PZ-A2');
@@ -71,7 +82,7 @@ test('G09 opposite logical lanes share one region with equipment-front connectio
   assert.ok(item('PZ-A2')['marker-end']);assert.equal(item('PZ-A2')['marker-start'],undefined);
   const merges=numbers('PZ-MERGES');assert.ok(merges.length>30);
   for(let i=0;i<merges.length;i+=3){assert.equal(merges[i+1],a[1]);assert.equal(merges[i+2],b[1]);}
-  for(const x of [630,448.5,511.5,637.5,682.5])assert.ok(merges.filter((_,i)=>i%3===0).includes(x));
+  for(const x of [630,448.5,511.5,637.5,800])assert.ok(merges.filter((_,i)=>i%3===0).includes(x));
   const order=['PGW8','PM1','PGW7','PM2','PGW5','PM3','PGW4','HI','WRAPPER','HO','PGW2','PM4','PGW1','PGW3','PM5','PGW6'];
   order.forEach((id,i)=>{const e=equipment(id);assert.ok(inside(e,pz)&&e.bottom<a[1]);
     if(i)assert.ok(equipment(order[i-1]).right<e.x);});
@@ -162,10 +173,10 @@ test('synthetic replay paths cross the wall only through fire shutters and never
   assert.equal(entry[0].fromNodeId,'WH-GATE');assert.equal(entry.at(-1).toNodeId,'PZ-ENTRY');
   assert.ok(entry.every((e,i)=>!i||entry[i-1].toNodeId===e.fromNodeId));
   assert.deepEqual([entry[0].displayPath[0],...entry.map(e=>e.displayPath[1])],
-    [{x:862.5,y:475},{x:862.5,y:390},{x:682.5,y:390},{x:630,y:390},{x:630,y:300}]);
+    [{x:862.5,y:475},{x:862.5,y:390},{x:800,y:390},{x:630,y:390},{x:630,y:300}]);
   assert.equal(exit[0].fromNodeId,'PZ-EXIT');assert.equal(exit.at(-1).toNodeId,'WH-GATE');
   assert.ok(exit.every((e,i)=>!i||exit[i-1].toNodeId===e.fromNodeId));
   assert.deepEqual([exit[0].displayPath[0],...exit.map(e=>e.displayPath[1])],
-    [{x:682.5,y:300},{x:682.5,y:390},{x:862.5,y:390},{x:862.5,y:475}]);
+    [{x:800,y:300},{x:800,y:390},{x:862.5,y:390},{x:862.5,y:475}]);
   assert.ok([...entry,...exit].every(e=>e.lanes.every(l=>l.direction==='forward')));
 });

@@ -166,7 +166,7 @@
       "id": "PZ-EXIT",
       "type": "shutter-wait",
       "areaId": "PZ",
-      "x": 682.5,
+      "x": 800,
       "y": 300,
       "approvalState": "synthetic-validated",
       "exclusiveTraffic": true,
@@ -1226,7 +1226,7 @@
       "id": "E04-TURN1",
       "type": "turn",
       "areaId": "PZ",
-      "x": 682.5,
+      "x": 800,
       "y": 173,
       "approvalState": "synthetic-validated",
       "corridorId": "PZ-A1",
@@ -1804,7 +1804,7 @@
         ]
       },
       "localHandlingBlockedEdgeIds": [
-        "PZ-A1-MAIN-13",
+        "E04",
         "PZ-A1-MAIN-14"
       ]
     },
@@ -1867,7 +1867,7 @@
         ]
       },
       "localHandlingBlockedEdgeIds": [
-        "PZ-A1-MAIN-15",
+        "PZ-A1-MAIN-15-EXIT-PART",
         "PZ-A1-MAIN-16"
       ]
     },
@@ -2445,7 +2445,7 @@
       "id": "PZ-S-EXIT",
       "type": "junction",
       "areaId": "PZ",
-      "x": 682.5,
+      "x": 800,
       "y": 211,
       "approvalState": "synthetic-validated",
       "sharedRegionId": "PZ-SHARED",
@@ -3643,7 +3643,7 @@
       "id": "E09-TURN1",
       "type": "turn",
       "areaId": "INTER",
-      "x": 682.5,
+      "x": 800,
       "y": 390,
       "approvalState": "synthetic-validated",
       "evidence": "synthetic-assumption",
@@ -3662,7 +3662,7 @@
       "id": "WH-W-GATE",
       "type": "shutter-wait",
       "areaId": "WH",
-      "x": 335,
+      "x": 650,
       "y": 475,
       "approvalState": "synthetic-validated",
       "exclusiveTraffic": true,
@@ -5578,7 +5578,7 @@
       "id": "E08-PART2",
       "fromNodeId": "E08-TURN1",
       "toNodeId": "E09-TURN1",
-      "distanceMm": 7200,
+      "distanceMm": 2500,
       "speedMmPerSec": {
         "empty": 1200,
         "loaded": 1000,
@@ -5634,7 +5634,7 @@
           "y": 390
         },
         {
-          "x": 682.5,
+          "x": 800,
           "y": 390
         }
       ],
@@ -5772,11 +5772,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 682.5,
+          "x": 800,
           "y": 300
         },
         {
-          "x": 682.5,
+          "x": 800,
           "y": 390
         }
       ],
@@ -5784,7 +5784,7 @@
       "noOvertakingForwardDirection": "forward",
       "splitSourceEdgeId": "E09",
       "splitPartIndex": 0,
-      "splitSourceDistanceMm": 14200,
+      "splitSourceDistanceMm": 9500,
       "modelDistanceEvidence": "synthetic-model-40mm-per-drawing-unit-polyline-not-measured",
       "crossingEvidence": "explicit-synthetic-existing-outdoor-junction-not-site-path"
     },
@@ -5792,7 +5792,7 @@
       "id": "E09-PART2",
       "fromNodeId": "E09-TURN1",
       "toNodeId": "E08-TURN1",
-      "distanceMm": 7200,
+      "distanceMm": 2500,
       "speedMmPerSec": {
         "empty": 900,
         "loaded": 700,
@@ -5844,7 +5844,7 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 682.5,
+          "x": 800,
           "y": 390
         },
         {
@@ -5856,7 +5856,7 @@
       "noOvertakingForwardDirection": "forward",
       "splitSourceEdgeId": "E09",
       "splitPartIndex": 1,
-      "splitSourceDistanceMm": 14200,
+      "splitSourceDistanceMm": 9500,
       "modelDistanceEvidence": "synthetic-model-40mm-per-drawing-unit-polyline-not-measured",
       "crossingEvidence": "explicit-synthetic-existing-outdoor-junction-not-site-path",
       "mergeConflictResourceId": "OUTDOOR-JUNCTION",
@@ -8910,142 +8910,6 @@
       "evidence": "user-confirmed-initial-logical-direction-policy"
     },
     {
-      "id": "PZ-A1-MAIN-13",
-      "fromNodeId": "E04-TURN1",
-      "toNodeId": "PZ-A1-PGW2-ACCESS",
-      "distanceMm": 1000,
-      "speedMmPerSec": {
-        "empty": 1000,
-        "loaded": 800,
-        "charge": 900,
-        "wait": 1000
-      },
-      "lanes": [
-        {
-          "id": "PZ-A1-MAIN-13-L1",
-          "direction": "reverse"
-        }
-      ],
-      "lanePolicy": {
-        "laneCount": 1,
-        "simultaneousPassing": "no-alternating"
-      },
-      "occupancyResourceIds": [],
-      "shutterId": null,
-      "accessScopes": [
-        {
-          "movement": "empty",
-          "taskTypes": [
-            "*"
-          ]
-        },
-        {
-          "movement": "loaded",
-          "taskTypes": [
-            "*"
-          ]
-        },
-        {
-          "movement": "charge",
-          "taskTypes": [
-            "CHARGE"
-          ]
-        },
-        {
-          "movement": "wait",
-          "taskTypes": [
-            "WAIT"
-          ]
-        }
-      ],
-      "approvalState": "synthetic-validated",
-      "displayPath": [
-        {
-          "x": 682.5,
-          "y": 173
-        },
-        {
-          "x": 700.5,
-          "y": 173
-        }
-      ],
-      "corridorId": "PZ-A1",
-      "noOvertakingGroupId": "PZ-A1",
-      "noOvertakingForwardDirection": "east",
-      "modelDistanceEvidence": "explicit-synthetic-station-link-distance-not-display-length",
-      "laneSide": "north",
-      "sharedRegionId": "PZ-SHARED",
-      "evidence": "user-confirmed-initial-logical-direction-policy"
-    },
-    {
-      "id": "PZ-SOUTH-PZ-A1-MAIN-13",
-      "fromNodeId": "PZ-S-EXIT",
-      "toNodeId": "PZ-S-PZ-A1-PGW2-ACCESS",
-      "distanceMm": 1000,
-      "speedMmPerSec": {
-        "empty": 1000,
-        "loaded": 800,
-        "charge": 900,
-        "wait": 1000
-      },
-      "lanes": [
-        {
-          "id": "PZ-SOUTH-PZ-A1-MAIN-13-L1",
-          "direction": "forward"
-        }
-      ],
-      "lanePolicy": {
-        "laneCount": 1,
-        "simultaneousPassing": "no-alternating"
-      },
-      "occupancyResourceIds": [],
-      "shutterId": null,
-      "accessScopes": [
-        {
-          "movement": "empty",
-          "taskTypes": [
-            "*"
-          ]
-        },
-        {
-          "movement": "loaded",
-          "taskTypes": [
-            "*"
-          ]
-        },
-        {
-          "movement": "charge",
-          "taskTypes": [
-            "CHARGE"
-          ]
-        },
-        {
-          "movement": "wait",
-          "taskTypes": [
-            "WAIT"
-          ]
-        }
-      ],
-      "approvalState": "synthetic-validated",
-      "displayPath": [
-        {
-          "x": 682.5,
-          "y": 211
-        },
-        {
-          "x": 700.5,
-          "y": 211
-        }
-      ],
-      "corridorId": "PZ-A2",
-      "noOvertakingGroupId": "PZ-A2",
-      "noOvertakingForwardDirection": "east",
-      "modelDistanceEvidence": "explicit-synthetic-parallel-logical-segment-distance-not-site-measurement",
-      "laneSide": "south",
-      "sharedRegionId": "PZ-SHARED",
-      "evidence": "user-confirmed-initial-logical-direction-policy"
-    },
-    {
       "id": "PZ-A1-MAIN-14",
       "fromNodeId": "PZ-A1-PGW2-ACCESS",
       "toNodeId": "PZ-A1-PM4-ACCESS",
@@ -9184,8 +9048,8 @@
     {
       "id": "PZ-A1-MAIN-15",
       "fromNodeId": "PZ-A1-PM4-ACCESS",
-      "toNodeId": "PZ-A1-PGW1-ACCESS",
-      "distanceMm": 1000,
+      "toNodeId": "E04-TURN1",
+      "distanceMm": 1460,
       "speedMmPerSec": {
         "empty": 1000,
         "loaded": 800,
@@ -9195,7 +9059,8 @@
       "lanes": [
         {
           "id": "PZ-A1-MAIN-15-L1",
-          "direction": "reverse"
+          "direction": "reverse",
+          "resourceId": "PZ-A1-MAIN-15-L1"
         }
       ],
       "lanePolicy": {
@@ -9237,23 +9102,26 @@
           "y": 173
         },
         {
-          "x": 826.5,
+          "x": 800,
           "y": 173
         }
       ],
       "corridorId": "PZ-A1",
       "noOvertakingGroupId": "PZ-A1",
       "noOvertakingForwardDirection": "east",
-      "modelDistanceEvidence": "explicit-synthetic-station-link-distance-not-display-length",
+      "modelDistanceEvidence": "synthetic-model-40mm-per-drawing-unit-polyline-not-measured",
       "laneSide": "north",
       "sharedRegionId": "PZ-SHARED",
-      "evidence": "user-confirmed-initial-logical-direction-policy"
+      "evidence": "user-confirmed-initial-logical-direction-policy",
+      "splitSourceEdgeId": "PZ-A1-MAIN-15",
+      "splitPartIndex": 0,
+      "splitSourceDistanceMm": 2520
     },
     {
       "id": "PZ-SOUTH-PZ-A1-MAIN-15",
       "fromNodeId": "PZ-S-PZ-A1-PM4-ACCESS",
-      "toNodeId": "PZ-S-PZ-A1-PGW1-ACCESS",
-      "distanceMm": 1000,
+      "toNodeId": "PZ-S-EXIT",
+      "distanceMm": 1460,
       "speedMmPerSec": {
         "empty": 1000,
         "loaded": 800,
@@ -9263,7 +9131,8 @@
       "lanes": [
         {
           "id": "PZ-SOUTH-PZ-A1-MAIN-15-L1",
-          "direction": "forward"
+          "direction": "forward",
+          "resourceId": "PZ-SOUTH-PZ-A1-MAIN-15-L1"
         }
       ],
       "lanePolicy": {
@@ -9305,17 +9174,20 @@
           "y": 211
         },
         {
-          "x": 826.5,
+          "x": 800,
           "y": 211
         }
       ],
       "corridorId": "PZ-A2",
       "noOvertakingGroupId": "PZ-A2",
       "noOvertakingForwardDirection": "east",
-      "modelDistanceEvidence": "explicit-synthetic-parallel-logical-segment-distance-not-site-measurement",
+      "modelDistanceEvidence": "synthetic-model-40mm-per-drawing-unit-polyline-not-measured",
       "laneSide": "south",
       "sharedRegionId": "PZ-SHARED",
-      "evidence": "user-confirmed-initial-logical-direction-policy"
+      "evidence": "user-confirmed-initial-logical-direction-policy",
+      "splitSourceEdgeId": "PZ-SOUTH-PZ-A1-MAIN-15",
+      "splitPartIndex": 0,
+      "splitSourceDistanceMm": 2520
     },
     {
       "id": "PZ-A1-MAIN-16",
@@ -11537,8 +11409,8 @@
     {
       "id": "E04",
       "fromNodeId": "PZ-WRAP-OUT-ACCESS",
-      "toNodeId": "E04-TURN1",
-      "distanceMm": 3500,
+      "toNodeId": "PZ-A1-PGW2-ACCESS",
+      "distanceMm": 2520,
       "speedMmPerSec": {
         "empty": 1000,
         "loaded": 800,
@@ -11555,9 +11427,7 @@
         "laneCount": 1,
         "simultaneousPassing": "no-alternating"
       },
-      "occupancyResourceIds": [
-        "synthetic-turn:E04-TURN1"
-      ],
+      "occupancyResourceIds": [],
       "shutterId": null,
       "accessScopes": [
         {
@@ -11592,17 +11462,14 @@
           "y": 173
         },
         {
-          "x": 682.5,
+          "x": 700.5,
           "y": 173
         }
       ],
       "corridorId": "PZ-A1",
       "noOvertakingGroupId": "PZ-A1",
       "noOvertakingForwardDirection": "east",
-      "splitSourceEdgeId": "E04",
-      "splitPartIndex": 0,
-      "splitSourceDistanceMm": 7000,
-      "modelDistanceEvidence": "explicit-synthetic-equal-segment-allocation-not-display-length",
+      "modelDistanceEvidence": "synthetic-model-40mm-per-drawing-unit-polyline-not-measured",
       "laneSide": "north",
       "sharedRegionId": "PZ-SHARED",
       "evidence": "user-confirmed-initial-logical-direction-policy"
@@ -11610,8 +11477,8 @@
     {
       "id": "PZ-SOUTH-E04",
       "fromNodeId": "PZ-S-PZ-WRAP-OUT-ACCESS",
-      "toNodeId": "PZ-S-EXIT",
-      "distanceMm": 3500,
+      "toNodeId": "PZ-S-PZ-A1-PGW2-ACCESS",
+      "distanceMm": 2520,
       "speedMmPerSec": {
         "empty": 1000,
         "loaded": 800,
@@ -11663,14 +11530,14 @@
           "y": 211
         },
         {
-          "x": 682.5,
+          "x": 700.5,
           "y": 211
         }
       ],
       "corridorId": "PZ-A2",
       "noOvertakingGroupId": "PZ-A2",
       "noOvertakingForwardDirection": "east",
-      "modelDistanceEvidence": "explicit-synthetic-parallel-logical-segment-distance-not-site-measurement",
+      "modelDistanceEvidence": "synthetic-model-40mm-per-drawing-unit-polyline-not-measured",
       "laneSide": "south",
       "sharedRegionId": "PZ-SHARED",
       "evidence": "user-confirmed-initial-logical-direction-policy"
@@ -12095,7 +11962,7 @@
       "id": "PZ-CHANGE-E04-TURN1",
       "fromNodeId": "PZ-S-EXIT",
       "toNodeId": "E04-TURN1",
-      "distanceMm": 1000,
+      "distanceMm": 1520,
       "speedMmPerSec": {
         "empty": 800,
         "loaded": 700,
@@ -12145,15 +12012,15 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 682.5,
+          "x": 800,
           "y": 211
         },
         {
-          "x": 682.5,
+          "x": 800,
           "y": 173
         }
       ],
-      "modelDistanceEvidence": "explicit-synthetic-lane-change-distance-not-display-length",
+      "modelDistanceEvidence": "synthetic-model-40mm-per-drawing-unit-polyline-not-measured",
       "kind": "logical-lane-change",
       "sharedRegionId": "PZ-SHARED",
       "evidence": "synthetic-explicit-lane-change-not-site-path",
@@ -13676,7 +13543,7 @@
       "id": "E04-PART2",
       "fromNodeId": "PZ-S-EXIT",
       "toNodeId": "PZ-EXIT",
-      "distanceMm": 3500,
+      "distanceMm": 3560,
       "speedMmPerSec": {
         "empty": 800,
         "loaded": 700,
@@ -13724,15 +13591,15 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 682.5,
+          "x": 800,
           "y": 211
         },
         {
-          "x": 682.5,
+          "x": 800,
           "y": 300
         }
       ],
-      "modelDistanceEvidence": "explicit-synthetic-exit-branch-distance-not-display-length",
+      "modelDistanceEvidence": "synthetic-model-40mm-per-drawing-unit-polyline-not-measured",
       "evidence": "synthetic-direct-exit-from-shared-region"
     },
     {
@@ -23149,7 +23016,7 @@
       "id": "E08-PART2-EXIT-TURN-PART",
       "fromNodeId": "E09-TURN1",
       "toNodeId": "E08-TURN2",
-      "distanceMm": 2100,
+      "distanceMm": 6800,
       "speedMmPerSec": {
         "empty": 1200,
         "loaded": 1000,
@@ -23201,7 +23068,7 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 682.5,
+          "x": 800,
           "y": 390
         },
         {
@@ -23284,11 +23151,155 @@
       "noOvertakingForwardDirection": "forward",
       "splitSourceEdgeId": "E09",
       "splitPartIndex": 2,
-      "splitSourceDistanceMm": 14200,
+      "splitSourceDistanceMm": 9500,
       "modelDistanceEvidence": "synthetic-model-40mm-per-drawing-unit-polyline-not-measured",
       "crossingEvidence": "explicit-synthetic-existing-outdoor-junction-not-site-path",
       "mergeConflictResourceId": "OUTDOOR-JUNCTION",
       "conflictEvidence": "explicit-synthetic-shared-outdoor-passage-not-site-clearance"
+    },
+    {
+      "id": "PZ-A1-MAIN-15-EXIT-PART",
+      "fromNodeId": "E04-TURN1",
+      "toNodeId": "PZ-A1-PGW1-ACCESS",
+      "distanceMm": 1060,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 900,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "PZ-A1-MAIN-15-L1-EXIT-PART",
+          "direction": "reverse",
+          "resourceId": "PZ-A1-MAIN-15-L1"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 800,
+          "y": 173
+        },
+        {
+          "x": 826.5,
+          "y": 173
+        }
+      ],
+      "corridorId": "PZ-A1",
+      "noOvertakingGroupId": "PZ-A1",
+      "noOvertakingForwardDirection": "east",
+      "modelDistanceEvidence": "synthetic-model-40mm-per-drawing-unit-polyline-not-measured",
+      "laneSide": "north",
+      "sharedRegionId": "PZ-SHARED",
+      "evidence": "user-confirmed-initial-logical-direction-policy",
+      "splitSourceEdgeId": "PZ-A1-MAIN-15",
+      "splitPartIndex": 1,
+      "splitSourceDistanceMm": 2520
+    },
+    {
+      "id": "PZ-SOUTH-PZ-A1-MAIN-15-EXIT-PART",
+      "fromNodeId": "PZ-S-EXIT",
+      "toNodeId": "PZ-S-PZ-A1-PGW1-ACCESS",
+      "distanceMm": 1060,
+      "speedMmPerSec": {
+        "empty": 1000,
+        "loaded": 800,
+        "charge": 900,
+        "wait": 1000
+      },
+      "lanes": [
+        {
+          "id": "PZ-SOUTH-PZ-A1-MAIN-15-L1-EXIT-PART",
+          "direction": "forward",
+          "resourceId": "PZ-SOUTH-PZ-A1-MAIN-15-L1"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 800,
+          "y": 211
+        },
+        {
+          "x": 826.5,
+          "y": 211
+        }
+      ],
+      "corridorId": "PZ-A2",
+      "noOvertakingGroupId": "PZ-A2",
+      "noOvertakingForwardDirection": "east",
+      "modelDistanceEvidence": "synthetic-model-40mm-per-drawing-unit-polyline-not-measured",
+      "laneSide": "south",
+      "sharedRegionId": "PZ-SHARED",
+      "evidence": "user-confirmed-initial-logical-direction-policy",
+      "splitSourceEdgeId": "PZ-SOUTH-PZ-A1-MAIN-15",
+      "splitPartIndex": 1,
+      "splitSourceDistanceMm": 2520
     }
   ],
   "shutters": [
@@ -23651,7 +23662,7 @@
             "gateNodeId": "PZ-EXIT",
             "shutterId": "SH-PZ-EXIT",
             "point": {
-              "x": 682.5,
+              "x": 800,
               "y": 322
             }
           }
@@ -23689,6 +23700,18 @@
           }
         ]
       }
-    ]
+    ],
+    "gateCorrespondence": {
+      "evidence": "confirmed-relative-gate-correspondence-not-measured-axis",
+      "west": {
+        "pzNodeId": "PZ-ENTRY",
+        "whNodeId": "WH-W-GATE"
+      },
+      "east": {
+        "pzNodeId": "PZ-EXIT",
+        "whNodeId": "WH-GATE"
+      },
+      "physicalSameAxisConfirmed": false
+    }
   }
 }

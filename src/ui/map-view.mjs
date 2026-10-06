@@ -122,6 +122,20 @@ export function initMap({svg,onSelectAgf,onSelectBlock}) {
     const heading=projection.point(sceneryPoint({x:48,y:22}));
     return `<g data-equipment-label-layer="true" data-text-unit="viewport-pixels"><text x="${heading.x}" y="${top-53/pixels}" class="zone-heading" style="font-size:${14/pixels}px">01 / パレタイズエリア</text>${labels}</g>`;
   }
+  function renderGateCallouts(){
+    const pixels=screenScale(),width=88/pixels,gap=12/pixels;
+    const anchors=[pzEntry,pzExit].map(gate=>projection.point(sceneryPoint({x:gate.x,y:306.5})));
+    const middle=(anchors[0].x+anchors[1].x)/2;
+    const centers=[Math.min(anchors[0].x,middle-(width+gap)/2),Math.max(anchors[1].x,middle+(width+gap)/2)];
+    // These leaders displace text only. Gate/stop coordinates and saved travel
+    // geometry remain independent of the viewport and label widths.
+    return `<g data-gate-label-layer="true" data-text-unit="viewport-pixels">${anchors.map((anchor,index)=>{
+      const x=centers[index],y=anchor.y+26/pixels,id=index?'PZ-EXIT':'PZ-ENTRY',label=index?'PZ出口SH':'PZ入口SH';
+      return `<path data-gate-label-leader="${id}" d="M${anchor.x} ${anchor.y} L${x} ${y-12/pixels}" fill="none" stroke="#64748b" stroke-width="${1/pixels}"/>
+        <rect data-gate-label-box="${id}" x="${x-width/2}" y="${y-16/pixels}" width="${width}" height="${22/pixels}" rx="${3/pixels}" fill="#f8fafc" stroke="#94a3b8" stroke-width="${1/pixels}"/>
+        <text data-gate-label="${id}" x="${x}" y="${y}" class="align-center" style="font-size:${12/pixels}px;fill:#334155">${label}</text>`;
+    }).join('')}</g>`;
+  }
   const refreshLabels=()=>{
     if(!svg.querySelectorAll)return;
     const inverse=1/(projection.scale*screenScale());
@@ -139,6 +153,8 @@ export function initMap({svg,onSelectAgf,onSelectBlock}) {
     }
     const layer=svg.querySelector?.('[data-equipment-label-layer="true"]');
     if(layer)layer.outerHTML=renderEquipmentCallouts();
+    const gates=svg.querySelector?.('[data-gate-label-layer="true"]');
+    if(gates)gates.outerHTML=renderGateCallouts();
   };
   const updateView=()=>{svg.setAttribute('viewBox',box.join(' '));refreshLabels();};
   const fit=()=>{focus='overview';box=[...MAP_VIEWBOX];updateView();};
@@ -265,9 +281,9 @@ export function initMap({svg,onSelectAgf,onSelectBlock}) {
       ${rect(layout.buildings.WH.x,458,layout.buildings.WH.width,484,'zone','WH')}<g data-band="WH">${text(whX(48),487,'03 / 製品倉庫','zone-heading')}</g></g>
       <g data-acceptance="G02"><title>北面にAGF出入口なし</title>${text(1050,51,'北面にAGF出入口なし','map-small align-end','data-pz-note="true"')}</g>
       ${equipmentStrip}
-      <g data-acceptance="G09"><title>同一走行空間：北 ← ／ 南 → ・設備前で明示的に合流</title><rect data-map-id="PZ-SHARED" data-physical-separation="false" x="55" y="158" width="985" height="69" rx="8" fill="#06b6d4" fill-opacity=".07"/><path data-map-id="PZ-A1" d="M55 173 H1040" class="provisional-path" marker-start="url(#arrow)"/><path data-map-id="PZ-A2" d="M55 211 H1040" class="provisional-path" marker-end="url(#arrow)"/><path data-map-id="PZ-MERGES" d="${[70.5,120,133.5,196.5,259.5,322.5,385.5,448.5,511.5,574.5,630,637.5,682.5,700.5,763.5,826.5,840,844.5,889.5,922.5,952.5,1000.5,1015.5].map(x=>`M${x} 173 V211`).join(' ')}" class="provisional-path" opacity=".45"/>${text(550,197,'北 ← ／ 南 →','path-label','data-pz-note="true"')}</g>
-      <g data-acceptance="G03"><rect data-map-id="PZ-IN" aria-label="パレタイズ入口SH" x="${pzEntry.x-20}" y="291" width="40" height="31" class="shutter-gate" data-anchor-x="${pzEntry.x}" data-anchor-y="306.5" data-anchor-face="center"/>${text(pzEntry.x,312,'入口','shutter-label')}</g>
-      <g data-acceptance="G04"><title>倉庫東SHと倉庫東主通路群の軸。PZ出口とは東西オフセットあり</title><path d="M${eastAxis} 458 V500" class="alignment-axis"/><rect data-map-id="PZ-S-OUT" aria-label="パレタイズ出口SH" x="${pzExit.x-20}" y="291" width="40" height="31" class="shutter-gate" data-anchor-x="${pzExit.x}" data-anchor-y="306.5" data-anchor-face="center"/>${text(pzExit.x,312,'出口','shutter-label')}<rect data-map-id="WH-E-GATE" aria-label="製品倉庫東SH" x="${whEast.x-36}" y="444" width="72" height="28" class="shutter-gate" data-anchor-x="${whEast.x}" data-anchor-y="458" data-anchor-face="center"/>${text(whEast.x,438,'東SH','shutter-label')}</g>
+      <g data-acceptance="G09"><title>同一走行空間：北 ← ／ 南 → ・設備前で明示的に合流</title><rect data-map-id="PZ-SHARED" data-physical-separation="false" x="55" y="158" width="985" height="69" rx="8" fill="#06b6d4" fill-opacity=".07"/><path data-map-id="PZ-A1" d="M55 173 H1040" class="provisional-path" marker-start="url(#arrow)"/><path data-map-id="PZ-A2" d="M55 211 H1040" class="provisional-path" marker-end="url(#arrow)"/><path data-map-id="PZ-MERGES" d="${[70.5,120,133.5,196.5,259.5,322.5,385.5,448.5,511.5,574.5,pzEntry.x,637.5,pzExit.x,700.5,763.5,826.5,840,844.5,889.5,922.5,952.5,1000.5,1015.5].map(x=>`M${x} 173 V211`).join(' ')}" class="provisional-path" opacity=".45"/>${text(550,197,'北 ← ／ 南 →','path-label','data-pz-note="true"')}</g>
+      <g data-acceptance="G03"><rect data-map-id="PZ-IN" aria-label="パレタイズ入口SH" x="${pzEntry.x-20}" y="291" width="40" height="31" class="shutter-gate" data-anchor-x="${pzEntry.x}" data-anchor-y="306.5" data-anchor-face="center"/></g>
+      <g data-acceptance="G04"><title>倉庫東SHと倉庫東主通路群の軸。PZ出口とは東西オフセットあり</title><path d="M${eastAxis} 458 V500" class="alignment-axis"/><rect data-map-id="PZ-S-OUT" aria-label="パレタイズ出口SH" x="${pzExit.x-8}" y="291" width="16" height="31" class="shutter-gate" data-anchor-x="${pzExit.x}" data-anchor-y="306.5" data-anchor-face="center"/><rect data-map-id="WH-E-GATE" aria-label="製品倉庫東SH" x="${whEast.x-36}" y="444" width="72" height="28" class="shutter-gate" data-anchor-x="${whEast.x}" data-anchor-y="458" data-anchor-face="center"/>${text(whEast.x,438,'東SH','shutter-label')}</g>
       <g data-acceptance="G05"></g>
       <g data-acceptance="G06"><path data-map-id="NORMAL-RETURN" d="M${pzExit.x} 300 V390 H${whEast.x} V475" class="normal-flow return-flow" marker-end="url(#arrow)"/>${text(whEast.x+18,426,'出口SH → 倉庫東SH','map-small')}</g>
       <g data-acceptance="G07"><path data-map-id="NORMAL-ENTRY" d="M${whEast.x} 475 V390 H${pzEntry.x} V300" class="normal-flow entry-flow" marker-end="url(#arrow)"/>${text(250,380,'倉庫東SH → PZ入口SH（HO南側）','map-small')}</g>
@@ -288,7 +304,7 @@ export function initMap({svg,onSelectAgf,onSelectBlock}) {
     svg.innerHTML=`<defs><pattern id="map-grid" width="${24/scale}" height="${24/scale}" patternUnits="userSpaceOnUse"><circle cx="${1/scale}" cy="${1/scale}" r="${.8/scale}" fill="#cbd5e1"/></pattern>
       <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="${6/scale}" markerHeight="${6/scale}" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#0e7490"/></marker>
       <pattern id="gap" width="${6/scale}" height="${6/scale}" patternUnits="userSpaceOnUse"><path d="M0 ${6/scale} L${6/scale} 0" stroke="#94a3b8" stroke-width="${1/scale}"/></pattern></defs>
-      <g data-schematic="landscape" data-coordinate-unit="${layoutProfile?'mm':'schematic'}" ${layoutProfile?`data-metric-profile="${esc(layoutProfile.id)}" `:''}transform="translate(${projection.offsetX} ${projection.offsetY}) scale(${scale})">${mapScenery(scenery,sceneryPoint,scale,!!layoutProfile,normalPaths,screenScale(),focus)}${routeOverlay}${agfs}</g>${renderEquipmentCallouts()}`;
+      <g data-schematic="landscape" data-coordinate-unit="${layoutProfile?'mm':'schematic'}" ${layoutProfile?`data-metric-profile="${esc(layoutProfile.id)}" `:''}transform="translate(${projection.offsetX} ${projection.offsetY}) scale(${scale})">${mapScenery(scenery,sceneryPoint,scale,!!layoutProfile,normalPaths,screenScale(),focus)}${routeOverlay}${agfs}</g>${renderEquipmentCallouts()}${renderGateCallouts()}`;
     updateView();
   }
   function updatePositions(agfs){

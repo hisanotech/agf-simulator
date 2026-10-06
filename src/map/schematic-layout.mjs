@@ -10,8 +10,14 @@ export const SCHEMATIC_LAYOUT=Object.freeze({
   }),
   gates:Object.freeze({
     pzEntry:Object.freeze({nodeId:'PZ-ENTRY',x:630,y:300,boundaryY:322,shutterId:'SH-PZ-ENTRY'}),
-    pzExit:Object.freeze({nodeId:'PZ-EXIT',x:682.5,y:300,boundaryY:322,shutterId:'SH-PZ-EXIT'}),
+    pzExit:Object.freeze({nodeId:'PZ-EXIT',x:800,y:300,boundaryY:322,shutterId:'SH-PZ-EXIT'}),
     whEast:Object.freeze({nodeId:'WH-GATE',x:862.5,y:475,boundaryY:458,shutterId:'SH-EAST'}),
-    whWest:Object.freeze({nodeId:'WH-W-GATE',x:335,y:475,boundaryY:458,shutterId:'SH-WEST'})
+    whWest:Object.freeze({nodeId:'WH-W-GATE',x:650,y:475,boundaryY:458,shutterId:'SH-WEST'})
+  }),
+  gateCorrespondence:Object.freeze({
+    evidence:'confirmed-relative-gate-correspondence-not-measured-axis',
+    west:Object.freeze({pzNodeId:'PZ-ENTRY',whNodeId:'WH-W-GATE'}),
+    east:Object.freeze({pzNodeId:'PZ-EXIT',whNodeId:'WH-GATE'}),
+    physicalSameAxisConfirmed:false
   })
 });

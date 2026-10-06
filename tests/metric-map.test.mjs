@@ -177,3 +177,19 @@ test('warehouse zoom reveals optional details and fitting the overview hides the
   map.warehouse();assert.equal(states['inventory-visibility'],'visible');assert.equal(states['battery-visibility'],'visible');
   map.fit();assert.equal(states['inventory-visibility'],'hidden');assert.equal(states['battery-visibility'],'hidden');
 });
+
+test('PZ entrance and exit callout labels stay separate at PC and narrow viewport sizes without moving openings',()=>{
+  for(const dimensions of [{clientWidth:1264,clientHeight:720},{clientWidth:700,clientHeight:425},{clientWidth:390,clientHeight:270}]){
+    const {html}=render(topology,snapshot(),dimensions);
+    const layer=html.match(/<g data-gate-label-layer="true"[^>]*>([\s\S]*?)<\/g>/)?.[1];
+    assert.ok(layer,'separate exterior gate label layer');
+    const labels=[...layer.matchAll(/<rect[^>]*data-gate-label-box="[^"]+"[^>]*>/g)].map(m=>m[0]);
+    assert.equal(labels.length,2);
+    assert.ok(Number(attr(labels[0],'x'))+Number(attr(labels[0],'width'))<Number(attr(labels[1],'x')));
+    assert.match(layer,/PZ入口SH/);assert.match(layer,/PZ出口SH/);
+    const entry=html.match(/<rect data-map-id="PZ-IN"[^>]*>/)?.[0];
+    const exit=html.match(/<rect data-map-id="PZ-S-OUT"[^>]*>/)?.[0];
+    nearly(Number(attr(entry,'x'))+Number(attr(entry,'width'))/2,metricPoint({x:SCHEMATIC_LAYOUT.gates.pzEntry.x,y:300},profile).x);
+    nearly(Number(attr(exit,'x'))+Number(attr(exit,'width'))/2,metricPoint({x:SCHEMATIC_LAYOUT.gates.pzExit.x,y:300},profile).x);
+  }
+});

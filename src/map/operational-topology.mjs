@@ -46,6 +46,20 @@ function validateBuildingBoundaries(graph,nodes,edges,shutters){
     required(finitePoint(building)&&Number.isFinite(building.width)&&building.width>0&&
       Number.isFinite(building.height)&&building.height>0,'invalid building boundary '+id);
   }
+  if(layout.gateCorrespondence!==undefined){
+    const correspondence=layout.gateCorrespondence;
+    required(correspondence?.evidence==='confirmed-relative-gate-correspondence-not-measured-axis'&&
+      correspondence.physicalSameAxisConfirmed===false,
+      'relative gate correspondence must not certify a physical axis');
+    for(const side of ['west','east']){
+      const pair=correspondence[side],pz=nodes.get(pair?.pzNodeId),wh=nodes.get(pair?.whNodeId);
+      required(pz?.areaId==='PZ'&&wh?.areaId==='WH'&&pz.type==='shutter-wait'&&wh.type==='shutter-wait',
+        'gate correspondence requires separate PZ and WH shutter stops');
+    }
+    required(nodes.get(correspondence.west.pzNodeId).x<nodes.get(correspondence.east.pzNodeId).x&&
+      nodes.get(correspondence.west.whNodeId).x<nodes.get(correspondence.east.whNodeId).x,
+      'gate correspondence must retain relative west and east order');
+  }
   const boundaries=uniqueMap(layout.boundaries,'building boundaries');
   for(const boundary of boundaries.values()){
     required(['PZ','WH'].includes(boundary.areaId)&&finitePoint(boundary.from)&&finitePoint(boundary.to)&&

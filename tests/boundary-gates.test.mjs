@@ -22,6 +22,31 @@ test('separate PZ south openings place entry near and south of HO while preservi
   assert.equal(source.readiness.metricScaleVerified,false);
 });
 
+test('PZ exit is clearly separated from HO-side entry and belongs to the PGW1 to PGW3 side',()=>{
+  const entry=point(source,'PZ-ENTRY'),exit=point(source,'PZ-EXIT');
+  const pgw1=point(source,'PZ-L1-PICKUP'),pgw3=point(source,'PZ-L3-PICKUP'),pm4=point(source,'PZ-M4-DROPOFF');
+  const equipmentPitch=pgw3.x-pgw1.x;
+  assert.ok(exit.x>pm4.x&&exit.x>=pgw1.x-equipmentPitch/2&&exit.x<=pgw3.x+equipmentPitch/2,
+    'exit belongs to the PGW1–PGW3 equipment side, beyond PM4');
+  assert.ok(exit.x-entry.x>=equipmentPitch*2,'two independent gate regions cannot be immediately adjacent');
+  assert.ok(exit.y>pgw1.y&&exit.y>pgw3.y,'exit is on the equipment southern side');
+});
+
+test('warehouse gate correspondence follows PZ entry and exit sides without placing west gate at building west end',()=>{
+  const entry=point(source,'PZ-ENTRY'),exit=point(source,'PZ-EXIT');
+  const west=point(source,'WH-W-GATE'),east=point(source,'WH-GATE'),warehouse=source.layoutGeometry.buildings.WH;
+  assert.ok(Math.abs(west.x-entry.x)<Math.abs(west.x-exit.x),'west opening corresponds to entry side');
+  assert.ok(Math.abs(west.x-entry.x)<Math.abs(west.x-warehouse.x),'west is near entry rather than building west end');
+  assert.ok(Math.abs(east.x-exit.x)<Math.abs(east.x-entry.x),'east opening corresponds to exit side');
+  assert.equal(source.layoutGeometry.gateCorrespondence?.physicalSameAxisConfirmed,false);
+});
+
+test('relative gate correspondence cannot promote synthetic axis alignment to a confirmed physical fact',()=>{
+  const changed=structuredClone(source);
+  changed.layoutGeometry.gateCorrespondence.physicalSameAxisConfirmed=true;
+  assert.throws(()=>validateOperationalTopology(changed),/physical.*axis|axis.*physical/i);
+});
+
 test('warehouse has a saved synthetic east offset and separate normal-east and unused-west shutters',()=>{
   const layout=source.layoutGeometry;
   assert.ok(layout,'relative building geometry is part of the saved topology');
