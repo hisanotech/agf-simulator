@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {SCHEMATIC_LAYOUT as drawing} from '../src/map/schematic-layout.mjs';
 import {
   WAREHOUSE_BLOCKS,
   WAREHOUSE_MAIN_AISLES,
@@ -26,41 +27,39 @@ test('G02 palletizing north face has no AGF gate',()=>{
   assert.ok(criterion('G02'));
 });
 
-test('G03 palletizing west entry shutter is on the south face',()=>{
-  assert.deepEqual(layout.gates?.['PZ-W-IN'],{face:'south',role:'entry',position:'west'});
+// The retained DXF-free reference fixture is not a source for obsolete gate
+// positions. Current drawing relationships live in the shared synthetic model.
+test('G03 palletizing entry shutter is on the south face near HO rather than the west end',()=>{
+  assert.equal(drawing.gates.pzEntry.boundaryY,drawing.buildings.PZ.y+drawing.buildings.PZ.height);
+  assert.ok(Math.abs(drawing.gates.pzEntry.x-637.5)<27.5);
+  assert.ok(drawing.gates.pzEntry.x<drawing.gates.pzExit.x);
   assert.ok(criterion('G03'));
 });
-
-test('G04 exit, east warehouse shutter and east aisle group share a symbolic north-south alignment',()=>{
-  assert.deepEqual(layout.alignmentGroups?.eastReturnAxis?.members,
-    ['PZ-S-OUT','WH-E-GATE','WH-E-MAIN-GROUP']);
-  assert.deepEqual(layout.symbolicGroups?.['WH-E-MAIN-GROUP']?.members,
-    ['WH-E-MAIN-1','WH-E-MAIN-2']);
-  assert.equal(layout.gates?.['PZ-S-OUT']?.face,'south');
-  assert.equal(layout.gates?.['WH-E-GATE']?.face,'north');
-  assert.equal(layout.alignmentGroups?.eastReturnAxis?.axis,'north-south');
-  assert.equal(layout.alignmentGroups?.eastReturnAxis?.coordinateStatus,'unresolved');
+test('G04 east warehouse shutter aligns with the warehouse aisle pair independently of the PZ exit',()=>{
+  const offset=drawing.warehouseOffsetX;
+  assert.equal(drawing.gates.whEast.x,offset+(665+700)/2);
+  assert.notEqual(drawing.gates.pzExit.x,drawing.gates.whEast.x);
+  assert.ok(drawing.buildings.WH.x>drawing.buildings.PZ.x);
+  assert.deepEqual(layout.symbolicGroups?.['WH-E-MAIN-GROUP']?.members,['WH-E-MAIN-1','WH-E-MAIN-2']);
   assert.ok(criterion('G04'));
 });
-
 test('G05 obsolete east palletizing shutter is absent from the completed schematic contract',()=>{
   assert.equal(corridor('PZ-E-OUT'),undefined);
   assert.equal(layout.palletizing?.obsoleteEastGateDisplay,'removed');
   assert.ok(criterion('G05'));
 });
 
-test('G06 normal return is a symbolic straight relation from palletizing exit to warehouse east shutter',()=>{
-  assert.deepEqual(layout.normalFlows?.returnToWarehouse,
-    {from:'PZ-S-OUT',to:'WH-E-GATE',via:'INTER',relation:'straight-south'});
+test('G06 normal return uses a distinct PZ exit and the east-offset warehouse gate',()=>{
+  assert.equal(drawing.gates.pzExit.nodeId,'PZ-EXIT');assert.equal(drawing.gates.whEast.nodeId,'WH-GATE');
+  assert.ok(drawing.gates.pzExit.x<drawing.gates.whEast.x);
   assert.ok(criterion('G06'));
 });
-
-test('G07 normal palletizing entry runs west through the exterior passage from warehouse east shutter',()=>{
-  assert.deepEqual(layout.normalFlows?.enterPalletizing,
-    {from:'WH-E-GATE',to:'PZ-W-IN',via:'INTER',relation:'westbound'});
+test('G07 normal palletizing entry reaches the HO-facing opening instead of the legacy west-end opening',()=>{
+  assert.equal(drawing.gates.pzEntry.nodeId,'PZ-ENTRY');
+  assert.notEqual(drawing.gates.pzEntry.nodeId,drawing.gates.pzExit.nodeId);
+  assert.ok(drawing.gates.whEast.x>drawing.gates.pzEntry.x);
   assert.ok(criterion('G07'));
 });
-
 test('G08 west warehouse shutter is excluded normally but retained as an unresolved failure detour',()=>{
   assert.equal(map.accessRules?.warehouseGates?.normal?.west,'not-used');
   assert.equal(map.accessRules?.warehouseGates?.normal?.east,'entry-exit');

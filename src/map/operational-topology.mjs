@@ -15,6 +15,72 @@ const uniqueMap=(items,label)=>{
   return map;
 };
 
+const finitePoint=point=>Number.isFinite(point?.x)&&Number.isFinite(point?.y);
+const closePoint=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y)<=1e-6;
+const cross=(a,b)=>a.x*b.y-a.y*b.x;
+const subtract=(a,b)=>({x:a.x-b.x,y:a.y-b.y});
+function boundaryIntersection(a,b,c,d){
+  const r=subtract(b,a),s=subtract(d,c),offset=subtract(c,a),denominator=cross(r,s);
+  if(Math.abs(denominator)<=1e-9){
+    if(Math.abs(cross(offset,r))>1e-6)return null;
+    const axis=Math.abs(r.x)>=Math.abs(r.y)?'x':'y';
+    const start=Math.max(Math.min(a[axis],b[axis]),Math.min(c[axis],d[axis]));
+    const end=Math.min(Math.max(a[axis],b[axis]),Math.max(c[axis],d[axis]));
+    if(end<start-1e-6)return null;
+    if(end>start+1e-6)return {overlap:true};
+    const t=(start-a[axis])/r[axis];return {point:{x:a.x+t*r.x,y:a.y+t*r.y}};
+  }
+  const t=cross(offset,s)/denominator,u=cross(offset,r)/denominator;
+  if(t< -1e-9||t>1+1e-9||u< -1e-9||u>1+1e-9)return null;
+  return {point:{x:a.x+t*r.x,y:a.y+t*r.y}};
+}
+
+function validateBuildingBoundaries(graph,nodes,edges,shutters){
+  const layout=graph.layoutGeometry;if(layout===undefined)return;
+  required(layout?.evidence==='public-synthetic-relative-layout-not-site-coordinates',
+    'synthetic building boundary evidence required');
+  required(layout.coordinateSystem===graph.coordinateSystem,'boundary coordinate system must match topology');
+  if(graph.coordinateSystem==='synthetic-mm')required(layout.coordinateUnit==='mm','boundary coordinateUnit must be mm');
+  for(const id of ['PZ','WH']){
+    const building=layout.buildings?.[id];
+    required(finitePoint(building)&&Number.isFinite(building.width)&&building.width>0&&
+      Number.isFinite(building.height)&&building.height>0,'invalid building boundary '+id);
+  }
+  const boundaries=uniqueMap(layout.boundaries,'building boundaries');
+  for(const boundary of boundaries.values()){
+    required(['PZ','WH'].includes(boundary.areaId)&&finitePoint(boundary.from)&&finitePoint(boundary.to)&&
+      !closePoint(boundary.from,boundary.to),'invalid building boundary '+boundary.id);
+    required(Array.isArray(boundary.permittedCrossings),'permitted boundary openings required '+boundary.id);
+    const actual=new Set();
+    for(const opening of boundary.permittedCrossings){
+      const gate=nodes.get(opening.gateNodeId),edge=edges.get(opening.edgeId);
+      required(gate?.areaId===boundary.areaId&&gate.type==='shutter-wait'&&edge&&
+        [edge.fromNodeId,edge.toNodeId].includes(gate.id),'boundary opening must use its declared gate stop '+boundary.id);
+      required(shutters.has(opening.shutterId)&&edge.shutterId===opening.shutterId,
+        'boundary opening shutter must match its crossing edge '+opening.edgeId);
+      required(finitePoint(opening.point),'invalid boundary opening position '+boundary.id);
+      const vector=subtract(boundary.to,boundary.from),offset=subtract(gate,boundary.from);
+      const t=(offset.x*vector.x+offset.y*vector.y)/(vector.x**2+vector.y**2);
+      const projected={x:boundary.from.x+t*vector.x,y:boundary.from.y+t*vector.y};
+      required(t>=0&&t<=1&&closePoint(projected,opening.point),
+        'boundary opening must remain on its declared gate axis '+opening.edgeId);
+    }
+    for(const edge of edges.values()){
+      const path=edge.displayPath??[nodes.get(edge.fromNodeId),nodes.get(edge.toNodeId)];
+      for(let index=1;index<path.length;index++){
+        const hit=boundaryIntersection(path[index-1],path[index],boundary.from,boundary.to);
+        if(!hit)continue;
+        required(!hit.overlap,'travel edge overlaps building boundary '+edge.id);
+        const opening=boundary.permittedCrossings.find(item=>item.edgeId===edge.id&&closePoint(item.point,hit.point));
+        required(opening,'travel edge crosses boundary outside a declared shutter opening '+edge.id+'/'+boundary.id);
+        actual.add(opening);
+      }
+    }
+    for(const opening of boundary.permittedCrossings)
+      required(actual.has(opening),'declared boundary opening is not crossed by its edge '+opening.edgeId);
+  }
+}
+
 export function validateOperationalTopology(graph){
   required(graph?.schemaVersion==='operational-topology-v1','Expected operational-topology-v1');
   required(graph.datasetKind==='synthetic','public synthetic validator rejects non-synthetic datasets');
@@ -154,6 +220,7 @@ export function validateOperationalTopology(graph){
     binding.pattern&&nodes.has(binding.nodeId)),'invalid interface bindings');
   const gates=uniqueMap(graph.shutters??[],'shutters');
   for(const edge of edges.values())if(edge.shutterId)required(gates.has(edge.shutterId),'unknown shutter '+edge.id);
+  validateBuildingBoundaries(graph,nodes,edges,gates);
   if(graph.avoidancePlans!==undefined){
     const plans=uniqueMap(graph.avoidancePlans,'avoidance plans');
     for(const plan of plans.values()){

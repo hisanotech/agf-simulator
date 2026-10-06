@@ -108,13 +108,17 @@ test('operational display paths expose every turn as an explicit node and straig
     assert.ok(a.x===b.x||a.y===b.y,edge.id+' must follow its straight schematic segment');
   }
   assert.ok(graph.nodes.some(n=>n.type==='turn'));
-  // E08 is the unchanged outdoor polyline. Old E01/E07/service bends were
-  // replaced by explicit shared-region changes or the four directional aisles.
-  for(const sourceId of ['E08']){
+  // Updated exterior approaches expose their shared turns and retain explicit
+  // model millimetres per drawing unit, without claiming measured CAD scale.
+  for(const sourceId of ['E08','E09']){
     const parts=graph.edges.filter(e=>e.splitSourceEdgeId===sourceId);
     assert.ok(parts.length>1,sourceId);
     assert.equal(parts.reduce((sum,e)=>sum+e.distanceMm,0),parts[0].splitSourceDistanceMm);
-    assert.ok(parts.every(e=>e.modelDistanceEvidence==='explicit-synthetic-equal-segment-allocation-not-display-length'));
+    assert.ok(parts.every(e=>e.modelDistanceEvidence==='synthetic-model-40mm-per-drawing-unit-polyline-not-measured'));
+    for(const edge of parts){
+      const [from,to]=edge.displayPath;
+      assert.equal(edge.distanceMm,40*Math.hypot(to.x-from.x,to.y-from.y),edge.id+' declared model distance');
+    }
   }
 });
 

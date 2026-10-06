@@ -21,6 +21,10 @@ export function validateMetricLayoutProfile(profile){
   required(profile.readiness?.physicalEtaAllowed===false&&profile.readiness?.metricScaleVerified===false,
     'an unverified model profile must not claim verified metric scale or physical ETA');
   for(const axis of ['x','y'])validateAnchors(profile.axisAnchors?.[axis],axis+' axis');
+  if(profile.legacyBounds!==undefined)required(Array.isArray(profile.legacyBounds)&&
+    profile.legacyBounds.length===4&&profile.legacyBounds.every(Number.isFinite)&&
+    profile.legacyBounds[2]>profile.legacyBounds[0]&&profile.legacyBounds[3]>profile.legacyBounds[1],
+    'legacyBounds must contain finite increasing drawing bounds');
   if(profile.xBands!==undefined){
     required(Array.isArray(profile.xBands)&&profile.xBands.length>=2,'xBands requires at least two bands');
     for(let index=0;index<profile.xBands.length;index++){
@@ -65,18 +69,28 @@ export function metricPoint(point,profile){
   return pointWithProfile(point,profile);
 }
 
-export function metricWorldBounds(profile){
+export function metricWorldBounds(profile,{sourceBounds}={}){
   validateMetricLayoutProfile(profile);
+  if(sourceBounds!==undefined)required(Array.isArray(sourceBounds)&&sourceBounds.length===4&&
+    sourceBounds.every(Number.isFinite)&&sourceBounds[2]>sourceBounds[0]&&sourceBounds[3]>sourceBounds[1],
+    'sourceBounds must contain finite increasing drawing bounds');
   const xAnchors=[profile.axisAnchors.x,...(profile.xBands??[]).map(band=>band.anchors)];
-  const minX=Math.min(...xAnchors.map(anchors=>anchors[0][1]));
-  const maxX=Math.max(...xAnchors.map(anchors=>anchors.at(-1)[1]));
-  const minY=profile.axisAnchors.y[0][1],maxY=profile.axisAnchors.y.at(-1)[1];
+  const declaredPoints=[];
+  for(const bounds of [profile.legacyBounds,sourceBounds].filter(Boolean)){
+    const [left,top,right,bottom]=bounds;
+    const ys=[top,bottom,...(profile.xBands??[]).map(band=>band.atY).filter(y=>y>top&&y<bottom)];
+    for(const y of ys)for(const x of [left,right])declaredPoints.push(pointWithProfile({x,y},profile));
+  }
+  const minX=Math.min(...xAnchors.map(anchors=>anchors[0][1]),...declaredPoints.map(p=>p.x));
+  const maxX=Math.max(...xAnchors.map(anchors=>anchors.at(-1)[1]),...declaredPoints.map(p=>p.x));
+  const minY=Math.min(profile.axisAnchors.y[0][1],...declaredPoints.map(p=>p.y));
+  const maxY=Math.max(profile.axisAnchors.y.at(-1)[1],...declaredPoints.map(p=>p.y));
   return {x:minX,y:minY,width:maxX-minX,height:maxY-minY,minX,minY,maxX,maxY};
 }
 
 /** Equal scale on both axes keeps displayed lengths proportional to model mm. */
-export function createMetricCanvasProjection(profile,{width=1400,height=850,padding=24}={}){
-  const bounds=metricWorldBounds(profile);
+export function createMetricCanvasProjection(profile,{width=1400,height=850,padding=24,sourceBounds}={}){
+  const bounds=metricWorldBounds(profile,{sourceBounds});
   required(Number.isFinite(width)&&Number.isFinite(height)&&Number.isFinite(padding)&&padding>=0&&
     width>2*padding&&height>2*padding,'canvas size must exceed its padding');
   const scale=Math.min((width-2*padding)/bounds.width,(height-2*padding)/bounds.height);
@@ -113,11 +127,32 @@ export function convertTopologyToMetric(input,profile){
   graph.readiness={...graph.readiness,physicalEtaAllowed:false,metricScaleVerified:false};
   graph.nodes=graph.nodes.map(node=>({...node,...pointWithProfile(node,profile),
     coordinateEvidence:'metric-profile-derived-synthetic-position-not-site-stop'}));
+  const metricNodes=new Map(graph.nodes.map(node=>[node.id,node]));
+  // Outside turns follow the saved gate axis, rather than a y-interpolated
+  // drawing x. This declared synthetic relationship prevents fold-back paths
+  // under profiles with different PZ and WH x bands.
+  const aligned=new Set(),aligning=new Set();
+  const alignNode=node=>{
+    if(aligned.has(node.id))return;
+    required(!aligning.has(node.id),'cyclic metric alignment '+node.id);
+    aligning.add(node.id);
+    if(node.metricAlignment){
+      required(node.metricAlignment.evidence==='synthetic-relative-layout-alignment-not-site-stop',
+        'explicit synthetic metric alignment evidence required '+node.id);
+      const reference=metricNodes.get(node.metricAlignment.xNodeId);
+      required(reference,'unknown metric alignment node '+node.id);
+      alignNode(reference);node.x=reference.x;
+    }
+    aligning.delete(node.id);aligned.add(node.id);
+  };
+  for(const node of graph.nodes)alignNode(node);
   for(const edge of graph.edges){
     const from=oldNodes.get(edge.fromNodeId),to=oldNodes.get(edge.toNodeId);
     required(from&&to,'unknown edge endpoint '+edge.id);
     const points=edge.displayPath??[{x:from.x,y:from.y},{x:to.x,y:to.y}];
     edge.displayPath=points.map(point=>pointWithProfile(point,profile));
+    edge.displayPath[0]={x:metricNodes.get(edge.fromNodeId).x,y:metricNodes.get(edge.fromNodeId).y};
+    edge.displayPath[edge.displayPath.length-1]={x:metricNodes.get(edge.toNodeId).x,y:metricNodes.get(edge.toNodeId).y};
     edge.distanceMm=metricPathLength(edge.displayPath);
     required(edge.distanceMm>0,'zero metric distance '+edge.id);
     edge.modelDistanceEvidence='explicit-unverified-metric-profile-polyline-length';
@@ -127,6 +162,27 @@ export function convertTopologyToMetric(input,profile){
     sourceTotals.set(edge.splitSourceEdgeId,(sourceTotals.get(edge.splitSourceEdgeId)??0)+edge.distanceMm);
   for(const edge of graph.edges)if(edge.splitSourceEdgeId)
     edge.splitSourceDistanceMm=sourceTotals.get(edge.splitSourceEdgeId);
+  if(graph.layoutGeometry){
+    const layout=graph.layoutGeometry;
+    layout.coordinateSystem='synthetic-mm';layout.coordinateUnit='mm';
+    layout.legacyWarehouseOffsetX=layout.warehouseOffsetX;delete layout.warehouseOffsetX;
+    layout.buildings=Object.fromEntries(Object.entries(layout.buildings).map(([id,box])=>{
+      const outline=[{x:box.x,y:box.y},{x:box.x+box.width,y:box.y},
+        {x:box.x+box.width,y:box.y+box.height},{x:box.x,y:box.y+box.height}]
+        .map(p=>pointWithProfile(p,profile));
+      const x=Math.min(...outline.map(p=>p.x)),y=Math.min(...outline.map(p=>p.y));
+      return [id,{x,y,width:Math.max(...outline.map(p=>p.x))-x,
+        height:Math.max(...outline.map(p=>p.y))-y,outline}];
+    }));
+    for(const boundary of layout.boundaries){
+      boundary.from=pointWithProfile(boundary.from,profile);
+      boundary.to=pointWithProfile(boundary.to,profile);
+      for(const crossing of boundary.permittedCrossings){
+        crossing.point=pointWithProfile(crossing.point,profile);
+        crossing.point.x=metricNodes.get(crossing.gateNodeId).x;
+      }
+    }
+  }
   graph.displayEvidence='uniform metric-model geometry; scale and site stops unverified; physical ETA not permitted';
   const previousEvidence=graph.modelEvidence??{};
   const retainedEvidence=Object.fromEntries(Object.entries(previousEvidence)

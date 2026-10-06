@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {SCHEMATIC_LAYOUT} from '../src/map/schematic-layout.mjs';
 import {initMap} from '../src/ui/map-view.mjs';
 import {simulate} from '../src/core/simulate.mjs';
 import {createDemoScenario} from '../src/ui/scenario.mjs';
@@ -42,21 +43,25 @@ test('G02/G03/G05 actual gates use the south face; no obsolete east opening or l
   const pzGates=gates.filter(t=>t['data-map-id']?.startsWith('PZ-')).map(rectangle);
   assert.equal(pzGates.length,2);
   assert.ok(pzGates.every(g=>g.bottom===pz.bottom&&g.y>pz.y));
-  assert.ok(box('PZ-W-IN').right<out.x);
+  assert.ok(box('PZ-IN').right<out.x);
   assert.doesNotMatch(html,/旧東SH|PZ-E-OUT/);
 });
-test('G04/G06 gate and aisle centers align and the return connects their south/north faces',()=>{
+test('G04/G06 warehouse gate aligns with its aisle group while PZ exit reaches the east-offset warehouse',()=>{
   const x1=numbers('WH-E-MAIN-1')[0],x2=numbers('WH-E-MAIN-2')[0];
-  assert.equal(out.cx,(x1+x2)/2);assert.equal(east.cx,out.cx);assert.equal(east.cy,wh.y);
-  assert.deepEqual(numbers('NORMAL-RETURN'),[out.cx,out.bottom,east.y]);
+  assert.equal(east.cx,(x1+x2)/2);assert.equal(east.cy,wh.y);
+  assert.ok(wh.x>pz.x&&wh.right>pz.right);assert.notEqual(wh.w,pz.w);
+  assert.ok(east.cx>out.cx);
+  assert.deepEqual(numbers('NORMAL-RETURN'),[out.cx,300,390,east.cx,475]);
 });
-test('G07/G08 normal entry connects east warehouse gate to west palletizing gate only',()=>{
-  const entry=box('PZ-W-IN'),west=box('WH-W-GATE');
+test('G07/G08 normal entry reaches the HO-facing south opening without overshooting it; west warehouse gate stays inactive',()=>{
+  const entry=box('PZ-IN'),west=box('WH-W-GATE'),ho=equipment('HO'),hi=equipment('HI');
   const [x,y,turnY,turnX,endY]=numbers('NORMAL-ENTRY');
-  assert.equal(x,east.cx);assert.equal(y,east.y);assert.equal(turnX,entry.cx);assert.equal(endY,entry.bottom);
+  assert.equal(x,east.cx);assert.equal(y,475);assert.equal(turnX,entry.cx);assert.equal(endY,300);
   assert.ok(turnY>pz.bottom&&turnY<wh.y&&turnX<x);
+  assert.ok(Math.abs(entry.cx-ho.cx)<ho.w/2&&entry.y>ho.bottom);
+  assert.ok(hi.right<ho.x&&entry.right<out.x);
   assert.equal(west.cy,wh.y);assert.ok(item('WH-W-GATE').class.includes('inactive'));
-  assert.ok(west.right<entry.cx); // no normal line enters this separate opening
+  assert.ok(west.right<entry.cx);
 });
 test('G09 opposite logical lanes share one region with equipment-front connections; equipment order is retained',()=>{
   const a=numbers('PZ-A1'),b=numbers('PZ-A2');
@@ -66,7 +71,7 @@ test('G09 opposite logical lanes share one region with equipment-front connectio
   assert.ok(item('PZ-A2')['marker-end']);assert.equal(item('PZ-A2')['marker-start'],undefined);
   const merges=numbers('PZ-MERGES');assert.ok(merges.length>30);
   for(let i=0;i<merges.length;i+=3){assert.equal(merges[i+1],a[1]);assert.equal(merges[i+2],b[1]);}
-  for(const x of [192,448.5,511.5,637.5,682.5])assert.ok(merges.filter((_,i)=>i%3===0).includes(x));
+  for(const x of [630,448.5,511.5,637.5,682.5])assert.ok(merges.filter((_,i)=>i%3===0).includes(x));
   const order=['PGW8','PM1','PGW7','PM2','PGW5','PM3','PGW4','HI','WRAPPER','HO','PGW2','PM4','PGW1','PGW3','PM5','PGW6'];
   order.forEach((id,i)=>{const e=equipment(id);assert.ok(inside(e,pz)&&e.bottom<a[1]);
     if(i)assert.ok(equipment(order[i-1]).right<e.x);});
@@ -125,7 +130,7 @@ test('G16/G17 pillar candidates occupy the confirmed rack gaps without moving ra
   assert.ok(w.y>wb2.bottom&&w.bottom<wb3.y&&w.x>wb2.cx&&w.right<=wb2.right);
   assert.ok(e.y>eb1.bottom&&e.bottom<eb2.y&&e.x>=eb1.x&&e.right<eb1.cx);
   for(const [id,expected] of Object.entries({WB1:[45,514,266,112],WB2:[45,644,266,72],WB3:[45,734,266,172],EB1:[710,514,356,82],EB2:[710,644,356,82]})){
-    const b=block(id);assert.deepEqual([b.x,b.y,b.w,b.h],expected);
+    const b=block(id);assert.deepEqual([b.x,b.y,b.w,b.h],[expected[0]+SCHEMATIC_LAYOUT.warehouseOffsetX,...expected.slice(1)]);
   }
   const store=box('EMPTY-PALLET-STORE');
   for(const id of ['WH-E-MAIN-1','WH-E-MAIN-2'])assert.ok(numbers(id)[0]<store.x);
@@ -153,14 +158,14 @@ test('synthetic replay paths cross the wall only through fire shutters and never
   }
   const entry=graph.edges.filter(e=>e.splitSourceEdgeId==='E08').sort((a,b)=>a.splitPartIndex-b.splitPartIndex),
     exit=graph.edges.filter(e=>e.splitSourceEdgeId==='E09').sort((a,b)=>a.splitPartIndex-b.splitPartIndex);
-  assert.equal(entry.length,3);
+  assert.equal(entry.length,4);
   assert.equal(entry[0].fromNodeId,'WH-GATE');assert.equal(entry.at(-1).toNodeId,'PZ-ENTRY');
   assert.ok(entry.every((e,i)=>!i||entry[i-1].toNodeId===e.fromNodeId));
   assert.deepEqual([entry[0].displayPath[0],...entry.map(e=>e.displayPath[1])],
-    [{x:682.5,y:475},{x:682.5,y:390},{x:192,y:390},{x:192,y:300}]);
+    [{x:862.5,y:475},{x:862.5,y:390},{x:682.5,y:390},{x:630,y:390},{x:630,y:300}]);
   assert.equal(exit[0].fromNodeId,'PZ-EXIT');assert.equal(exit.at(-1).toNodeId,'WH-GATE');
   assert.ok(exit.every((e,i)=>!i||exit[i-1].toNodeId===e.fromNodeId));
   assert.deepEqual([exit[0].displayPath[0],...exit.map(e=>e.displayPath[1])],
-    [{x:682.5,y:300},{x:682.5,y:390},{x:682.5,y:475}]);
+    [{x:682.5,y:300},{x:682.5,y:390},{x:862.5,y:390},{x:862.5,y:475}]);
   assert.ok([...entry,...exit].every(e=>e.lanes.every(l=>l.direction==='forward')));
 });

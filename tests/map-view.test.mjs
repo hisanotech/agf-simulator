@@ -27,7 +27,7 @@ function mockSvg(){
     getScreenCTM(){return null;},querySelectorAll(){return[];}};
 }
 
-test('G04 actual SVG gate centers align with the east aisle pair, not just acceptance labels',()=>{
+test('G04 warehouse SVG gate aligns with its east aisle pair while PZ exit keeps the building offset',()=>{
   const svg=mockSvg(),map=initMap({svg,onSelectAgf(){},onSelectBlock(){}});
   map.render(simulate(createDemoScenario('manual')).final,'AGF1');
   const alignment=svg.innerHTML.match(/data-acceptance="G04"[\s\S]*?<\/g>/)[0];
@@ -37,7 +37,7 @@ test('G04 actual SVG gate centers align with the east aisle pair, not just accep
   const xs=[...aisles.matchAll(/M([\d.]+) [\d.]+ V[\d.]+/g)].map(m=>Number(m[1]));
   assert.equal(xs.length,4);
   assert.equal(gates.length,2);
-  for(const center of gates)assert.equal(center,(xs[2]+xs[3])/2);
+  assert.equal(gates[1],(xs[2]+xs[3])/2);assert.ok(gates[0]<gates[1]);
 });
 
 test('saved polyline replay follows turns instead of drawing a shortcut across a wall',()=>{
@@ -57,7 +57,8 @@ test('concept map renders G01-G17 semantic markers without claiming CAD coordina
   for(let number=1;number<=17;number++)assert.match(svg.innerHTML,
     new RegExp(`data-acceptance="G${String(number).padStart(2,'0')}"`));
   assert.match(svg.innerHTML,/data-band="PZ"[\s\S]*data-band="INTER"[\s\S]*data-band="WH"/);
-  assert.match(svg.innerHTML,/パレタイズ西SH/);
+  assert.match(svg.innerHTML,/パレタイズ入口SH/);
+  assert.doesNotMatch(svg.innerHTML,/パレタイズ西SH/);
   assert.match(svg.innerHTML,/パレタイズ出口SH/);
   assert.match(svg.innerHTML,/柱前待機/);
   assert.match(svg.innerHTML,/AGF進入禁止/);

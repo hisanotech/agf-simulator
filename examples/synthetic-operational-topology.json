@@ -2,14 +2,15 @@
   "schemaVersion": "operational-topology-v1",
   "datasetKind": "synthetic",
   "graphId": "SYNTHETIC-GRAPH-01",
-  "revision": 1,
+  "revision": "1-relative-gates-v2",
   "evidence": "synthetic-assumption",
   "coordinateSystem": "synthetic-display",
   "readiness": {
     "topologyReady": true,
     "trafficReady": true,
     "operationalRoutingReady": true,
-    "physicalEtaAllowed": false
+    "physicalEtaAllowed": false,
+    "metricScaleVerified": false
   },
   "nodes": [
     {
@@ -33,7 +34,7 @@
       "id": "WH-HOME",
       "type": "home",
       "areaId": "WH",
-      "x": 700,
+      "x": 880,
       "y": 745,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "block-side",
@@ -113,7 +114,7 @@
       "exclusiveTraffic": true,
       "handlingScopeEvidence": "synthetic-equipment-front-edge-declaration-not-site-boundary",
       "localHandlingBlockedEdgeIds": [
-        "E03",
+        "E03-ENTRY-PART",
         "E04"
       ]
     },
@@ -153,7 +154,7 @@
       "id": "PZ-ENTRY",
       "type": "shutter-wait",
       "areaId": "PZ",
-      "x": 192,
+      "x": 630,
       "y": 300,
       "approvalState": "synthetic-validated",
       "exclusiveTraffic": true,
@@ -177,7 +178,7 @@
       "id": "WH-GATE",
       "type": "shutter-wait",
       "areaId": "WH",
-      "x": 682.5,
+      "x": 862.5,
       "y": 475,
       "approvalState": "synthetic-validated",
       "exclusiveTraffic": true,
@@ -189,7 +190,7 @@
       "id": "WH-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 360,
+      "x": 540,
       "y": 562.5,
       "approvalState": "synthetic-validated"
     },
@@ -197,7 +198,7 @@
       "id": "WH-ALIGN",
       "type": "junction",
       "areaId": "WH",
-      "x": 900,
+      "x": 1080,
       "y": 745,
       "approvalState": "synthetic-validated",
       "evidence": "synthetic-internal-junction-not-device-stop",
@@ -211,7 +212,7 @@
       "id": "WH-CHARGE",
       "type": "charge",
       "areaId": "WH",
-      "x": 782,
+      "x": 962,
       "y": 842,
       "approvalState": "synthetic-validated"
     },
@@ -219,7 +220,7 @@
       "id": "HP1",
       "type": "wait",
       "areaId": "WH",
-      "x": 782,
+      "x": 962,
       "y": 778.5,
       "approvalState": "synthetic-validated"
     },
@@ -227,7 +228,7 @@
       "id": "HP2",
       "type": "wait",
       "areaId": "WH",
-      "x": 782,
+      "x": 962,
       "y": 809.5,
       "approvalState": "synthetic-validated"
     },
@@ -235,7 +236,7 @@
       "id": "CHARGE-PLACE1",
       "type": "charge",
       "areaId": "WH",
-      "x": 782,
+      "x": 962,
       "y": 842.5,
       "approvalState": "synthetic-validated"
     },
@@ -243,7 +244,7 @@
       "id": "CHARGE-PLACE2",
       "type": "charge",
       "areaId": "WH",
-      "x": 782,
+      "x": 962,
       "y": 873.5,
       "approvalState": "synthetic-validated"
     },
@@ -251,7 +252,7 @@
       "id": "PILLAR-WAIT-W",
       "type": "wait",
       "areaId": "WH",
-      "x": 296,
+      "x": 476,
       "y": 725,
       "approvalState": "synthetic-validated"
     },
@@ -259,7 +260,7 @@
       "id": "PILLAR-WAIT-E",
       "type": "wait",
       "areaId": "WH",
-      "x": 725,
+      "x": 905,
       "y": 609,
       "approvalState": "synthetic-validated"
     },
@@ -267,7 +268,7 @@
       "id": "WH-E-NORTH",
       "type": "junction",
       "areaId": "WH",
-      "x": 700,
+      "x": 880,
       "y": 562.5,
       "approvalState": "synthetic-validated",
       "modelStationMm": 0,
@@ -284,7 +285,7 @@
       "id": "WH-E-SOUTH",
       "type": "junction",
       "areaId": "WH",
-      "x": 700,
+      "x": 880,
       "y": 769.5,
       "approvalState": "synthetic-validated",
       "modelStationMm": 15000,
@@ -301,7 +302,7 @@
       "id": "WH-E-PILLAR",
       "type": "junction",
       "areaId": "WH",
-      "x": 700,
+      "x": 880,
       "y": 609,
       "approvalState": "synthetic-validated",
       "modelStationMm": 4000,
@@ -318,7 +319,7 @@
       "id": "WH-E-SERVICE",
       "type": "junction",
       "areaId": "WH",
-      "x": 700,
+      "x": 880,
       "y": 732.5,
       "approvalState": "synthetic-validated",
       "modelStationMm": 14000,
@@ -335,7 +336,7 @@
       "id": "WH-W-NORTH",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 562.5,
       "approvalState": "synthetic-validated",
       "modelStationMm": 0,
@@ -352,7 +353,7 @@
       "id": "WH-W-SOUTH",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 769.5,
       "approvalState": "synthetic-validated",
       "modelStationMm": 15000,
@@ -369,7 +370,7 @@
       "id": "WH-W-PILLAR",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 725,
       "approvalState": "synthetic-validated",
       "modelStationMm": 13000,
@@ -386,7 +387,7 @@
       "id": "WB1-R01-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 558.428571,
       "approvalState": "synthetic-validated",
       "modelStationMm": -1000,
@@ -403,7 +404,7 @@
       "id": "WB1-R01-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 558.428571,
       "approvalState": "synthetic-validated",
       "rowId": "WB1-R01",
@@ -413,7 +414,7 @@
       "id": "WB1-R02-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 567.285714,
       "approvalState": "synthetic-validated",
       "modelStationMm": 1000,
@@ -430,7 +431,7 @@
       "id": "WB1-R02-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 567.285714,
       "approvalState": "synthetic-validated",
       "rowId": "WB1-R02",
@@ -440,7 +441,7 @@
       "id": "WB1-R03-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 576.142857,
       "approvalState": "synthetic-validated",
       "modelStationMm": 2000,
@@ -457,7 +458,7 @@
       "id": "WB1-R03-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 576.142857,
       "approvalState": "synthetic-validated",
       "rowId": "WB1-R03",
@@ -467,7 +468,7 @@
       "id": "WB1-R04-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 585,
       "approvalState": "synthetic-validated",
       "modelStationMm": 3000,
@@ -484,7 +485,7 @@
       "id": "WB1-R04-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 585,
       "approvalState": "synthetic-validated",
       "rowId": "WB1-R04",
@@ -494,7 +495,7 @@
       "id": "WB1-R05-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 593.857143,
       "approvalState": "synthetic-validated",
       "modelStationMm": 4000,
@@ -511,7 +512,7 @@
       "id": "WB1-R05-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 593.857143,
       "approvalState": "synthetic-validated",
       "rowId": "WB1-R05",
@@ -521,7 +522,7 @@
       "id": "WB1-R06-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 602.714286,
       "approvalState": "synthetic-validated",
       "modelStationMm": 5000,
@@ -538,7 +539,7 @@
       "id": "WB1-R06-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 602.714286,
       "approvalState": "synthetic-validated",
       "rowId": "WB1-R06",
@@ -548,7 +549,7 @@
       "id": "WB1-R07-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 611.571429,
       "approvalState": "synthetic-validated",
       "modelStationMm": 6000,
@@ -565,7 +566,7 @@
       "id": "WB1-R07-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 611.571429,
       "approvalState": "synthetic-validated",
       "rowId": "WB1-R07",
@@ -575,7 +576,7 @@
       "id": "WB2-R01-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 687.666667,
       "approvalState": "synthetic-validated",
       "modelStationMm": 10000,
@@ -592,7 +593,7 @@
       "id": "WB2-R01-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 687.666667,
       "approvalState": "synthetic-validated",
       "rowId": "WB2-R01",
@@ -602,7 +603,7 @@
       "id": "WB2-R02-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 695,
       "approvalState": "synthetic-validated",
       "modelStationMm": 11000,
@@ -619,7 +620,7 @@
       "id": "WB2-R02-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 695,
       "approvalState": "synthetic-validated",
       "rowId": "WB2-R02",
@@ -629,7 +630,7 @@
       "id": "WB2-R03-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 702.333333,
       "approvalState": "synthetic-validated",
       "modelStationMm": 12000,
@@ -646,7 +647,7 @@
       "id": "WB2-R03-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 702.333333,
       "approvalState": "synthetic-validated",
       "rowId": "WB2-R03",
@@ -656,7 +657,7 @@
       "id": "WB3-R01-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 778.692308,
       "approvalState": "synthetic-validated",
       "modelStationMm": 16000,
@@ -673,7 +674,7 @@
       "id": "WB3-R01-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 778.692308,
       "approvalState": "synthetic-validated",
       "rowId": "WB3-R01",
@@ -683,7 +684,7 @@
       "id": "WB3-R02-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 788.076923,
       "approvalState": "synthetic-validated",
       "modelStationMm": 17000,
@@ -700,7 +701,7 @@
       "id": "WB3-R02-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 788.076923,
       "approvalState": "synthetic-validated",
       "rowId": "WB3-R02",
@@ -710,7 +711,7 @@
       "id": "WB3-R03-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 797.461538,
       "approvalState": "synthetic-validated",
       "modelStationMm": 18000,
@@ -727,7 +728,7 @@
       "id": "WB3-R03-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 797.461538,
       "approvalState": "synthetic-validated",
       "rowId": "WB3-R03",
@@ -737,7 +738,7 @@
       "id": "WB3-R04-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 806.846154,
       "approvalState": "synthetic-validated",
       "modelStationMm": 19000,
@@ -754,7 +755,7 @@
       "id": "WB3-R04-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 806.846154,
       "approvalState": "synthetic-validated",
       "rowId": "WB3-R04",
@@ -764,7 +765,7 @@
       "id": "WB3-R05-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 816.230769,
       "approvalState": "synthetic-validated",
       "modelStationMm": 20000,
@@ -781,7 +782,7 @@
       "id": "WB3-R05-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 816.230769,
       "approvalState": "synthetic-validated",
       "rowId": "WB3-R05",
@@ -791,7 +792,7 @@
       "id": "WB3-R06-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 825.615385,
       "approvalState": "synthetic-validated",
       "modelStationMm": 21000,
@@ -808,7 +809,7 @@
       "id": "WB3-R06-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 825.615385,
       "approvalState": "synthetic-validated",
       "rowId": "WB3-R06",
@@ -818,7 +819,7 @@
       "id": "WB3-R07-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 835,
       "approvalState": "synthetic-validated",
       "modelStationMm": 22000,
@@ -835,7 +836,7 @@
       "id": "WB3-R07-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 835,
       "approvalState": "synthetic-validated",
       "rowId": "WB3-R07",
@@ -845,7 +846,7 @@
       "id": "WB3-R08-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 844.384615,
       "approvalState": "synthetic-validated",
       "modelStationMm": 23000,
@@ -862,7 +863,7 @@
       "id": "WB3-R08-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 844.384615,
       "approvalState": "synthetic-validated",
       "rowId": "WB3-R08",
@@ -872,7 +873,7 @@
       "id": "WB3-R09-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 853.769231,
       "approvalState": "synthetic-validated",
       "modelStationMm": 24000,
@@ -889,7 +890,7 @@
       "id": "WB3-R09-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 853.769231,
       "approvalState": "synthetic-validated",
       "rowId": "WB3-R09",
@@ -899,7 +900,7 @@
       "id": "WB3-R10-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 863.153846,
       "approvalState": "synthetic-validated",
       "modelStationMm": 25000,
@@ -916,7 +917,7 @@
       "id": "WB3-R10-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 863.153846,
       "approvalState": "synthetic-validated",
       "rowId": "WB3-R10",
@@ -926,7 +927,7 @@
       "id": "WB3-R11-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 872.538462,
       "approvalState": "synthetic-validated",
       "modelStationMm": 26000,
@@ -943,7 +944,7 @@
       "id": "WB3-R11-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 872.538462,
       "approvalState": "synthetic-validated",
       "rowId": "WB3-R11",
@@ -953,7 +954,7 @@
       "id": "WB3-R12-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 881.923077,
       "approvalState": "synthetic-validated",
       "modelStationMm": 27000,
@@ -970,7 +971,7 @@
       "id": "WB3-R12-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 881.923077,
       "approvalState": "synthetic-validated",
       "rowId": "WB3-R12",
@@ -980,7 +981,7 @@
       "id": "WB3-R13-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 891.307692,
       "approvalState": "synthetic-validated",
       "modelStationMm": 28000,
@@ -997,7 +998,7 @@
       "id": "WB3-R13-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 311,
+      "x": 491,
       "y": 891.307692,
       "approvalState": "synthetic-validated",
       "rowId": "WB3-R13",
@@ -1007,7 +1008,7 @@
       "id": "EB1-R01-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 700,
+      "x": 880,
       "y": 559.333333,
       "approvalState": "synthetic-validated",
       "modelStationMm": -1000,
@@ -1024,7 +1025,7 @@
       "id": "EB1-R01-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 710,
+      "x": 890,
       "y": 559.333333,
       "approvalState": "synthetic-validated",
       "rowId": "EB1-R01",
@@ -1034,7 +1035,7 @@
       "id": "EB1-R02-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 700,
+      "x": 880,
       "y": 570,
       "approvalState": "synthetic-validated",
       "modelStationMm": 1000,
@@ -1051,7 +1052,7 @@
       "id": "EB1-R02-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 710,
+      "x": 890,
       "y": 570,
       "approvalState": "synthetic-validated",
       "rowId": "EB1-R02",
@@ -1061,7 +1062,7 @@
       "id": "EB1-R03-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 700,
+      "x": 880,
       "y": 580.666667,
       "approvalState": "synthetic-validated",
       "modelStationMm": 2000,
@@ -1078,7 +1079,7 @@
       "id": "EB1-R03-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 710,
+      "x": 890,
       "y": 580.666667,
       "approvalState": "synthetic-validated",
       "rowId": "EB1-R03",
@@ -1088,7 +1089,7 @@
       "id": "EB2-R01-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 700,
+      "x": 880,
       "y": 689.333333,
       "approvalState": "synthetic-validated",
       "modelStationMm": 10000,
@@ -1105,7 +1106,7 @@
       "id": "EB2-R01-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 710,
+      "x": 890,
       "y": 689.333333,
       "approvalState": "synthetic-validated",
       "rowId": "EB2-R01",
@@ -1115,7 +1116,7 @@
       "id": "EB2-R02-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 700,
+      "x": 880,
       "y": 700,
       "approvalState": "synthetic-validated",
       "modelStationMm": 11000,
@@ -1132,7 +1133,7 @@
       "id": "EB2-R02-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 710,
+      "x": 890,
       "y": 700,
       "approvalState": "synthetic-validated",
       "rowId": "EB2-R02",
@@ -1142,7 +1143,7 @@
       "id": "EB2-R03-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 700,
+      "x": 880,
       "y": 710.666667,
       "approvalState": "synthetic-validated",
       "modelStationMm": 12000,
@@ -1159,7 +1160,7 @@
       "id": "EB2-R03-DROP",
       "type": "dropoff",
       "areaId": "WH",
-      "x": 710,
+      "x": 890,
       "y": 710.666667,
       "approvalState": "synthetic-validated",
       "rowId": "EB2-R03",
@@ -1642,7 +1643,7 @@
       },
       "localHandlingBlockedEdgeIds": [
         "E01-PART4",
-        "E01-PART3-ENTRY-PART"
+        "E01-PART3"
       ]
     },
     {
@@ -2053,7 +2054,7 @@
       "id": "WH-AL1-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 875,
+      "x": 1055,
       "y": 745,
       "approvalState": "synthetic-validated",
       "corridorId": "WH-SERVICE-ALIGN",
@@ -2068,7 +2069,7 @@
       "id": "WH-AL2-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 913,
+      "x": 1093,
       "y": 745,
       "approvalState": "synthetic-validated",
       "corridorId": "WH-SERVICE-ALIGN",
@@ -2083,7 +2084,7 @@
       "id": "WH-AL3-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 951,
+      "x": 1131,
       "y": 745,
       "approvalState": "synthetic-validated",
       "corridorId": "WH-SERVICE-ALIGN",
@@ -2098,7 +2099,7 @@
       "id": "WH-AL4-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 989,
+      "x": 1169,
       "y": 745,
       "approvalState": "synthetic-validated",
       "corridorId": "WH-SERVICE-ALIGN",
@@ -2113,7 +2114,7 @@
       "id": "WH-AL5-ACCESS",
       "type": "junction",
       "areaId": "WH",
-      "x": 1027,
+      "x": 1207,
       "y": 745,
       "approvalState": "synthetic-validated",
       "corridorId": "WH-SERVICE-ALIGN",
@@ -2128,7 +2129,7 @@
       "id": "WH-AL1-PICKUP",
       "type": "pickup",
       "areaId": "WH",
-      "x": 875,
+      "x": 1055,
       "y": 765,
       "approvalState": "synthetic-validated",
       "interfaceId": "AL1",
@@ -2155,7 +2156,7 @@
       "id": "WH-AL2-PICKUP",
       "type": "pickup",
       "areaId": "WH",
-      "x": 913,
+      "x": 1093,
       "y": 765,
       "approvalState": "synthetic-validated",
       "interfaceId": "AL2",
@@ -2182,7 +2183,7 @@
       "id": "WH-AL3-PICKUP",
       "type": "pickup",
       "areaId": "WH",
-      "x": 951,
+      "x": 1131,
       "y": 765,
       "approvalState": "synthetic-validated",
       "interfaceId": "AL3",
@@ -2209,7 +2210,7 @@
       "id": "WH-AL4-PICKUP",
       "type": "pickup",
       "areaId": "WH",
-      "x": 989,
+      "x": 1169,
       "y": 765,
       "approvalState": "synthetic-validated",
       "interfaceId": "AL4",
@@ -2236,7 +2237,7 @@
       "id": "WH-AL5-PICKUP",
       "type": "pickup",
       "areaId": "WH",
-      "x": 1027,
+      "x": 1207,
       "y": 765,
       "approvalState": "synthetic-validated",
       "interfaceId": "AL5",
@@ -2277,7 +2278,7 @@
       "id": "E08-TURN1",
       "type": "turn",
       "areaId": "INTER",
-      "x": 682.5,
+      "x": 862.5,
       "y": 390,
       "approvalState": "synthetic-validated",
       "evidence": "synthetic-assumption",
@@ -2286,13 +2287,17 @@
         "synthetic-turn:E08-TURN1",
         "NODE:E08-TURN1"
       ],
-      "exclusiveTraffic": true
+      "exclusiveTraffic": true,
+      "metricAlignment": {
+        "xNodeId": "WH-GATE",
+        "evidence": "synthetic-relative-layout-alignment-not-site-stop"
+      }
     },
     {
       "id": "E08-TURN2",
       "type": "turn",
       "areaId": "INTER",
-      "x": 192,
+      "x": 630,
       "y": 390,
       "approvalState": "synthetic-validated",
       "evidence": "synthetic-assumption",
@@ -2301,13 +2306,17 @@
         "synthetic-turn:E08-TURN2",
         "NODE:E08-TURN2"
       ],
-      "exclusiveTraffic": true
+      "exclusiveTraffic": true,
+      "metricAlignment": {
+        "xNodeId": "PZ-ENTRY",
+        "evidence": "synthetic-relative-layout-alignment-not-site-stop"
+      }
     },
     {
       "id": "E13-TURN1",
       "type": "turn",
       "areaId": "WH",
-      "x": 700,
+      "x": 880,
       "y": 842,
       "approvalState": "synthetic-validated",
       "evidence": "synthetic-assumption",
@@ -2326,7 +2335,7 @@
       "id": "E14-TURN1",
       "type": "turn",
       "areaId": "WH",
-      "x": 700,
+      "x": 880,
       "y": 778.5,
       "approvalState": "synthetic-validated",
       "evidence": "synthetic-assumption",
@@ -2345,7 +2354,7 @@
       "id": "E15-TURN1",
       "type": "turn",
       "areaId": "WH",
-      "x": 700,
+      "x": 880,
       "y": 809.5,
       "approvalState": "synthetic-validated",
       "evidence": "synthetic-assumption",
@@ -2364,7 +2373,7 @@
       "id": "E16-TURN1",
       "type": "turn",
       "areaId": "WH",
-      "x": 700,
+      "x": 880,
       "y": 842.5,
       "approvalState": "synthetic-validated",
       "evidence": "synthetic-assumption",
@@ -2383,7 +2392,7 @@
       "id": "E17-TURN1",
       "type": "turn",
       "areaId": "WH",
-      "x": 700,
+      "x": 880,
       "y": 873.5,
       "approvalState": "synthetic-validated",
       "evidence": "synthetic-assumption",
@@ -2402,7 +2411,7 @@
       "id": "PZ-N-ENTRY",
       "type": "junction",
       "areaId": "PZ",
-      "x": 192,
+      "x": 630,
       "y": 173,
       "approvalState": "synthetic-validated",
       "corridorId": "PZ-A1",
@@ -2793,7 +2802,7 @@
       "id": "PZ-S-ENTRY",
       "type": "junction",
       "areaId": "PZ",
-      "x": 192,
+      "x": 630,
       "y": 211,
       "approvalState": "synthetic-validated",
       "sharedRegionId": "PZ-SHARED",
@@ -2810,7 +2819,7 @@
       "id": "WH-E-TOP",
       "type": "junction",
       "areaId": "WH",
-      "x": 700,
+      "x": 880,
       "y": 500,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "block-side",
@@ -2826,7 +2835,7 @@
       "id": "WH-E-BOTTOM",
       "type": "junction",
       "areaId": "WH",
-      "x": 700,
+      "x": 880,
       "y": 915,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "block-side",
@@ -2842,7 +2851,7 @@
       "id": "WH-E-TOP-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 665,
+      "x": 845,
       "y": 500,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -2858,7 +2867,7 @@
       "id": "EB1-R01-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 665,
+      "x": 845,
       "y": 559.333333,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -2874,7 +2883,7 @@
       "id": "WH-E-NORTH-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 665,
+      "x": 845,
       "y": 562.5,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -2890,7 +2899,7 @@
       "id": "EB1-R02-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 665,
+      "x": 845,
       "y": 570,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -2906,7 +2915,7 @@
       "id": "EB1-R03-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 665,
+      "x": 845,
       "y": 580.666667,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -2922,7 +2931,7 @@
       "id": "WH-E-PILLAR-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 665,
+      "x": 845,
       "y": 609,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -2938,7 +2947,7 @@
       "id": "EB2-R01-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 665,
+      "x": 845,
       "y": 689.333333,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -2954,7 +2963,7 @@
       "id": "EB2-R02-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 665,
+      "x": 845,
       "y": 700,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -2970,7 +2979,7 @@
       "id": "EB2-R03-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 665,
+      "x": 845,
       "y": 710.666667,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -2986,7 +2995,7 @@
       "id": "WH-E-SERVICE-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 665,
+      "x": 845,
       "y": 732.5,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3002,7 +3011,7 @@
       "id": "WH-HOME-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 665,
+      "x": 845,
       "y": 745,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3018,7 +3027,7 @@
       "id": "WH-E-SOUTH-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 665,
+      "x": 845,
       "y": 769.5,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3034,7 +3043,7 @@
       "id": "E14-TURN1-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 665,
+      "x": 845,
       "y": 778.5,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3050,7 +3059,7 @@
       "id": "E15-TURN1-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 665,
+      "x": 845,
       "y": 809.5,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3066,7 +3075,7 @@
       "id": "E13-TURN1-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 665,
+      "x": 845,
       "y": 842,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3082,7 +3091,7 @@
       "id": "E16-TURN1-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 665,
+      "x": 845,
       "y": 842.5,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3098,7 +3107,7 @@
       "id": "E17-TURN1-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 665,
+      "x": 845,
       "y": 873.5,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3114,7 +3123,7 @@
       "id": "WH-E-BOTTOM-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 665,
+      "x": 845,
       "y": 915,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3130,7 +3139,7 @@
       "id": "WH-E-GATE-DOWN-ENTRY",
       "type": "junction",
       "areaId": "WH",
-      "x": 700,
+      "x": 880,
       "y": 475,
       "approvalState": "synthetic-validated",
       "exclusiveTraffic": true,
@@ -3142,7 +3151,7 @@
       "id": "WH-E-GATE-UP-EXIT",
       "type": "junction",
       "areaId": "WH",
-      "x": 665,
+      "x": 845,
       "y": 475,
       "approvalState": "synthetic-validated",
       "exclusiveTraffic": true,
@@ -3154,7 +3163,7 @@
       "id": "WH-W-TOP",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 500,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "block-side",
@@ -3170,7 +3179,7 @@
       "id": "WH-W-BOTTOM",
       "type": "junction",
       "areaId": "WH",
-      "x": 400,
+      "x": 580,
       "y": 915,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "block-side",
@@ -3186,7 +3195,7 @@
       "id": "WH-W-TOP-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 500,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3202,7 +3211,7 @@
       "id": "WB1-R01-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 558.428571,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3218,7 +3227,7 @@
       "id": "WH-W-NORTH-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 562.5,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3234,7 +3243,7 @@
       "id": "WB1-R02-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 567.285714,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3250,7 +3259,7 @@
       "id": "WB1-R03-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 576.142857,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3266,7 +3275,7 @@
       "id": "WB1-R04-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 585,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3282,7 +3291,7 @@
       "id": "WB1-R05-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 593.857143,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3298,7 +3307,7 @@
       "id": "WB1-R06-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 602.714286,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3314,7 +3323,7 @@
       "id": "WB1-R07-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 611.571429,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3330,7 +3339,7 @@
       "id": "WB2-R01-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 687.666667,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3346,7 +3355,7 @@
       "id": "WB2-R02-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 695,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3362,7 +3371,7 @@
       "id": "WB2-R03-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 702.333333,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3378,7 +3387,7 @@
       "id": "WH-W-PILLAR-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 725,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3394,7 +3403,7 @@
       "id": "WH-W-SOUTH-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 769.5,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3410,7 +3419,7 @@
       "id": "WB3-R01-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 778.692308,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3426,7 +3435,7 @@
       "id": "WB3-R02-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 788.076923,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3442,7 +3451,7 @@
       "id": "WB3-R03-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 797.461538,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3458,7 +3467,7 @@
       "id": "WB3-R04-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 806.846154,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3474,7 +3483,7 @@
       "id": "WB3-R05-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 816.230769,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3490,7 +3499,7 @@
       "id": "WB3-R06-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 825.615385,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3506,7 +3515,7 @@
       "id": "WB3-R07-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 835,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3522,7 +3531,7 @@
       "id": "WB3-R08-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 844.384615,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3538,7 +3547,7 @@
       "id": "WB3-R09-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 853.769231,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3554,7 +3563,7 @@
       "id": "WB3-R10-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 863.153846,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3570,7 +3579,7 @@
       "id": "WB3-R11-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 872.538462,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3586,7 +3595,7 @@
       "id": "WB3-R12-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 881.923077,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3602,7 +3611,7 @@
       "id": "WB3-R13-ACCESS-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 891.307692,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3618,7 +3627,7 @@
       "id": "WH-W-BOTTOM-WALL",
       "type": "junction",
       "areaId": "WH",
-      "x": 435,
+      "x": 615,
       "y": 915,
       "approvalState": "synthetic-validated",
       "mainAisleRole": "wall-side",
@@ -3629,6 +3638,39 @@
       ],
       "mergeConflictResourceId": "LOGICAL-MERGE:WH-W-CROSS-WH-W-BOTTOM",
       "conflictEvidence": "explicit-conservative-synthetic-lane-change-zone-not-site-clearance"
+    },
+    {
+      "id": "E09-TURN1",
+      "type": "turn",
+      "areaId": "INTER",
+      "x": 682.5,
+      "y": 390,
+      "approvalState": "synthetic-validated",
+      "evidence": "synthetic-assumption",
+      "turnPositionEvidence": "derived-synthetic-display-bend-not-site-turn",
+      "occupancyResourceIds": [
+        "synthetic-turn:E09-TURN1",
+        "NODE:E09-TURN1"
+      ],
+      "exclusiveTraffic": true,
+      "metricAlignment": {
+        "xNodeId": "PZ-EXIT",
+        "evidence": "synthetic-relative-layout-alignment-not-site-stop"
+      }
+    },
+    {
+      "id": "WH-W-GATE",
+      "type": "shutter-wait",
+      "areaId": "WH",
+      "x": 335,
+      "y": 475,
+      "approvalState": "synthetic-validated",
+      "exclusiveTraffic": true,
+      "occupancyResourceIds": [
+        "NODE:WH-W-GATE"
+      ],
+      "normalUse": false,
+      "evidence": "synthetic-unused-west-opening-no-approved-exception-route"
     }
   ],
   "edges": [
@@ -3686,11 +3728,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 559.333333
         },
         {
-          "x": 710,
+          "x": 890,
           "y": 559.333333
         }
       ]
@@ -3749,11 +3791,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 570
         },
         {
-          "x": 710,
+          "x": 890,
           "y": 570
         }
       ]
@@ -3812,11 +3854,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 580.666667
         },
         {
-          "x": 710,
+          "x": 890,
           "y": 580.666667
         }
       ]
@@ -3875,11 +3917,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 689.333333
         },
         {
-          "x": 710,
+          "x": 890,
           "y": 689.333333
         }
       ]
@@ -3938,11 +3980,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 700
         },
         {
-          "x": 710,
+          "x": 890,
           "y": 700
         }
       ]
@@ -4001,11 +4043,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 710.666667
         },
         {
-          "x": 710,
+          "x": 890,
           "y": 710.666667
         }
       ]
@@ -4064,11 +4106,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 558.428571
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 558.428571
         }
       ]
@@ -4127,11 +4169,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 567.285714
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 567.285714
         }
       ]
@@ -4190,11 +4232,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 576.142857
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 576.142857
         }
       ]
@@ -4253,11 +4295,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 585
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 585
         }
       ]
@@ -4316,11 +4358,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 593.857143
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 593.857143
         }
       ]
@@ -4379,11 +4421,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 602.714286
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 602.714286
         }
       ]
@@ -4442,11 +4484,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 611.571429
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 611.571429
         }
       ]
@@ -4505,11 +4547,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 687.666667
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 687.666667
         }
       ]
@@ -4568,11 +4610,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 695
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 695
         }
       ]
@@ -4631,11 +4673,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 702.333333
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 702.333333
         }
       ]
@@ -4694,11 +4736,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 778.692308
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 778.692308
         }
       ]
@@ -4757,11 +4799,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 788.076923
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 788.076923
         }
       ]
@@ -4820,11 +4862,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 797.461538
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 797.461538
         }
       ]
@@ -4883,11 +4925,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 806.846154
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 806.846154
         }
       ]
@@ -4946,11 +4988,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 816.230769
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 816.230769
         }
       ]
@@ -5009,11 +5051,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 825.615385
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 825.615385
         }
       ]
@@ -5072,11 +5114,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 835
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 835
         }
       ]
@@ -5135,11 +5177,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 844.384615
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 844.384615
         }
       ]
@@ -5198,11 +5240,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 853.769231
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 853.769231
         }
       ]
@@ -5261,11 +5303,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 863.153846
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 863.153846
         }
       ]
@@ -5324,11 +5366,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 872.538462
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 872.538462
         }
       ]
@@ -5387,11 +5429,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 881.923077
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 881.923077
         }
       ]
@@ -5450,11 +5492,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 891.307692
         },
         {
-          "x": 311,
+          "x": 491,
           "y": 891.307692
         }
       ]
@@ -5463,7 +5505,7 @@
       "id": "E08",
       "fromNodeId": "WH-GATE",
       "toNodeId": "E08-TURN1",
-      "distanceMm": 5000,
+      "distanceMm": 3400,
       "speedMmPerSec": {
         "empty": 1200,
         "loaded": 1000,
@@ -5483,8 +5525,7 @@
       },
       "occupancyResourceIds": [
         "OUTDOOR-JUNCTION",
-        "E08-L1",
-        "synthetic-turn:E08-TURN1"
+        "E08-L1"
       ],
       "shutterId": "SH-EAST",
       "accessScopes": [
@@ -5516,11 +5557,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 682.5,
+          "x": 862.5,
           "y": 475
         },
         {
-          "x": 682.5,
+          "x": 862.5,
           "y": 390
         }
       ],
@@ -5528,16 +5569,16 @@
       "noOvertakingForwardDirection": "forward",
       "splitSourceEdgeId": "E08",
       "splitPartIndex": 0,
-      "splitSourceDistanceMm": 15000,
-      "modelDistanceEvidence": "explicit-synthetic-equal-segment-allocation-not-display-length",
+      "splitSourceDistanceMm": 16300,
+      "modelDistanceEvidence": "synthetic-model-40mm-per-drawing-unit-polyline-not-measured",
       "mergeConflictResourceId": "OUTDOOR-JUNCTION",
       "conflictEvidence": "explicit-synthetic-shared-outdoor-passage-not-site-clearance"
     },
     {
       "id": "E08-PART2",
       "fromNodeId": "E08-TURN1",
-      "toNodeId": "E08-TURN2",
-      "distanceMm": 5000,
+      "toNodeId": "E09-TURN1",
+      "distanceMm": 7200,
       "speedMmPerSec": {
         "empty": 1200,
         "loaded": 1000,
@@ -5557,11 +5598,9 @@
       },
       "occupancyResourceIds": [
         "OUTDOOR-JUNCTION",
-        "E08-L1",
-        "synthetic-turn:E08-TURN1",
-        "synthetic-turn:E08-TURN2"
+        "E08-L1"
       ],
-      "shutterId": "SH-EAST",
+      "shutterId": null,
       "accessScopes": [
         {
           "movement": "empty",
@@ -5591,11 +5630,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 682.5,
+          "x": 862.5,
           "y": 390
         },
         {
-          "x": 192,
+          "x": 682.5,
           "y": 390
         }
       ],
@@ -5603,14 +5642,14 @@
       "noOvertakingForwardDirection": "forward",
       "splitSourceEdgeId": "E08",
       "splitPartIndex": 1,
-      "splitSourceDistanceMm": 15000,
-      "modelDistanceEvidence": "explicit-synthetic-equal-segment-allocation-not-display-length"
+      "splitSourceDistanceMm": 16300,
+      "modelDistanceEvidence": "synthetic-model-40mm-per-drawing-unit-polyline-not-measured"
     },
     {
       "id": "E08-PART3",
       "fromNodeId": "E08-TURN2",
       "toNodeId": "PZ-ENTRY",
-      "distanceMm": 5000,
+      "distanceMm": 3600,
       "speedMmPerSec": {
         "empty": 1200,
         "loaded": 1000,
@@ -5630,10 +5669,9 @@
       },
       "occupancyResourceIds": [
         "OUTDOOR-JUNCTION",
-        "E08-L1",
-        "synthetic-turn:E08-TURN2"
+        "E08-L1"
       ],
-      "shutterId": "SH-EAST",
+      "shutterId": "SH-PZ-ENTRY",
       "accessScopes": [
         {
           "movement": "empty",
@@ -5663,26 +5701,26 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 192,
+          "x": 630,
           "y": 390
         },
         {
-          "x": 192,
+          "x": 630,
           "y": 300
         }
       ],
       "noOvertakingGroupId": "OUTDOOR-ENTRY",
       "noOvertakingForwardDirection": "forward",
       "splitSourceEdgeId": "E08",
-      "splitPartIndex": 2,
-      "splitSourceDistanceMm": 15000,
-      "modelDistanceEvidence": "explicit-synthetic-equal-segment-allocation-not-display-length"
+      "splitPartIndex": 3,
+      "splitSourceDistanceMm": 16300,
+      "modelDistanceEvidence": "synthetic-model-40mm-per-drawing-unit-polyline-not-measured"
     },
     {
       "id": "E09",
       "fromNodeId": "PZ-EXIT",
-      "toNodeId": "E08-TURN1",
-      "distanceMm": 9000,
+      "toNodeId": "E09-TURN1",
+      "distanceMm": 3600,
       "speedMmPerSec": {
         "empty": 900,
         "loaded": 700,
@@ -5701,9 +5739,10 @@
         "simultaneousPassing": "controlled"
       },
       "occupancyResourceIds": [
-        "OUTDOOR-JUNCTION"
+        "OUTDOOR-JUNCTION",
+        "E09-L1"
       ],
-      "shutterId": "SH-EAST",
+      "shutterId": "SH-PZ-EXIT",
       "accessScopes": [
         {
           "movement": "empty",
@@ -5745,15 +5784,15 @@
       "noOvertakingForwardDirection": "forward",
       "splitSourceEdgeId": "E09",
       "splitPartIndex": 0,
-      "splitSourceDistanceMm": 18000,
-      "modelDistanceEvidence": "explicit-synthetic-equal-segment-allocation-not-display-length",
+      "splitSourceDistanceMm": 14200,
+      "modelDistanceEvidence": "synthetic-model-40mm-per-drawing-unit-polyline-not-measured",
       "crossingEvidence": "explicit-synthetic-existing-outdoor-junction-not-site-path"
     },
     {
       "id": "E09-PART2",
-      "fromNodeId": "E08-TURN1",
-      "toNodeId": "WH-GATE",
-      "distanceMm": 9000,
+      "fromNodeId": "E09-TURN1",
+      "toNodeId": "E08-TURN1",
+      "distanceMm": 7200,
       "speedMmPerSec": {
         "empty": 900,
         "loaded": 700,
@@ -5772,9 +5811,10 @@
         "simultaneousPassing": "controlled"
       },
       "occupancyResourceIds": [
-        "OUTDOOR-JUNCTION"
+        "OUTDOOR-JUNCTION",
+        "E09-L1"
       ],
-      "shutterId": "SH-EAST",
+      "shutterId": null,
       "accessScopes": [
         {
           "movement": "empty",
@@ -5808,16 +5848,16 @@
           "y": 390
         },
         {
-          "x": 682.5,
-          "y": 475
+          "x": 862.5,
+          "y": 390
         }
       ],
       "noOvertakingGroupId": "OUTDOOR-EXIT",
       "noOvertakingForwardDirection": "forward",
       "splitSourceEdgeId": "E09",
       "splitPartIndex": 1,
-      "splitSourceDistanceMm": 18000,
-      "modelDistanceEvidence": "explicit-synthetic-equal-segment-allocation-not-display-length",
+      "splitSourceDistanceMm": 14200,
+      "modelDistanceEvidence": "synthetic-model-40mm-per-drawing-unit-polyline-not-measured",
       "crossingEvidence": "explicit-synthetic-existing-outdoor-junction-not-site-path",
       "mergeConflictResourceId": "OUTDOOR-JUNCTION",
       "conflictEvidence": "explicit-synthetic-shared-outdoor-passage-not-site-clearance"
@@ -5874,11 +5914,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 562.5
         },
         {
-          "x": 360,
+          "x": 540,
           "y": 562.5
         }
       ]
@@ -5933,11 +5973,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 842
         },
         {
-          "x": 782,
+          "x": 962,
           "y": 842
         }
       ],
@@ -5996,11 +6036,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 778.5
         },
         {
-          "x": 782,
+          "x": 962,
           "y": 778.5
         }
       ],
@@ -6059,11 +6099,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 809.5
         },
         {
-          "x": 782,
+          "x": 962,
           "y": 809.5
         }
       ],
@@ -6122,11 +6162,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 842.5
         },
         {
-          "x": 782,
+          "x": 962,
           "y": 842.5
         }
       ],
@@ -6185,11 +6225,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 873.5
         },
         {
-          "x": 782,
+          "x": 962,
           "y": 873.5
         }
       ],
@@ -6244,11 +6284,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 725
         },
         {
-          "x": 296,
+          "x": 476,
           "y": 725
         }
       ]
@@ -6299,11 +6339,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 609
         },
         {
-          "x": 725,
+          "x": 905,
           "y": 609
         }
       ]
@@ -6363,11 +6403,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 562.5
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 562.5
         }
       ],
@@ -6433,11 +6473,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 665,
+          "x": 845,
           "y": 562.5
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 562.5
         }
       ],
@@ -6504,11 +6544,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 562.5
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 562.5
         }
       ],
@@ -6576,11 +6616,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 769.5
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 769.5
         }
       ],
@@ -6646,11 +6686,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 665,
+          "x": 845,
           "y": 769.5
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 769.5
         }
       ],
@@ -6717,11 +6757,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 769.5
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 769.5
         }
       ],
@@ -8054,11 +8094,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 745
         },
         {
-          "x": 875,
+          "x": 1055,
           "y": 745
         }
       ],
@@ -8122,11 +8162,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 875,
+          "x": 1055,
           "y": 745
         },
         {
-          "x": 900,
+          "x": 1080,
           "y": 745
         }
       ],
@@ -8190,11 +8230,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 900,
+          "x": 1080,
           "y": 745
         },
         {
-          "x": 913,
+          "x": 1093,
           "y": 745
         }
       ],
@@ -8255,11 +8295,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 913,
+          "x": 1093,
           "y": 745
         },
         {
-          "x": 951,
+          "x": 1131,
           "y": 745
         }
       ],
@@ -8320,11 +8360,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 951,
+          "x": 1131,
           "y": 745
         },
         {
-          "x": 989,
+          "x": 1169,
           "y": 745
         }
       ],
@@ -8385,11 +8425,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 989,
+          "x": 1169,
           "y": 745
         },
         {
-          "x": 1027,
+          "x": 1207,
           "y": 745
         }
       ],
@@ -8452,11 +8492,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 875,
+          "x": 1055,
           "y": 745
         },
         {
-          "x": 875,
+          "x": 1055,
           "y": 765
         }
       ],
@@ -8519,11 +8559,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 913,
+          "x": 1093,
           "y": 745
         },
         {
-          "x": 913,
+          "x": 1093,
           "y": 765
         }
       ],
@@ -8586,11 +8626,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 951,
+          "x": 1131,
           "y": 745
         },
         {
-          "x": 951,
+          "x": 1131,
           "y": 765
         }
       ],
@@ -8653,11 +8693,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 989,
+          "x": 1169,
           "y": 745
         },
         {
-          "x": 989,
+          "x": 1169,
           "y": 765
         }
       ],
@@ -8720,11 +8760,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 1027,
+          "x": 1207,
           "y": 745
         },
         {
-          "x": 1027,
+          "x": 1207,
           "y": 765
         }
       ],
@@ -10295,8 +10335,8 @@
       "noOvertakingGroupId": "PZ-A1",
       "noOvertakingForwardDirection": "east",
       "splitSourceEdgeId": "E01",
-      "splitPartIndex": 1,
-      "splitSourceDistanceMm": 6000,
+      "splitPartIndex": 0,
+      "splitSourceDistanceMm": 4500,
       "modelDistanceEvidence": "explicit-synthetic-equal-segment-allocation-not-display-length",
       "laneSide": "north",
       "sharedRegionId": "PZ-SHARED",
@@ -10434,8 +10474,8 @@
       "noOvertakingGroupId": "PZ-A1",
       "noOvertakingForwardDirection": "east",
       "splitSourceEdgeId": "E01",
-      "splitPartIndex": 3,
-      "splitSourceDistanceMm": 6000,
+      "splitPartIndex": 1,
+      "splitSourceDistanceMm": 4500,
       "modelDistanceEvidence": "explicit-synthetic-equal-segment-allocation-not-display-length",
       "laneSide": "north",
       "sharedRegionId": "PZ-SHARED",
@@ -11358,8 +11398,8 @@
     {
       "id": "E03",
       "fromNodeId": "PZ-WRAP-IN-ACCESS",
-      "toNodeId": "PZ-WRAP-OUT-ACCESS",
-      "distanceMm": 3000,
+      "toNodeId": "PZ-N-ENTRY",
+      "distanceMm": 1500,
       "speedMmPerSec": {
         "empty": 800,
         "loaded": 700,
@@ -11411,7 +11451,7 @@
           "y": 173
         },
         {
-          "x": 637.5,
+          "x": 630,
           "y": 173
         }
       ],
@@ -11429,8 +11469,8 @@
     {
       "id": "PZ-SOUTH-E03",
       "fromNodeId": "PZ-S-PZ-WRAP-IN-ACCESS",
-      "toNodeId": "PZ-S-PZ-WRAP-OUT-ACCESS",
-      "distanceMm": 3000,
+      "toNodeId": "PZ-S-ENTRY",
+      "distanceMm": 1500,
       "speedMmPerSec": {
         "empty": 800,
         "loaded": 700,
@@ -11482,7 +11522,7 @@
           "y": 211
         },
         {
-          "x": 637.5,
+          "x": 630,
           "y": 211
         }
       ],
@@ -11638,8 +11678,8 @@
     {
       "id": "E01-PART3",
       "fromNodeId": "PZ-A1-PM1-ACCESS",
-      "toNodeId": "PZ-N-ENTRY",
-      "distanceMm": 750,
+      "toNodeId": "PZ-A1-PGW7-ACCESS",
+      "distanceMm": 1500,
       "speedMmPerSec": {
         "empty": 1000,
         "loaded": 800,
@@ -11691,7 +11731,7 @@
           "y": 173
         },
         {
-          "x": 192,
+          "x": 196.5,
           "y": 173
         }
       ],
@@ -11700,7 +11740,7 @@
       "noOvertakingForwardDirection": "east",
       "splitSourceEdgeId": "E01",
       "splitPartIndex": 2,
-      "splitSourceDistanceMm": 6000,
+      "splitSourceDistanceMm": 4500,
       "modelDistanceEvidence": "explicit-synthetic-equal-segment-allocation-not-display-length",
       "laneSide": "north",
       "sharedRegionId": "PZ-SHARED",
@@ -11709,8 +11749,8 @@
     {
       "id": "PZ-SOUTH-E01-PART3",
       "fromNodeId": "PZ-S-PZ-A1-PM1-ACCESS",
-      "toNodeId": "PZ-S-ENTRY",
-      "distanceMm": 750,
+      "toNodeId": "PZ-S-PZ-A1-PGW7-ACCESS",
+      "distanceMm": 1500,
       "speedMmPerSec": {
         "empty": 1000,
         "loaded": 800,
@@ -11762,7 +11802,7 @@
           "y": 211
         },
         {
-          "x": 192,
+          "x": 196.5,
           "y": 211
         }
       ],
@@ -11775,10 +11815,10 @@
       "evidence": "user-confirmed-initial-logical-direction-policy"
     },
     {
-      "id": "E01-PART3-ENTRY-PART",
+      "id": "E03-ENTRY-PART",
       "fromNodeId": "PZ-N-ENTRY",
-      "toNodeId": "PZ-A1-PGW7-ACCESS",
-      "distanceMm": 750,
+      "toNodeId": "PZ-WRAP-OUT-ACCESS",
+      "distanceMm": 1500,
       "speedMmPerSec": {
         "empty": 1000,
         "loaded": 800,
@@ -11826,30 +11866,30 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 192,
+          "x": 630,
           "y": 173
         },
         {
-          "x": 196.5,
+          "x": 637.5,
           "y": 173
         }
       ],
       "corridorId": "PZ-A1",
       "noOvertakingGroupId": "PZ-A1",
       "noOvertakingForwardDirection": "east",
-      "splitSourceEdgeId": "E01",
-      "splitPartIndex": 2,
-      "splitSourceDistanceMm": 6000,
+      "splitSourceEdgeId": "E03",
+      "splitSourceDistanceMm": 3000,
       "modelDistanceEvidence": "explicit-synthetic-equal-segment-allocation-not-display-length",
       "laneSide": "north",
       "sharedRegionId": "PZ-SHARED",
-      "evidence": "user-confirmed-initial-logical-direction-policy"
+      "evidence": "user-confirmed-initial-logical-direction-policy",
+      "splitPartIndex": 1
     },
     {
-      "id": "PZ-SOUTH-E01-PART3-ENTRY-PART",
+      "id": "PZ-SOUTH-E03-ENTRY-PART",
       "fromNodeId": "PZ-S-ENTRY",
-      "toNodeId": "PZ-S-PZ-A1-PGW7-ACCESS",
-      "distanceMm": 750,
+      "toNodeId": "PZ-S-PZ-WRAP-OUT-ACCESS",
+      "distanceMm": 1500,
       "speedMmPerSec": {
         "empty": 1000,
         "loaded": 800,
@@ -11897,11 +11937,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 192,
+          "x": 630,
           "y": 211
         },
         {
-          "x": 196.5,
+          "x": 637.5,
           "y": 211
         }
       ],
@@ -13554,11 +13594,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 192,
+          "x": 630,
           "y": 211
         },
         {
-          "x": 192,
+          "x": 630,
           "y": 173
         }
       ],
@@ -13621,11 +13661,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 192,
+          "x": 630,
           "y": 300
         },
         {
-          "x": 192,
+          "x": 630,
           "y": 211
         }
       ],
@@ -13749,11 +13789,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 500
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 500
         }
       ],
@@ -13818,11 +13858,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 559.333333
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 559.333333
         }
       ],
@@ -13887,11 +13927,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 562.5
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 562.5
         }
       ],
@@ -13956,11 +13996,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 570
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 570
         }
       ],
@@ -14025,11 +14065,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 580.666667
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 580.666667
         }
       ],
@@ -14094,11 +14134,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 609
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 609
         }
       ],
@@ -14163,11 +14203,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 689.333333
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 689.333333
         }
       ],
@@ -14232,11 +14272,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 700
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 700
         }
       ],
@@ -14301,11 +14341,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 710.666667
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 710.666667
         }
       ],
@@ -14370,11 +14410,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 732.5
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 732.5
         }
       ],
@@ -14439,11 +14479,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 745
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 745
         }
       ],
@@ -14508,11 +14548,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 769.5
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 769.5
         }
       ],
@@ -14577,11 +14617,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 778.5
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 778.5
         }
       ],
@@ -14646,11 +14686,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 809.5
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 809.5
         }
       ],
@@ -14715,11 +14755,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 842
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 842
         }
       ],
@@ -14784,11 +14824,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 842.5
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 842.5
         }
       ],
@@ -14853,11 +14893,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 873.5
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 873.5
         }
       ],
@@ -14922,11 +14962,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 915
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 915
         }
       ],
@@ -14989,11 +15029,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 500
         },
         {
-          "x": 700,
+          "x": 880,
           "y": 559.333333
         }
       ],
@@ -15057,11 +15097,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 665,
+          "x": 845,
           "y": 500
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 559.333333
         }
       ],
@@ -15125,11 +15165,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 559.333333
         },
         {
-          "x": 700,
+          "x": 880,
           "y": 562.5
         }
       ],
@@ -15193,11 +15233,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 665,
+          "x": 845,
           "y": 559.333333
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 562.5
         }
       ],
@@ -15261,11 +15301,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 562.5
         },
         {
-          "x": 700,
+          "x": 880,
           "y": 570
         }
       ],
@@ -15329,11 +15369,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 665,
+          "x": 845,
           "y": 562.5
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 570
         }
       ],
@@ -15397,11 +15437,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 570
         },
         {
-          "x": 700,
+          "x": 880,
           "y": 580.666667
         }
       ],
@@ -15465,11 +15505,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 665,
+          "x": 845,
           "y": 570
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 580.666667
         }
       ],
@@ -15533,11 +15573,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 580.666667
         },
         {
-          "x": 700,
+          "x": 880,
           "y": 609
         }
       ],
@@ -15601,11 +15641,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 665,
+          "x": 845,
           "y": 580.666667
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 609
         }
       ],
@@ -15669,11 +15709,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 609
         },
         {
-          "x": 700,
+          "x": 880,
           "y": 689.333333
         }
       ],
@@ -15737,11 +15777,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 665,
+          "x": 845,
           "y": 609
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 689.333333
         }
       ],
@@ -15805,11 +15845,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 689.333333
         },
         {
-          "x": 700,
+          "x": 880,
           "y": 700
         }
       ],
@@ -15873,11 +15913,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 665,
+          "x": 845,
           "y": 689.333333
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 700
         }
       ],
@@ -15941,11 +15981,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 700
         },
         {
-          "x": 700,
+          "x": 880,
           "y": 710.666667
         }
       ],
@@ -16009,11 +16049,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 665,
+          "x": 845,
           "y": 700
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 710.666667
         }
       ],
@@ -16077,11 +16117,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 710.666667
         },
         {
-          "x": 700,
+          "x": 880,
           "y": 732.5
         }
       ],
@@ -16145,11 +16185,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 665,
+          "x": 845,
           "y": 710.666667
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 732.5
         }
       ],
@@ -16213,11 +16253,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 732.5
         },
         {
-          "x": 700,
+          "x": 880,
           "y": 745
         }
       ],
@@ -16281,11 +16321,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 665,
+          "x": 845,
           "y": 732.5
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 745
         }
       ],
@@ -16349,11 +16389,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 745
         },
         {
-          "x": 700,
+          "x": 880,
           "y": 769.5
         }
       ],
@@ -16417,11 +16457,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 665,
+          "x": 845,
           "y": 745
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 769.5
         }
       ],
@@ -16485,11 +16525,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 769.5
         },
         {
-          "x": 700,
+          "x": 880,
           "y": 778.5
         }
       ],
@@ -16553,11 +16593,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 665,
+          "x": 845,
           "y": 769.5
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 778.5
         }
       ],
@@ -16621,11 +16661,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 778.5
         },
         {
-          "x": 700,
+          "x": 880,
           "y": 809.5
         }
       ],
@@ -16689,11 +16729,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 665,
+          "x": 845,
           "y": 778.5
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 809.5
         }
       ],
@@ -16757,11 +16797,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 809.5
         },
         {
-          "x": 700,
+          "x": 880,
           "y": 842
         }
       ],
@@ -16825,11 +16865,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 665,
+          "x": 845,
           "y": 809.5
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 842
         }
       ],
@@ -16893,11 +16933,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 842
         },
         {
-          "x": 700,
+          "x": 880,
           "y": 842.5
         }
       ],
@@ -16961,11 +17001,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 665,
+          "x": 845,
           "y": 842
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 842.5
         }
       ],
@@ -17029,11 +17069,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 842.5
         },
         {
-          "x": 700,
+          "x": 880,
           "y": 873.5
         }
       ],
@@ -17097,11 +17137,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 665,
+          "x": 845,
           "y": 842.5
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 873.5
         }
       ],
@@ -17165,11 +17205,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 873.5
         },
         {
-          "x": 700,
+          "x": 880,
           "y": 915
         }
       ],
@@ -17233,11 +17273,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 665,
+          "x": 845,
           "y": 873.5
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 915
         }
       ],
@@ -17301,11 +17341,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 682.5,
+          "x": 862.5,
           "y": 475
         },
         {
-          "x": 700,
+          "x": 880,
           "y": 475
         }
       ],
@@ -17364,11 +17404,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 700,
+          "x": 880,
           "y": 475
         },
         {
-          "x": 700,
+          "x": 880,
           "y": 500
         }
       ],
@@ -17427,11 +17467,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 665,
+          "x": 845,
           "y": 500
         },
         {
-          "x": 665,
+          "x": 845,
           "y": 475
         }
       ],
@@ -17490,11 +17530,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 665,
+          "x": 845,
           "y": 475
         },
         {
-          "x": 682.5,
+          "x": 862.5,
           "y": 475
         }
       ],
@@ -17555,11 +17595,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 500
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 500
         }
       ],
@@ -17624,11 +17664,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 558.428571
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 558.428571
         }
       ],
@@ -17693,11 +17733,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 562.5
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 562.5
         }
       ],
@@ -17762,11 +17802,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 567.285714
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 567.285714
         }
       ],
@@ -17831,11 +17871,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 576.142857
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 576.142857
         }
       ],
@@ -17900,11 +17940,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 585
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 585
         }
       ],
@@ -17969,11 +18009,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 593.857143
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 593.857143
         }
       ],
@@ -18038,11 +18078,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 602.714286
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 602.714286
         }
       ],
@@ -18107,11 +18147,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 611.571429
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 611.571429
         }
       ],
@@ -18176,11 +18216,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 687.666667
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 687.666667
         }
       ],
@@ -18245,11 +18285,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 695
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 695
         }
       ],
@@ -18314,11 +18354,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 702.333333
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 702.333333
         }
       ],
@@ -18383,11 +18423,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 725
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 725
         }
       ],
@@ -18452,11 +18492,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 769.5
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 769.5
         }
       ],
@@ -18521,11 +18561,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 778.692308
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 778.692308
         }
       ],
@@ -18590,11 +18630,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 788.076923
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 788.076923
         }
       ],
@@ -18659,11 +18699,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 797.461538
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 797.461538
         }
       ],
@@ -18728,11 +18768,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 806.846154
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 806.846154
         }
       ],
@@ -18797,11 +18837,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 816.230769
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 816.230769
         }
       ],
@@ -18866,11 +18906,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 825.615385
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 825.615385
         }
       ],
@@ -18935,11 +18975,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 835
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 835
         }
       ],
@@ -19004,11 +19044,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 844.384615
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 844.384615
         }
       ],
@@ -19073,11 +19113,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 853.769231
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 853.769231
         }
       ],
@@ -19142,11 +19182,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 863.153846
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 863.153846
         }
       ],
@@ -19211,11 +19251,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 872.538462
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 872.538462
         }
       ],
@@ -19280,11 +19320,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 881.923077
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 881.923077
         }
       ],
@@ -19349,11 +19389,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 891.307692
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 891.307692
         }
       ],
@@ -19418,11 +19458,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 915
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 915
         }
       ],
@@ -19485,11 +19525,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 500
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 558.428571
         }
       ],
@@ -19553,11 +19593,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 500
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 558.428571
         }
       ],
@@ -19621,11 +19661,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 558.428571
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 562.5
         }
       ],
@@ -19689,11 +19729,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 558.428571
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 562.5
         }
       ],
@@ -19757,11 +19797,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 562.5
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 567.285714
         }
       ],
@@ -19825,11 +19865,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 562.5
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 567.285714
         }
       ],
@@ -19893,11 +19933,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 567.285714
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 576.142857
         }
       ],
@@ -19961,11 +20001,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 567.285714
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 576.142857
         }
       ],
@@ -20029,11 +20069,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 576.142857
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 585
         }
       ],
@@ -20097,11 +20137,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 576.142857
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 585
         }
       ],
@@ -20165,11 +20205,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 585
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 593.857143
         }
       ],
@@ -20233,11 +20273,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 585
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 593.857143
         }
       ],
@@ -20301,11 +20341,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 593.857143
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 602.714286
         }
       ],
@@ -20369,11 +20409,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 593.857143
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 602.714286
         }
       ],
@@ -20437,11 +20477,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 602.714286
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 611.571429
         }
       ],
@@ -20505,11 +20545,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 602.714286
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 611.571429
         }
       ],
@@ -20573,11 +20613,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 611.571429
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 687.666667
         }
       ],
@@ -20641,11 +20681,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 611.571429
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 687.666667
         }
       ],
@@ -20709,11 +20749,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 687.666667
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 695
         }
       ],
@@ -20777,11 +20817,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 687.666667
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 695
         }
       ],
@@ -20845,11 +20885,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 695
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 702.333333
         }
       ],
@@ -20913,11 +20953,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 695
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 702.333333
         }
       ],
@@ -20981,11 +21021,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 702.333333
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 725
         }
       ],
@@ -21049,11 +21089,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 702.333333
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 725
         }
       ],
@@ -21117,11 +21157,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 725
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 769.5
         }
       ],
@@ -21185,11 +21225,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 725
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 769.5
         }
       ],
@@ -21253,11 +21293,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 769.5
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 778.692308
         }
       ],
@@ -21321,11 +21361,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 769.5
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 778.692308
         }
       ],
@@ -21389,11 +21429,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 778.692308
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 788.076923
         }
       ],
@@ -21457,11 +21497,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 778.692308
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 788.076923
         }
       ],
@@ -21525,11 +21565,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 788.076923
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 797.461538
         }
       ],
@@ -21593,11 +21633,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 788.076923
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 797.461538
         }
       ],
@@ -21661,11 +21701,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 797.461538
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 806.846154
         }
       ],
@@ -21729,11 +21769,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 797.461538
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 806.846154
         }
       ],
@@ -21797,11 +21837,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 806.846154
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 816.230769
         }
       ],
@@ -21865,11 +21905,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 806.846154
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 816.230769
         }
       ],
@@ -21933,11 +21973,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 816.230769
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 825.615385
         }
       ],
@@ -22001,11 +22041,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 816.230769
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 825.615385
         }
       ],
@@ -22069,11 +22109,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 825.615385
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 835
         }
       ],
@@ -22137,11 +22177,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 825.615385
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 835
         }
       ],
@@ -22205,11 +22245,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 835
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 844.384615
         }
       ],
@@ -22273,11 +22313,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 835
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 844.384615
         }
       ],
@@ -22341,11 +22381,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 844.384615
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 853.769231
         }
       ],
@@ -22409,11 +22449,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 844.384615
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 853.769231
         }
       ],
@@ -22477,11 +22517,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 853.769231
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 863.153846
         }
       ],
@@ -22545,11 +22585,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 853.769231
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 863.153846
         }
       ],
@@ -22613,11 +22653,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 863.153846
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 872.538462
         }
       ],
@@ -22681,11 +22721,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 863.153846
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 872.538462
         }
       ],
@@ -22749,11 +22789,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 872.538462
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 881.923077
         }
       ],
@@ -22817,11 +22857,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 872.538462
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 881.923077
         }
       ],
@@ -22885,11 +22925,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 881.923077
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 891.307692
         }
       ],
@@ -22953,11 +22993,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 881.923077
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 891.307692
         }
       ],
@@ -23021,11 +23061,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 400,
+          "x": 580,
           "y": 891.307692
         },
         {
-          "x": 400,
+          "x": 580,
           "y": 915
         }
       ],
@@ -23089,11 +23129,11 @@
       "approvalState": "synthetic-validated",
       "displayPath": [
         {
-          "x": 435,
+          "x": 615,
           "y": 891.307692
         },
         {
-          "x": 435,
+          "x": 615,
           "y": 915
         }
       ],
@@ -23104,6 +23144,151 @@
       "warehouseSide": "W",
       "mainAisleRole": "wall-side",
       "evidence": "user-confirmed-initial-logical-direction-policy"
+    },
+    {
+      "id": "E08-PART2-EXIT-TURN-PART",
+      "fromNodeId": "E09-TURN1",
+      "toNodeId": "E08-TURN2",
+      "distanceMm": 2100,
+      "speedMmPerSec": {
+        "empty": 1200,
+        "loaded": 1000,
+        "charge": 1000,
+        "wait": 1200
+      },
+      "lanes": [
+        {
+          "id": "E08-L1-EXIT-TURN-PART",
+          "direction": "forward",
+          "resourceId": "E08-L1"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "no-alternating"
+      },
+      "occupancyResourceIds": [
+        "OUTDOOR-JUNCTION",
+        "E08-L1"
+      ],
+      "shutterId": null,
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 682.5,
+          "y": 390
+        },
+        {
+          "x": 630,
+          "y": 390
+        }
+      ],
+      "noOvertakingGroupId": "OUTDOOR-ENTRY",
+      "noOvertakingForwardDirection": "forward",
+      "splitSourceEdgeId": "E08",
+      "splitPartIndex": 2,
+      "splitSourceDistanceMm": 16300,
+      "modelDistanceEvidence": "synthetic-model-40mm-per-drawing-unit-polyline-not-measured"
+    },
+    {
+      "id": "E09-PART3",
+      "fromNodeId": "E08-TURN1",
+      "toNodeId": "WH-GATE",
+      "distanceMm": 3400,
+      "speedMmPerSec": {
+        "empty": 900,
+        "loaded": 700,
+        "charge": 800,
+        "wait": 900
+      },
+      "lanes": [
+        {
+          "id": "E09-L1-PART3",
+          "direction": "forward",
+          "resourceId": "E09-L1"
+        }
+      ],
+      "lanePolicy": {
+        "laneCount": 1,
+        "simultaneousPassing": "controlled"
+      },
+      "occupancyResourceIds": [
+        "OUTDOOR-JUNCTION",
+        "E09-L1"
+      ],
+      "shutterId": "SH-EAST",
+      "accessScopes": [
+        {
+          "movement": "empty",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "loaded",
+          "taskTypes": [
+            "*"
+          ]
+        },
+        {
+          "movement": "charge",
+          "taskTypes": [
+            "CHARGE"
+          ]
+        },
+        {
+          "movement": "wait",
+          "taskTypes": [
+            "WAIT"
+          ]
+        }
+      ],
+      "approvalState": "synthetic-validated",
+      "displayPath": [
+        {
+          "x": 862.5,
+          "y": 390
+        },
+        {
+          "x": 862.5,
+          "y": 475
+        }
+      ],
+      "noOvertakingGroupId": "OUTDOOR-EXIT",
+      "noOvertakingForwardDirection": "forward",
+      "splitSourceEdgeId": "E09",
+      "splitPartIndex": 2,
+      "splitSourceDistanceMm": 14200,
+      "modelDistanceEvidence": "synthetic-model-40mm-per-drawing-unit-polyline-not-measured",
+      "crossingEvidence": "explicit-synthetic-existing-outdoor-junction-not-site-path",
+      "mergeConflictResourceId": "OUTDOOR-JUNCTION",
+      "conflictEvidence": "explicit-synthetic-shared-outdoor-passage-not-site-clearance"
     }
   ],
   "shutters": [
@@ -23121,6 +23306,21 @@
       "id": "SH-FIRE-SOUTH",
       "initiallyPassable": true,
       "permissionSource": "synthetic-scenario"
+    },
+    {
+      "id": "SH-PZ-ENTRY",
+      "initiallyPassable": true,
+      "permissionSource": "synthetic-scenario"
+    },
+    {
+      "id": "SH-PZ-EXIT",
+      "initiallyPassable": true,
+      "permissionSource": "synthetic-scenario"
+    },
+    {
+      "id": "SH-WEST",
+      "initiallyPassable": false,
+      "permissionSource": "synthetic-unresolved-no-route"
     }
   ],
   "interfaceBindings": [
@@ -23376,9 +23576,11 @@
     "turnDistanceAllocation": "source model distances equally apportioned by declared straight segment count, never by display length",
     "pzMainDistanceAllocation": "E01/E02/E03/E04 model distances preserved by explicit equal segment shares; overlapping former E06 shortcut removed",
     "directionPolicy": "user-confirmed initial traffic directions; geometry, station distances and lane-change positions remain synthetic",
-    "pzEntry": "direct shared-region attachment; old left PZ-HOME detour removed",
+    "pzEntry": "HO-frontage south opening; separate east exit; public synthetic relationship",
     "mainAisleGeometry": "schematic block-side/down and wall-side/up at existing four aisle drawing positions",
-    "laneChangeConflicts": "Explicit synthetic lane-change zones are reserved before approaching a planned lane change and held through its crossing. Ordinary opposite-lane straight travel retains independent lane/node resources. Device waiting stops remain outside the zone. Site clearance is unreviewed."
+    "laneChangeConflicts": "Explicit synthetic lane-change zones are reserved before approaching a planned lane change and held through its crossing. Ordinary opposite-lane straight travel retains independent lane/node resources. Device waiting stops remain outside the zone. Site clearance is unreviewed.",
+    "warehouseOffset": "explicit synthetic east translation; width and physical coordinates unverified",
+    "outdoorDistance": "legacy fictitious 40mm/drawing-unit polyline; metric Runs recalculate exact profile geometry"
   },
   "trafficPolicy": {
     "evidence": "user-confirmed-initial-logical-direction-policy",
@@ -23403,5 +23605,90 @@
     },
     "sameDirectionOvertaking": "forbidden",
     "defaultConflictResolution": "stop-before-entry"
+  },
+  "layoutGeometry": {
+    "evidence": "public-synthetic-relative-layout-not-site-coordinates",
+    "coordinateSystem": "synthetic-display",
+    "warehouseOffsetX": 180,
+    "buildings": {
+      "PZ": {
+        "x": 25,
+        "y": 22,
+        "width": 1050,
+        "height": 300
+      },
+      "WH": {
+        "x": 205,
+        "y": 458,
+        "width": 1060,
+        "height": 484
+      }
+    },
+    "boundaries": [
+      {
+        "id": "PZ-SOUTH",
+        "areaId": "PZ",
+        "from": {
+          "x": 25,
+          "y": 322
+        },
+        "to": {
+          "x": 1075,
+          "y": 322
+        },
+        "permittedCrossings": [
+          {
+            "edgeId": "E08-PART3",
+            "gateNodeId": "PZ-ENTRY",
+            "shutterId": "SH-PZ-ENTRY",
+            "point": {
+              "x": 630,
+              "y": 322
+            }
+          },
+          {
+            "edgeId": "E09",
+            "gateNodeId": "PZ-EXIT",
+            "shutterId": "SH-PZ-EXIT",
+            "point": {
+              "x": 682.5,
+              "y": 322
+            }
+          }
+        ]
+      },
+      {
+        "id": "WH-NORTH",
+        "areaId": "WH",
+        "from": {
+          "x": 205,
+          "y": 458
+        },
+        "to": {
+          "x": 1265,
+          "y": 458
+        },
+        "permittedCrossings": [
+          {
+            "edgeId": "E08",
+            "gateNodeId": "WH-GATE",
+            "shutterId": "SH-EAST",
+            "point": {
+              "x": 862.5,
+              "y": 458
+            }
+          },
+          {
+            "edgeId": "E09-PART3",
+            "gateNodeId": "WH-GATE",
+            "shutterId": "SH-EAST",
+            "point": {
+              "x": 862.5,
+              "y": 458
+            }
+          }
+        ]
+      }
+    ]
   }
 }

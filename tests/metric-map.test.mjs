@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {initMap} from '../src/ui/map-view.mjs';
 import {readFileSync} from 'node:fs';
+import {SCHEMATIC_LAYOUT} from '../src/map/schematic-layout.mjs';
 import {metricPoint,convertTopologyToMetric,createMetricCanvasProjection} from '../src/map/metric-layout.mjs';
 
 // Explicit synthetic metric mapping. This is not CAD geometry or a site scale.
@@ -124,7 +125,7 @@ test('map labels account for actual viewport size and remain readable without mo
   const {html}=render(topology,snapshot(),{clientWidth:700,clientHeight:425});
   const group=html.match(/<g data-equipment="PGW4"[^>]*>([\s\S]*?)<\/g>/)?.[1];
   const label=group?.match(/<text[^>]*>/)?.[0];assert.ok(label);
-  const scale=createMetricCanvasProjection(profile,{padding:96}).scale;
+  const scale=createMetricCanvasProjection(profile,{padding:96,sourceBounds:SCHEMATIC_LAYOUT.worldBounds}).scale;
   assert.ok(attr(label,'transform').includes(`scale(${2/scale})`));
   assert.match(attr(label,'style'),/font-size:(?:1[1-9]|[2-9]\d)px/);
   assert.equal(Number(attr(equipmentBox(html,'PGW4'),'x'))+Number(attr(equipmentBox(html,'PGW4'),'width'))/2,stop.x);

@@ -8,6 +8,7 @@ import {projectAgfPosition} from '../src/core/motion-projection.mjs';
 import {snapshotIndexAt} from '../src/ui/replay-model.mjs';
 import {initMap} from '../src/ui/map-view.mjs';
 import {warehouseLocations} from '../src/map/warehouse-layout.mjs';
+import {SCHEMATIC_LAYOUT} from '../src/map/schematic-layout.mjs';
 
 const graph=JSON.parse(readFileSync(new URL('../examples/synthetic-operational-topology.json',import.meta.url),'utf8'));
 const stops=['WH-HOME','HP1','HP2','CHARGE-PLACE1','CHARGE-PLACE2','PILLAR-WAIT-E','PILLAR-WAIT-W'];
@@ -71,11 +72,11 @@ test('saved 02 movement, interpolation and cyan display use identical engine edg
   }
 });
 test('every synthetic central-wall crossing belongs to one of the two permitted fire shutters',()=>{
-  const ids=new Set();
+  const ids=new Set(),wallX=550+SCHEMATIC_LAYOUT.warehouseOffsetX;
   for(const edge of graph.edges)for(let i=1;i<edge.displayPath.length;i++){
     const a=edge.displayPath[i-1],b=edge.displayPath[i];
-    if((a.x-550)*(b.x-550)>=0||a.y<490||b.y<490)continue;
-    const y=a.y+(b.y-a.y)*(550-a.x)/(b.x-a.x);
+    if((a.x-wallX)*(b.x-wallX)>=0||a.y<490||b.y<490)continue;
+    const y=a.y+(b.y-a.y)*(wallX-a.x)/(b.x-a.x);
     assert.ok((y>=545&&y<=580)||(y>=752&&y<=787),`${edge.id} crosses wall at ${y}`);
     assert.equal(edge.shutterId,y<600?'SH-FIRE-NORTH':'SH-FIRE-SOUTH');ids.add(edge.shutterId);
   }

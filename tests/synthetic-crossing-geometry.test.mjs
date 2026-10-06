@@ -69,15 +69,16 @@ test('atomic synthetic passages reject disconnected parts and independently rese
 
 test('outdoor return cannot pass through a vehicle stopped at the existing inlet turn',()=>{
   const parts=graph.edges.filter(edge=>edge.splitSourceEdgeId==='E09').sort((a,b)=>a.splitPartIndex-b.splitPartIndex);
-  assert.equal(parts.length,2);
-  assert.equal(parts[0].toNodeId,'E08-TURN1');
-  assert.equal(parts[1].fromNodeId,'E08-TURN1');
+  assert.equal(parts.length,3);
+  assert.deepEqual([parts[0].fromNodeId,...parts.map(edge=>edge.toNodeId)],
+    ['PZ-EXIT','E09-TURN1','E08-TURN1','WH-GATE']);
+  assert.ok(nodes.get('E09-TURN1').exclusiveTraffic);
   assert.ok(nodes.get('E08-TURN1').exclusiveTraffic);
   assert.equal(parts.reduce((total,edge)=>total+edge.distanceMm,0),parts[0].splitSourceDistanceMm);
   const incoming=graph.edges.find(edge=>edge.id==='E08');
   assert.ok(parts.every(edge=>sharedResources(edge,incoming)));
   assert.equal(incoming.mergeConflictResourceId,'OUTDOOR-JUNCTION');
-  assert.equal(parts[1].mergeConflictResourceId,incoming.mergeConflictResourceId,
+  assert.equal(parts[2].mergeConflictResourceId,incoming.mergeConflictResourceId,
     'opposite arrivals must reserve through the whole shared passage before reaching its endpoints');
 });
 
