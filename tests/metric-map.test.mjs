@@ -88,10 +88,17 @@ const nearly=(a,b)=>assert.ok(Math.abs(a-b)<1e-7,`${a} != ${b}`);
 test('nonlinear PZ equipment symbols retain the individual stop at their north or south handoff face',()=>{
   const {html,graph}=nonlinearMap();
   for(const node of graph.nodes.filter(n=>n.equipmentId)){
+    if(node.equipmentId.startsWith('OT')){
+      const stop=html.match(new RegExp(`<circle[^>]*data-temp-stop="${node.equipmentId}"[^>]*>`))?.[0];
+      assert.ok(stop,'OT symbol keeps a separate operational handoff anchor');
+      nearly(Number(attr(stop,'cx')),node.x);nearly(Number(attr(stop,'cy')),node.y);
+      assert.match(html,new RegExp(`data-temp-connector="${node.equipmentId}"`));
+      continue;
+    }
     const box=equipmentBox(html,node.equipmentId);assert.ok(box,node.equipmentId);
     const [x,y,w,h]=['x','y','width','height'].map(key=>Number(attr(box,key)));
     nearly(x+w/2,node.x);
-    nearly(node.equipmentId.startsWith('OT')||node.equipmentId.startsWith('AL')?y:y+h,node.y);
+    nearly(node.equipmentId.startsWith('AL')?y:y+h,node.y);
   }
   const wrapper=equipmentBox(html,'WRAPPER'),center=metricPoint({x:574.5,y:92},nonlinearProfile());
   nearly(Number(attr(wrapper,'x'))+Number(attr(wrapper,'width'))/2,center.x);

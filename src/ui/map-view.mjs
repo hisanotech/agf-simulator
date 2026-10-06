@@ -3,6 +3,7 @@ import {escapeHtml as esc,stateLabel,locationName,productLabel} from './format.m
 import {warehouseRowStyle,warehouseOwnerLegend} from './warehouse-colors.mjs';
 import {metricPoint,createMetricCanvasProjection} from '../map/metric-layout.mjs';
 import {SCHEMATIC_LAYOUT as layout} from '../map/schematic-layout.mjs';
+import {TEMP_PLACE_SYMBOL,layoutTempPlaceSymbols} from './temp-place-symbols.mjs';
 
 import {effectiveStatus} from './replay-model.mjs';
 
@@ -100,6 +101,7 @@ export function initMap({svg,onSelectAgf,onSelectBlock}) {
   let box=[...MAP_VIEWBOX],drag=null,snapshot=null,selected='AGF1';
   let focus='overview';
   let equipmentCallouts=[];
+  let tempTopology=null;
   let layoutProfile=null,projection=createMetricCanvasProjection(legacyProfile);
   const sceneryPoint=p=>layoutProfile?metricPoint(p,layoutProfile):p;
   const screenScale=()=>{
@@ -136,6 +138,33 @@ export function initMap({svg,onSelectAgf,onSelectBlock}) {
         <text data-gate-label="${id}" x="${x}" y="${y}" class="align-center" style="font-size:${12/pixels}px;fill:#334155">${label}</text>`;
     }).join('')}</g>`;
   }
+  function renderTempPlaces(){
+    const symbol=TEMP_PLACE_SYMBOL,scale=projection.scale,pixels=scale*screenScale();
+    const anchor=sceneryPoint({x:pzExit.x,y:306.5});
+    const openingWidth=sceneryPoint({x:pzExit.x+8,y:306.5}).x-sceneryPoint({x:pzExit.x-8,y:306.5}).x;
+    const places=layoutTempPlaceSymbols({exitRight:anchor.x+openingWidth/2,
+      southY:sceneryPoint({x:pzExit.x,y:layout.buildings.PZ.y+layout.buildings.PZ.height}).y,
+      pzRight:sceneryPoint({x:layout.buildings.PZ.x+layout.buildings.PZ.width,y:306.5}).x,
+      projectionScale:scale});
+    const agf=snapshot.agfs.find(item=>item.id===selected),task=snapshot.tasks.find(item=>item.id===agf?.taskId);
+    const label=(x,y,value,attributes,size=symbol.fontSize)=>
+      `<text x="${x}" y="${y}" class="equipment-label align-center" ${attributes} data-map-label="world" style="font-size:${size}px" transform="translate(${x} ${y}) scale(${1/pixels}) translate(${-x} ${-y})">${esc(value)}</text>`;
+    return `<g data-temp-place-layer="true" data-size-unit="canvas" data-geometry-evidence="schematic-symbol-not-physical-dimensions">${places.map((place,index)=>{
+      const active=[task?.originId,task?.destinationId].includes(place.id);
+      // Operational stops and saved movement paths remain untouched. A leader
+      // connects each fixed stop to its separately arranged schematic symbol.
+      const stop=tempTopology?.nodes?.find(node=>node.equipmentId===place.id)??sceneryPoint({
+        x:pzExit.x+symbol.legacyStopOffset+index*symbol.legacyStopPitch,
+        y:pzExit.boundaryY-symbol.legacyStopInset});
+      const cx=place.x+place.width/2,detail=snapshot.temporaryPallets.filter(p=>p.locationId===place.id).length+' PL';
+      return `<g data-equipment="${place.id}" data-size-basis="schematic-symbol" class="equipment${active?' target-equipment':''}"><title>${place.id} · ${esc(detail)} · 模式記号、停止アンカーは引出線の点</title>
+        <path data-temp-connector="${place.id}" d="M${stop.x} ${stop.y} L${cx} ${place.y}" fill="none" stroke="#64748b" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>
+        <circle data-temp-stop="${place.id}" cx="${stop.x}" cy="${stop.y}" r="${2/scale}" fill="#64748b" vector-effect="non-scaling-stroke"><title>${place.id} 保存済み停止アンカー</title></circle>
+        <rect x="${place.x}" y="${place.y}" width="${place.width}" height="${place.height}" rx="${place.rx}" class="equipment-body" stroke-width="${symbol.strokeWidth}" vector-effect="non-scaling-stroke"/>
+        ${label(cx,place.y+place.height/2+4/pixels,place.id,`data-temp-label="${place.id}"`)}
+        ${label(cx,place.y+place.height+12/pixels,detail,`data-overview-hidden="${!active}" visibility="${active||focus==='PZ'?'visible':'hidden'}"`,11)}</g>`;
+    }).join('')}</g>`;
+  }
   const refreshLabels=()=>{
     if(!svg.querySelectorAll)return;
     const inverse=1/(projection.scale*screenScale());
@@ -155,6 +184,8 @@ export function initMap({svg,onSelectAgf,onSelectBlock}) {
     if(layer)layer.outerHTML=renderEquipmentCallouts();
     const gates=svg.querySelector?.('[data-gate-label-layer="true"]');
     if(gates)gates.outerHTML=renderGateCallouts();
+    const temps=svg.querySelector?.('[data-temp-place-layer="true"]');
+    if(temps)temps.outerHTML=renderTempPlaces();
   };
   const updateView=()=>{svg.setAttribute('viewBox',box.join(' '));refreshLabels();};
   const fit=()=>{focus='overview';box=[...MAP_VIEWBOX];updateView();};
@@ -190,6 +221,7 @@ export function initMap({svg,onSelectAgf,onSelectBlock}) {
 
   function render(next,selectedId,{timeMs=0,topology=null}={}) {
     snapshot=next;selected=selectedId;
+    tempTopology=topology;
     layoutProfile=topology?.metricLayoutProfile??null;
     projection=createMetricCanvasProjection(layoutProfile??legacyProfile,{padding:layoutProfile?96:24,sourceBounds:layout.worldBounds});
     equipmentCallouts=[];
@@ -220,8 +252,6 @@ export function initMap({svg,onSelectAgf,onSelectBlock}) {
       if(id.startsWith('PM'))detail=(snapshot.magazines[equipmentInterface(id)]?.quantity??0)+'枚';
       return equipment(id,label,x,65,55,54,detail);
     }).join('');
-    const temps=[1,2,3].map((n,i)=>equipment('OT'+n,'OT'+n,810+i*78,262,69,50,
-      `${snapshot.temporaryPallets.filter(p=>p.locationId==='OT'+n).length} PL`)).join('');
     const blocks=WAREHOUSE_BLOCKS.map(block=>{
       const [x,y,w,h]=blockBoxes[block.id],bw=(w-32)/block.columns,bh=(h-50)/block.rows;
       const blockSlots=slots.filter(s=>s.blockId===block.id);
@@ -288,7 +318,7 @@ export function initMap({svg,onSelectAgf,onSelectBlock}) {
       <g data-acceptance="G06"><path data-map-id="NORMAL-RETURN" d="M${pzExit.x} 300 V390 H${whEast.x} V475" class="normal-flow return-flow" marker-end="url(#arrow)"/>${text(whEast.x+18,426,'出口SH → 倉庫東SH','map-small')}</g>
       <g data-acceptance="G07"><path data-map-id="NORMAL-ENTRY" d="M${whEast.x} 475 V390 H${pzEntry.x} V300" class="normal-flow entry-flow" marker-end="url(#arrow)"/>${text(250,380,'倉庫東SH → PZ入口SH（HO南側）','map-small')}</g>
       <g data-acceptance="G08"><title>倉庫西SH：通常不使用・異常時迂回は未確定</title><rect data-map-id="WH-W-GATE" aria-label="製品倉庫西SH" x="${whWest.x-35}" y="444" width="70" height="28" class="shutter-gate inactive" data-anchor-x="${whWest.x}" data-anchor-y="458" data-anchor-face="center"/>${text(whWest.x,438,'西SH（通常不使用）','shutter-label')}</g>
-      <g data-acceptance="G10"><title>仮置き場は出口東隣・南壁沿い</title>${temps}${text(807,251,'出口東隣・南壁沿い','map-small','data-pz-note="true"')}</g>
+      <g data-acceptance="G10"><title>仮置き場は出口東隣・南壁沿い。記号サイズは実寸ではない</title><g data-temp-place-placeholder="true"></g></g>
       <g data-acceptance="G11">${aisleXs.map((x,i)=>`<path data-map-id="WH-${i<2?'W':'E'}-MAIN-${i%2+1}" data-direction="${i===0||i===3?'north-to-south':'south-to-north'}" d="M${x} 500 V915" class="provisional-path" ${i===0||i===3?'marker-end':'marker-start'}="url(#arrow)"/>${text(x,495,(i<2?'西':'東')+(i%2+1)+(i===0||i===3?'↓':'↑'),'aisle-label')}`).join('')}</g>
       <g data-acceptance="G12"><path data-map-id="CENTRAL-WALL" d="M${whX(550)} 490 V545 M${whX(550)} 580 V752 M${whX(550)} 787 V915" class="center-wall"/><rect data-map-id="FIRE-NORTH" x="${whX(530)}" y="545" width="40" height="35" rx="3" class="fire-gate"/><rect data-map-id="FIRE-SOUTH" x="${whX(530)}" y="752" width="40" height="35" rx="3" class="fire-gate"/>${text(whX(550),568,'北防火SH','shutter-label')}${text(whX(550),775,'南防火SH','shutter-label')}<text x="${whX(558)}" y="650" class="map-small" transform="rotate(90 ${whX(558)} 650)">中央壁・横断不可</text></g>
       <g data-acceptance="G13">${blocks}${text(whX(710),640,'EB第10列：パレットなし・通行可否未確定','map-small')}${text(whX(1040),487,'概念保管位置 802 PL','map-small align-end')}</g>
@@ -301,10 +331,12 @@ export function initMap({svg,onSelectAgf,onSelectBlock}) {
       <g data-acceptance="G17">${text(whX(870),876,'× AGF進入禁止','forbidden-label')}</g>
       ${text(whX(48),930,layoutProfile?'mmモデル・縮尺と実停止位置は未検証。実距離・確定ETAではありません。':'概念図・実寸ではありません。未承認経路から実距離・確定ETAを生成しません。','map-small')}`;
     const scale=projection.scale;
+    const mappedScenery=mapScenery(scenery,sceneryPoint,scale,!!layoutProfile,normalPaths,screenScale(),focus)
+      .replace('<g data-temp-place-placeholder="true"></g>',renderTempPlaces());
     svg.innerHTML=`<defs><pattern id="map-grid" width="${24/scale}" height="${24/scale}" patternUnits="userSpaceOnUse"><circle cx="${1/scale}" cy="${1/scale}" r="${.8/scale}" fill="#cbd5e1"/></pattern>
       <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="${6/scale}" markerHeight="${6/scale}" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#0e7490"/></marker>
       <pattern id="gap" width="${6/scale}" height="${6/scale}" patternUnits="userSpaceOnUse"><path d="M0 ${6/scale} L${6/scale} 0" stroke="#94a3b8" stroke-width="${1/scale}"/></pattern></defs>
-      <g data-schematic="landscape" data-coordinate-unit="${layoutProfile?'mm':'schematic'}" ${layoutProfile?`data-metric-profile="${esc(layoutProfile.id)}" `:''}transform="translate(${projection.offsetX} ${projection.offsetY}) scale(${scale})">${mapScenery(scenery,sceneryPoint,scale,!!layoutProfile,normalPaths,screenScale(),focus)}${routeOverlay}${agfs}</g>${renderEquipmentCallouts()}${renderGateCallouts()}`;
+      <g data-schematic="landscape" data-coordinate-unit="${layoutProfile?'mm':'schematic'}" ${layoutProfile?`data-metric-profile="${esc(layoutProfile.id)}" `:''}transform="translate(${projection.offsetX} ${projection.offsetY}) scale(${scale})">${mappedScenery}${routeOverlay}${agfs}</g>${renderEquipmentCallouts()}${renderGateCallouts()}`;
     updateView();
   }
   function updatePositions(agfs){

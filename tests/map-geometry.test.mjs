@@ -88,8 +88,14 @@ test('G09 opposite logical lanes share one region with equipment-front connectio
     if(i)assert.ok(equipment(order[i-1]).right<e.x);});
 });
 test('G10 temporary places stay ordered against the south wall east of the exit',()=>{
-  let last=out.right;for(const id of ['OT1','OT2','OT3']){const e=equipment(id);
-    assert.ok(inside(e,pz)&&e.x>last&&pz.bottom-e.bottom<e.h);last=e.right;}
+  const places=['OT1','OT2','OT3'].map(equipment),scale=Number(html.match(/data-schematic="landscape"[^>]*scale\(([^)]+)\)/)?.[1]);
+  assert.ok((places[0].x-out.right)*scale>16,'exit has an explicit schematic margin');
+  places.forEach((e,i)=>{
+    assert.ok(inside(e,pz)&&pz.bottom-e.bottom<e.h);
+    assert.equal(e.w,places[0].w);assert.equal(e.h,places[0].h);assert.equal(e.y,places[0].y);
+    if(i)assert.ok((e.x-places[i-1].right)*scale>12,'clear space between OT symbols');
+  });
+  assert.ok(Math.abs((places[1].x-places[0].right)-(places[2].x-places[1].right))<1e-7);
 });
 test('G11 four main aisles fit between storage and the central wall',()=>{
   const west=['WH-W-MAIN-1','WH-W-MAIN-2'].map(id=>numbers(id)[0]);
