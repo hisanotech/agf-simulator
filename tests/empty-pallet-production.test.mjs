@@ -169,9 +169,13 @@ test('immediate retry retains multiple missed opportunities and drains them only
   assert.ok(retryExits[4].timeMs>retryExits[0].timeMs); // Existing pickup events free capacity; no new duration is assumed.
   assert.ok(run.snapshots.every(s=>s.lines.L1.length<=2));assert.deepEqual(run.events,simulate(scenario).events);
 });
-test('ordinary external production capacity overflow remains fatal rather than being silently deferred',()=>{
+test('ordinary external production full buffer stops and resumes the same planned pallet without exceeding capacity',()=>{
   const scenario=fixture({lineCapacity:1,productionEvents:[event(0,'P1'),event(0,'P2')]});
-  assert.throws(()=>simulate(scenario),/line buffer overflow/);
+  const run=simulate(scenario);
+  assert.ok(run.snapshots.every(s=>s.lines.L1.length<=1));
+  assert.equal(of(run,'LINE_BUFFER_BLOCKED')[0].plannedPalletId,'P2');
+  assert.equal(of(run,'PRODUCTION_RESUMED_FROM_BUFFER')[0].palletId,'P2');
+  assert.equal(of(run,'EMPTY_PALLET_DISCHARGED').filter(e=>e.palletId==='P2').length,1);
 });
 test('unknown recovery policy is rejected instead of silently defaulting',()=>{
   assert.throws(()=>simulate(fixture({magazineEmptyRecoveryPolicy:'guess'})),/PRODUCTION_CONFIG/);

@@ -2,6 +2,7 @@ import {escapeHtml as esc,stateLabel,productLabel,taskNames,clock,minutes} from 
 import {analyzeRun,durationStatuses,durationTenths} from './replay-model.mjs';
 import {renderRunConditions} from './run-conditions.mjs';
 import {renderCustomerResults,renderCustomerComparison} from './customer-results.mjs';
+import {analyzeLineBuffers} from './buffer-analysis.mjs';
 
 export const metric=(label,value,unit='',sub='',tone='',icon='')=>`<div class="metric ${tone}"><div class="metric-label">${esc(label)}<span class="metric-icon" aria-hidden="true">${icon}</span></div><strong>${esc(value)}</strong><small>${esc(unit)}</small>${sub?`<span class="metric-sub">${esc(sub)}</span>`:''}</div>`;
 const utilBars=data=>data.agfs.map(a=>`<div class="util-row"><span>${esc(a.id)}</span><div class="util-track"><i style="width:${a.utilizationPct}%"></i></div><b>${a.utilizationPct.toFixed(1)}%</b></div>`).join('');
@@ -21,8 +22,21 @@ function renderAnalysisMetrics(run,data=analyzeRun(run)) {
     <section class="panel"><div class="panel-heading"><h2>AGF別 時間内訳</h2><span class="muted">単位：分 / 各行の合計は実行時間（端数調整）</span></div><div class="table-scroll"><table><thead><tr><th>AGF</th>${categories.map(s=>`<th>${label(s)}</th>`).join('')}</tr></thead><tbody>${data.agfs.map(a=>`<tr><td>${a.id}</td>${categories.map(s=>`<td title="${a.durations[s]??0} ms">${(durationTenths(a.durations)[s]/10).toFixed(1)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></section>
     <p class="method-note section">集計根拠：実行開始から終了まで、同時刻イベントは順序適用後の状態を使用。末尾イベント後の継続時間も含みます。内訳表は0.1分単位で合計が一致するよう最大剰余法で端数を配分します。稼働率は丸め前のミリ秒値で算出します。合成グラフの交通待ちはイベント状態から集計します。実CAD距離・確定ETA・現場性能ではありません。</p>`;
 }
+export function renderBufferAnalysis(run,data=analyzeLineBuffers(run)){
+  const reasonLabel={LINE_BUFFER_FULL:'系列バッファ空き待ち',EMPTY_PALLET:'空パレット待ち',
+    RECOVERY_POLICY_UNSET:'再開方式の設定待ち',WAIT_NEXT_TAKT:'補充済み・次タクト待ち'};
+  return `<section class="panel section buffer-analysis"><div class="panel-heading"><h2>系列バッファ分析</h2><span class="muted">保存済み搬送履歴から集計</span></div>
+    <div class="analysis-metrics">${metric('バッファ満杯発生回数',data.fullCount,'回','','warning')}
+    ${metric('バッファ満杯停止時間',minutes(data.stopMs),'分','全系列の停止時間の合計')}
+    ${metric('最大連続停止時間',minutes(data.maxStopMs),'分','1系列・1回の停止の最大')}
+    ${metric('生産遅延PL数',data.delayedPalletCount,'PL','バッファ満杯で生成を保留したPL')}
+    ${metric('終了時生産停止系列数',data.endedStoppedLineCount,'系列',`うちバッファ待ち起因 ${data.endedBufferStoppedLineCount}系列`,'warning')}</div>
+    <div class="table-scroll"><table><thead><tr><th>系列</th><th>容量</th><th>最大在荷</th><th>満杯発生回数</th><th>停止時間</th><th>最大停止時間</th><th>遅延PL</th><th>終了時状態</th></tr></thead>
+    <tbody>${data.lines.map(line=>`<tr data-buffer-line="${esc(line.lineId)}"><td>${esc(line.lineId)}（系列${esc(line.lineId.slice(1))}）</td><td>${line.capacity} PL</td><td>${line.maxQuantity} PL</td><td>${line.fullCount}回</td><td>${minutes(line.stopMs)}分</td><td>${minutes(line.maxStopMs)}分</td><td>${line.delayedPalletCount} PL</td><td>${esc(line.endedStatus)}${line.endedReason?`<br><span class="muted">${esc(reasonLabel[line.endedReason]??'生産条件待ち')}</span>`:''}</td></tr>`).join('')}</tbody></table></div>
+    <p class="method-note">停止時間は、搬送履歴の「系列バッファ満杯・生産停止」から同じ予定パレットの「系列バッファ待ち生産再開」までを集計します。バッファ解放後も空パレット待ちが続く場合は、実際の生産再開まで含めます。未再開の区間は実行終了まで計上します。複数系列が同時に停止した時間は系列ごとに加算するため、合計が実行時間を超えることがあります。空パレット不足だけによる停止は、満杯発生回数・満杯停止時間・遅延PLには含めません。最大在荷も搬出・荷受けの搬送履歴から再計算します。</p></section>`;
+}
 export function renderAnalysis(run,data=analyzeRun(run),context={}){
-  return renderCustomerResults(run,data)+`<details class="developer-details"><summary>開発者向け詳細</summary>${renderAnalysisMetrics(run,data)}<p class="method-note">充電待ちのうち充電停止位置の空き待ち：${minutes(data.chargePlaceWaitMs??0)}分（4台合計）。充電待ち時間に含め、別途加算しません。</p>${renderRunConditions(run,context)}</details>`;
+  return renderCustomerResults(run,data)+renderBufferAnalysis(run)+`<details class="developer-details"><summary>開発者向け詳細</summary>${renderAnalysisMetrics(run,data)}<p class="method-note">充電待ちのうち充電停止位置の空き待ち：${minutes(data.chargePlaceWaitMs??0)}分（4台合計）。充電待ち時間に含め、別途加算しません。</p>${renderRunConditions(run,context)}</details>`;
 }
 export function renderComparison(runs){
   return renderCustomerComparison(runs)+`<details class="developer-details"><summary>開発者向け比較詳細</summary>${renderComparisonDetails(runs)}</details>`;
@@ -43,5 +57,5 @@ function renderComparisonDetails(runs) {
       ['02発行前保留（PL）',...data.map(d=>d.preRequestHeld)],['要求待ち（分）',...data.map(d=>Number(minutes(d.requestWaitMs)))],
       ['待機時間（分）',...data.map(d=>Number(minutes(d.idleMs)))],['充電時間（分）',...data.map(d=>Number(minutes(d.chargeMs)))],
       ['交通待ち（分）',...data.map(d=>Number(minutes(d.trafficWaitMs)))],['倉庫復帰（分）',...data.map(d=>Number(minutes(d.waitReturnMs)))],['倉庫待機（分）',...data.map(d=>Number(minutes(d.hpWaitMs)))],['充電待ち（分）',...data.map(d=>Number(minutes(d.chargeWaitMs)))]
-    ].map(([label,a,b])=>`<tr><td>${label}</td><td>${a}</td><td>${b}</td><td>${Number((a-b).toFixed(1))>0?'+':''}${Number((a-b).toFixed(1))}</td></tr>`).join('')}</tbody></table></div></section><p class="method-note section">比較には実行時点の設定と手動入力を複製して使用。搬出時刻・系列・パレットIDは共通です。設定を変更した場合は比較実行で更新してください。差がない条件では同じ値を表示します。</p>`;
+    ].map(([label,a,b])=>`<tr><td>${label}</td><td>${a}</td><td>${b}</td><td>${Number((a-b).toFixed(1))>0?'+':''}${Number((a-b).toFixed(1))}</td></tr>`).join('')}</tbody></table></div></section><p class="method-note section">比較には実行時点の設定と手動入力を複製し、共通の生産予定入力・初期条件を使用します。バッファ停止・再開による実搬出時刻と生産数は各Runの結果です。設定を変更した場合は比較実行で更新してください。差がない条件では同じ値を表示します。</p>`;
 }

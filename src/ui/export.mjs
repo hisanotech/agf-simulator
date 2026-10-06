@@ -24,7 +24,7 @@ export function eventCsv(run,runId) {
     'shutterId','passable','etaStatus','target','targetId','permitted','permissionEvidence','hpId','placeId','chargePlaceId','chargerId',
     'sourceLineId','productType','loadType','storageLocationId','blockId','row','column','tier','storageResult',
     'alignerId','quantityBefore','quantityAfter','quantity','refillBatch','refillNeeded','pickedAt','operatedAt','operationType',
-    'originalDueAt','retry','recoveryPolicy','policy','count','sourceSelectionEvidence','evidence','plannedPalletId','palletStatus','processingTimeStatus','targetIds',
+    'originalDueAt','blockedSinceMs','lineCapacity','capacity','retry','recoveryPolicy','policy','count','sourceSelectionEvidence','evidence','plannedPalletId','palletStatus','processingTimeStatus','targetIds',
     'timingStatus','inventoryStatus','batteryModel','batteryConsumptionBasis','batteryScope','scenarioJson'];
   const cell=csvCell;
   const rows=run.events.map((event,index)=>{

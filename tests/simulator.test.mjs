@@ -46,12 +46,17 @@ test('explicit wait fallback does not invent cross-area dispatch',()=>{
   assert.equal(a.final.lines.L1.length,1);
   assert.ok(a.events.some(e=>e.reason==='NO_ELIGIBLE_AGF'));
 });
-test('capacity overflow fails rather than losing a produced pallet',()=>{
+test('full line stops normally and retains an ungenerated pallet without exceeding capacity',()=>{
   const s=fixture({lineCapacity:1,productionEvents:[
     {timeMs:0,lineId:'L1',palletId:'P1',destinationLocationId:'S1'},
     {timeMs:0,lineId:'L1',palletId:'P2',destinationLocationId:'S1'}
   ],agfs:['A1','A2','A3','A4'].map(id=>({id,area:'WH',batteryPct:100})),fallback:'wait'});
-  assert.throws(()=>simulate(s),/line buffer overflow/);
+  const run=simulate(s);
+  assert.ok(run.snapshots.every(s=>s.lines.L1.length<=1));
+  assert.deepEqual(run.final.pallets.map(p=>p.palletId),['P1']);
+  assert.equal(run.final.productionStatus.L1.plannedPalletId,'P2');
+  assert.equal(run.final.productionStatus.L1.reason,'LINE_BUFFER_FULL');
+  assert.equal(run.events.filter(e=>e.type==='LINE_BUFFER_BLOCKED').length,1);
 });
 test('03 is triggered only by real usage at exact remaining quantity and refilled at drop',()=>{
   const s=fixture({productionEvents:[],lineIntervalsMin:[0,0,0,0,0,0,0,0],

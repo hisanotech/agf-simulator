@@ -10,7 +10,8 @@ import {renderAnalysis,renderComparison,metric} from './analysis-view.mjs';
 import {initCadPanel} from './cad-panel.mjs';
 import {populateExtendedSettings,readExtendedSettings,loadSyntheticSettingsExample,organizeSettings} from './extended-settings.mjs';
 import {eventCsv,conditionCsv,conditionCsvFilename} from './export.mjs';
-import {customerConditionsCsv,transportResultsCsv,agfResultsCsv,customerCsvFilename} from './customer-export.mjs';
+import {customerConditionsCsv,transportResultsCsv,agfResultsCsv,transportHistoryCsv,customerCsvFilename} from './customer-export.mjs';
+import {buildTransportHistoryRows,renderTransportHistoryRows} from './transport-history.mjs';
 import {appendRunInput,createInitialPreview} from './run-input.mjs';
 import {warehouseOwnerLegend} from './warehouse-colors.mjs';
 import {nativeInvalidFields,applySettingsError,clearSettingsErrors} from './settings-validation.mjs';
@@ -33,6 +34,7 @@ const createScenario=preset=>createDemoScenario(preset,{metricProfile});
 let base=createScenario(),result=null,preview=null,analysis=null,comparison=null,runId='',runNumber=0;
 let timeMs=0,currentIndex=-1,batterySecond=-1,selectedAgf='AGF1',activeView='monitor',dirty=false,frame=null,anchor=null;
 let selectedBlock='WB1',reservationKind='05';
+let transportHistory=[],historyPage=null;
 const map=initMap({svg:$('map'),onSelectAgf:selectAgf,onSelectBlock:openWarehouse});
 document.querySelector('.map-legend').insertAdjacentHTML('afterend',warehouseOwnerLegend());
 organizeSettings();
@@ -93,8 +95,6 @@ function scenarioFromSettings() {
 function markDirty(value=true) {dirty=value;$('dirty-state').hidden=!value;}
 function friendlyError(error) {
   const message=error.message??String(error);
-  const overflow=/line buffer overflow at L([1-8]) \/ (\d+)/.exec(message);
-  if(overflow)return `系列${overflow[1]}：${Number(overflow[2])/60000}分で製品バッファ容量を超える生産入力になりました。搬出間隔とAGFの処理能力を確認してください。${result?'前回の計算結果は保持しています。':''}`;
   if(/lineMagazineMap/.test(message))return 'GWI〜GWVIIIの全8系列に、存在するマガジンが必要です。基準Run・追加仕様は確認済みの固定対応です。検証シナリオでは不足している対応を確認してください。';
   if(/magazineEmptyRecoveryPolicy/.test(message))return '空パレット0枚停止後の再開方式を確認してください。未設定のままでは補充後も生産を保留します。';
   if(/MOTION_CONFIG/.test(message))return '停止旋回・荷役姿勢の設定を確認してください。旋回角速度は正のdeg/s、4相の時間は0以上の分で明示します。未確定値は補完しません。';
@@ -131,6 +131,7 @@ function showView(view) {
 }
 function adoptRun(next,at=0) {
   pause();result=next;base=structuredClone(next.scenario);analysis=analyzeRun(next);
+  transportHistory=buildTransportHistoryRows(next);historyPage=null;
   runId='LOCAL-'+String(++runNumber).padStart(3,'0');next.runId=runId;next.executedAt=new Date().toISOString();
   timeMs=Math.min(at,next.scenario.durationMin*60000);currentIndex=-1;
   markDirty(false);$('seek').max=String(analysis.durationMs);$('end-clock').textContent=clock(analysis.durationMs);
@@ -140,9 +141,10 @@ function adoptRun(next,at=0) {
   syncRunControls();
   setTime(timeMs,true);
 }
-function syncRunControls(){for(const id of ['play','pause','stop','seek','next-event','csv','conditions-csv','customer-conditions-csv','transport-results-csv','agf-results-csv','manual04','manual05'])$(id).disabled=!result;}
+function syncRunControls(){for(const id of ['play','pause','stop','seek','next-event','csv','conditions-csv','customer-conditions-csv','transport-results-csv','agf-results-csv','transport-history-csv','manual04','manual05'])$(id).disabled=!result;}
 function showInitialPreview(){
   pause();result=null;analysis=null;comparison=null;runId='';timeMs=0;currentIndex=0;
+  transportHistory=[];historyPage=null;
   preview=createInitialPreview(base);$('clock').textContent=clock(0);$('seek').value='0';
   $('end-clock').textContent=clock(base.durationMin*60000);
   $('run-state').textContent='未実行 · 初期状態';$('run-context').textContent=base.lineMagazineMapPolicy==='fixed'?
@@ -230,15 +232,18 @@ function renderSnapshot(){const run=result??preview;if(!run)return;const snap=sn
   ].map(([title,content])=>`<div class="equipment-group"><h3>${title}</h3><div class="equipment-chips">${content}</div></div>`).join('');
   renderLog();renderTasks();if($('warehouse-dialog').open)renderWarehouse();
 }
-function renderLog(){if(!result){$('log-count').textContent='未実行';$('log').innerHTML='<tr><td colspan="7" class="empty-cell">初期状態のプレビューです。設定を反映して実行するとイベントを表示します。</td></tr>';return;}const agfFilter=$('log-agf').value,taskFilter=$('log-task').value.trim().toUpperCase();
-  const rows=[];
-  for(let i=0;i<=currentIndex;i++) {
-    const e=result.events[i],task=result.snapshots[i].tasks.find(t=>t.id===e.taskId),agf=e.agfId??task?.agfId??'';
-    if(agfFilter&&agf!==agfFilter||taskFilter&&!(e.taskId??'').includes(taskFilter))continue;
-    rows.push({e,task,agf});
-  }
-  $('log-count').textContent=rows.length+'件'+(rows.length>250?' / 最新250件表示':'');
-  $('log').innerHTML=rows.slice(-250).reverse().map(({e,task,agf})=>`<tr><td class="mono">${clock(e.timeMs)}</td><td title="${esc(e.type)}">${esc(eventNames[e.type]??e.type)}</td><td>${esc(agf||'—')}</td><td class="mono">${esc(e.taskId??'—')}</td><td>${esc(locationName(task?.originId??e.lineId))}${e.productType?'<small class="product-meta">'+esc(productLabel(e))+'</small>':''}</td><td>${esc(locationName(task?.destinationId??e.locationId))}</td><td class="reason">${esc(e.reason?(reasons[e.reason]??e.reason):task?(states[task.status]??task.status):e.type==='RUN_STARTED'?'合成入力':'記録済み')}</td></tr>`).join('')||'<tr><td class="empty-cell" colspan="7">該当するイベントはありません。</td></tr>';
+function renderLog(){
+  if(!result){$('log-count').textContent='未実行';$('log').innerHTML='<tr><td colspan="11" class="empty-cell">初期状態のプレビューです。設定を反映して実行すると搬送履歴を表示します。</td></tr>';
+    $('history-page').textContent='';$('history-prev').disabled=true;$('history-next').disabled=true;return;}
+  const agfFilter=$('log-agf').value,query=$('log-task').value.trim().toUpperCase();
+  const rows=transportHistory.filter(row=>row.timeMs<=timeMs&&(!agfFilter||row.agfId===agfFilter)&&
+    (!query||[row.taskId,row.palletId].some(value=>String(value).toUpperCase().includes(query))));
+  const pageSize=250,lastPage=Math.max(0,Math.ceil(rows.length/pageSize)-1),page=Math.min(historyPage??lastPage,lastPage);
+  const start=page*pageSize,shown=rows.slice(start,start+pageSize);
+  $('log-count').textContent=rows.length+'件';
+  $('history-page').textContent=rows.length?`${start+1}～${start+shown.length}件 / 全${rows.length}件`:'0件';
+  $('history-prev').disabled=page===0;$('history-next').disabled=page===lastPage;
+  $('log').innerHTML=renderTransportHistoryRows(shown)||'<tr><td class="empty-cell" colspan="11">この時刻・条件に該当する搬送履歴はありません。</td></tr>';
 }
 function renderTasks(){if(!result&&!preview)return;const snap=snapshot();
   $('task-time').textContent=clock(timeMs)+' 時点';
@@ -298,7 +303,13 @@ $('seek').addEventListener('input',()=>{pause();setTime(numeric('seek'));});
 $('next-event').addEventListener('click',()=>{pause();const next=result.events.find(e=>e.timeMs>timeMs);setTime(next?.timeMs??analysis.durationMs);});
 $('map-fit').addEventListener('click',map.fit);$('map-in').addEventListener('click',()=>map.zoom(.8));$('map-out').addEventListener('click',()=>map.zoom(1.25));$('map-warehouse').addEventListener('click',map.warehouse);$('map-palletizing').addEventListener('click',map.palletizing);
 $('agf-list').addEventListener('click',event=>{const b=event.target.closest('[data-select-agf]');if(b)selectAgf(b.dataset.selectAgf);});
-$('log-agf').addEventListener('change',renderLog);$('log-task').addEventListener('input',renderLog);$('task-kind').addEventListener('change',renderTasks);$('task-state').addEventListener('change',renderTasks);
+$('log-agf').addEventListener('change',()=>{historyPage=null;renderLog();});$('log-task').addEventListener('input',()=>{historyPage=null;renderLog();});
+for(const [id,direction] of [['history-prev',-1],['history-next',1]])$(id).addEventListener('click',()=>{
+  const agf=$('log-agf').value,query=$('log-task').value.trim().toUpperCase();
+  const count=transportHistory.filter(row=>row.timeMs<=timeMs&&(!agf||row.agfId===agf)&&(!query||[row.taskId,row.palletId].some(value=>String(value).toUpperCase().includes(query)))).length;
+  historyPage=Math.max(0,(historyPage??Math.max(0,Math.ceil(count/250)-1))+direction);renderLog();
+});
+$('task-kind').addEventListener('change',renderTasks);$('task-state').addEventListener('change',renderTasks);
 $('warehouse-tier').addEventListener('change',renderWarehouse);$('block-tabs').addEventListener('click',event=>{const b=event.target.closest('[data-block-tab]');if(b){selectedBlock=b.dataset.blockTab;renderWarehouse();}});
 $('warehouse-body').addEventListener('click',event=>{const b=event.target.closest('[data-slot]');if(b)$('slot-detail').textContent=describeSlot(b.dataset.slot,snapshot());});
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>$(b.dataset.close).close()));
@@ -312,6 +323,7 @@ $('conditions-csv').addEventListener('click',()=>{if(result)downloadCsv(conditio
 $('customer-conditions-csv').addEventListener('click',()=>{if(result)downloadCsv(customerConditionsCsv(result),customerCsvFilename(result,'conditions'));});
 $('transport-results-csv').addEventListener('click',()=>{if(result)downloadCsv(transportResultsCsv(result),customerCsvFilename(result,'transport'));});
 $('agf-results-csv').addEventListener('click',()=>{if(result)downloadCsv(agfResultsCsv(result),customerCsvFilename(result,'agf'));});
+$('transport-history-csv').addEventListener('click',()=>{if(result)downloadCsv(transportHistoryCsv(result),customerCsvFilename(result,'history'));});
 initCadPanel({showError:error=>{$('cad-error').textContent=friendlyError(error);$('cad-error').hidden=false;},clearError:()=>{$('cad-error').hidden=true;}});
 for(const id of ['open-cad','open-cad-map'])$(id).addEventListener('click',()=>{pause();$('cad-dialog').showModal();});
 showInitialPreview();showView(location.hash.slice(1)||'monitor');

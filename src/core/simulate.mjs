@@ -164,7 +164,7 @@ export function simulate(rawScenario) {
     required(!(scenario.alignerReadyEvents??[]).length,
       'PRODUCTION_CONFIG: alignerReadyEvents is legacy/test-only; use explicit manual alignerRefillEvents');
   }
-  const blockedProduction=new Map(),retryScheduled=new Set(),
+  const blockedProduction=new Map(),bufferProduction=new Map(),retryScheduled=new Set(),productionClocks=new Map(),
     productionStatus=new Map([...lines.keys()].map(id=>[id,{state:'ready',reason:null}]));
   const temps = new Map((scenario.temporaryPallets ?? []).map(p => [p.palletId,{...p,reservedTaskId:null}]));
   required(temps.size === (scenario.temporaryPallets ?? []).length, 'duplicate temporary pallet');
@@ -230,7 +230,7 @@ export function simulate(rawScenario) {
     chargers:Object.fromEntries(chargers),
     magazines:Object.fromEntries([...magazines].map(([k,v]) => [k,clone(v)])),
     aligners:Object.fromEntries([...aligners].map(([k,v]) => [k,clone(v)])),
-    ...(coupledProduction?{productionStatus:Object.fromEntries([...productionStatus].map(([k,v])=>[k,clone(v)]))}:{}),
+    productionStatus:Object.fromEntries([...productionStatus].map(([k,v])=>[k,clone(v)])),
     temporaryPallets:clone([...temps.values()]),
     warehouse:snapshotWarehouse(),
     tasks:[...tasks.values()].map(saveEntity), pallets:[...pallets.values()].map(saveEntity),
@@ -586,29 +586,124 @@ export function simulate(rawScenario) {
     // Retain the legacy inventory history name. This does not issue a03 task.
     record('MAGAZINE_REFILL_REQUESTED',{magazineId:m.id,quantity:m.quantity,requestStatus:'refill-needed'});
   };
+  const scheduleProductionClocks=(clocks,baseMs=null)=>{
+    const planned=[];
+    for(const clock of clocks)if(!clock.paused){
+      for(let i=clock.index;i<clock.events.length;i++){
+        const event=clock.events[i],timeMs=baseMs===null?event.timeMs:
+          baseMs+(i-clock.index+1)*clock.intervalMs;
+        if(timeMs>durationMs)break;
+        planned.push({...event,timeMs,productionClockId:clock.id,productionGeneration:clock.generation});
+      }
+    }
+    // Same synthetic tie-break as generateProductionEvents. Once inserted, all
+    // input and endogenous events use the existing total queue-order contract.
+    planned.sort((a,b)=>a.timeMs-b.timeMs||String(a.palletId).localeCompare(String(b.palletId),'en'));
+    for(const event of planned)schedule(event.timeMs,coupledProduction?'PRODUCTION_DUE':'PALLET_EXITED',event);
+  };
+  const addProductionClock=(id,events,intervalMs)=>{
+    if(!events.length)return;
+    const clock={id,lineId:events[0].lineId,events,intervalMs,index:0,generation:0,paused:false};
+    productionClocks.set(id,clock);
+  };
+  const pauseLineClocks=lineId=>{
+    for(const clock of productionClocks.values())if(clock.lineId===lineId){clock.paused=true;clock.generation++;}
+  };
+  const restartLineClocks=lineId=>{
+    for(const clock of productionClocks.values())if(clock.lineId===lineId){
+      clock.paused=false;clock.generation++;
+    }
+    scheduleProductionClocks([...productionClocks.values()].filter(clock=>clock.lineId===lineId),now);
+  };
+  const productionFields=attempt=>({lineId:attempt.lineId,sourceLineId:attempt.sourceLineId??attempt.lineId,
+    plannedPalletId:attempt.palletId,productType:attempt.productType??'normal',loadType:attempt.loadType??'full',
+    inputKind:attempt.inputKind,originalDueAt:attempt.originalDueAt??attempt.timeMs,
+    blockedSinceMs:attempt.bufferBlockedSinceMs??attempt.blockedSinceMs??now,
+    capacity:scenario.lineCapacity,lineCapacity:scenario.lineCapacity,
+    ...(coupledProduction?{magazineId:scenario.lineMagazineMap[attempt.lineId]}:{})});
+  const setProductionBlocked=(attempt,reason)=>productionStatus.set(attempt.lineId,{
+    ...productionFields(attempt),state:'blocked',reason,
+    quantity:lines.get(attempt.lineId).length});
+  const scheduleProductionRetry=(attempt,extra={})=>{
+    // Retain business input identity, never the old queue order/generation.
+    const {order:oldOrder,type:oldType,timeMs:oldTime,productionClockId,productionGeneration,...input}=attempt;
+    schedule(now,coupledProduction?'PRODUCTION_DUE':'PALLET_EXITED',{
+      ...input,timeMs:now,retry:true,originalDueAt:attempt.originalDueAt??attempt.timeMs,...extra});
+  };
+  const blockLineBuffer=attempt=>{
+    let held=bufferProduction.get(attempt.lineId);
+    if(!held){
+      held={...attempt,originalDueAt:attempt.originalDueAt??attempt.timeMs,bufferBlockedSinceMs:now,
+        bufferFull:false,emptyEncountered:false,awaitingRefill:false,waitNextTakt:false};
+      bufferProduction.set(attempt.lineId,held);
+    }
+    setProductionBlocked(held,'LINE_BUFFER_FULL');
+    if(!held.bufferFull){
+      held.bufferFull=true;pauseLineClocks(attempt.lineId);
+      const quantity=lines.get(attempt.lineId).length;
+      record('LINE_BUFFER_BLOCKED',{...productionFields(held),reason:'LINE_BUFFER_FULL',
+        quantityBefore:quantity,quantityAfter:quantity,quantity,waitMs:now-held.bufferBlockedSinceMs});
+    }
+  };
+  const releaseLineBuffer=(lineId,quantityBefore,quantityAfter)=>{
+    const held=bufferProduction.get(lineId);
+    if(!held?.bufferFull)return;
+    held.bufferFull=false;
+    record('LINE_BUFFER_RELEASED',{...productionFields(held),quantityBefore,quantityAfter,
+      quantity:quantityAfter,waitMs:now-held.bufferBlockedSinceMs});
+    if(held.waitNextTakt&&(!coupledProduction||magazines.get(scenario.lineMagazineMap[lineId]).quantity>0))
+      restartLineClocks(lineId);
+  };
   const scheduleBlockedRetries=()=>{
-    if(!coupledProduction||recoveryPolicy!=='immediate_retry')return;
-    // Explicit model: retain supplied, missed input opportunities in input order.
-    // Retry only when both physical inventories have room/supply. Existing pickup
-    // events wake the queue; no artificial time or additional capacity is added.
-    for(const [lineId,attempts] of blockedProduction){
-      if(!attempts.length||retryScheduled.has(lineId))continue;
-      const m=magazines.get(scenario.lineMagazineMap[lineId]);
-      if(m.quantity===0)continue;
-      if(lines.get(lineId).length>=scenario.lineCapacity){
-        if(productionStatus.get(lineId).reason!=='LINE_BUFFER_FULL'){
-          productionStatus.set(lineId,{state:'blocked',reason:'LINE_BUFFER_FULL',magazineId:m.id});
-          record('PRODUCTION_RETRY_WAITING_BUFFER',{lineId,magazineId:m.id,blockedAttemptCount:attempts.length,
-            recoveryPolicy,evidence:'explicit immediate_retry model: retained input order, capacity-constrained'});
+    // Buffer blocking retains exactly one not-yet-created pallet per line. Empty
+    // supply recovery is an independent, explicit scenario policy.
+    for(const [lineId,held] of bufferProduction){
+      if(retryScheduled.has(lineId))continue;
+      if(lines.get(lineId).length>=scenario.lineCapacity){blockLineBuffer(held);continue;}
+      const m=coupledProduction?magazines.get(scenario.lineMagazineMap[lineId]):null;
+      if(m?.quantity===0){
+        if(productionStatus.get(lineId).reason!=='EMPTY_PALLET'){
+          held.emptyEncountered=true;held.awaitingRefill=true;
+          setProductionBlocked(held,'EMPTY_PALLET');
+          record('PRODUCTION_BLOCKED_EMPTY_PALLET',{...productionFields(held),quantity:0,
+            reason:'EMPTY_PALLET',recoveryPolicy,waitMs:now-held.bufferBlockedSinceMs});
         }
         continue;
       }
-      const attempt=attempts.shift();if(!attempts.length)blockedProduction.delete(lineId);
+      if(held.emptyEncountered&&(held.awaitingRefill||held.waitNextTakt||recoveryPolicy===null))continue;
       retryScheduled.add(lineId);
-      schedule(now,'PRODUCTION_DUE',{...attempt,timeMs:now,retry:true,originalDueAt:attempt.originalDueAt??attempt.timeMs});
+      scheduleProductionRetry(held,{fromBuffer:true});
+    }
+    if(!coupledProduction||recoveryPolicy!=='immediate_retry')return;
+    // Existing explicit external empty-supply inputs retain their input order.
+    // Buffer stop does not create additional missed production opportunities.
+    for(const [lineId,attempts] of blockedProduction){
+      if(!attempts.length||retryScheduled.has(lineId)||bufferProduction.has(lineId))continue;
+      const m=magazines.get(scenario.lineMagazineMap[lineId]);
+      if(m.quantity===0)continue;
+      const attempt=attempts.shift();if(!attempts.length)blockedProduction.delete(lineId);
+      if(lines.get(lineId).length>=scenario.lineCapacity){blockLineBuffer(attempt);continue;}
+      retryScheduled.add(lineId);
+      scheduleProductionRetry(attempt);
     }
   };
   const resumeBlockedProduction=magazineId=>{
+    for(const [lineId,held] of bufferProduction){
+      if(scenario.lineMagazineMap[lineId]!==magazineId||!held.emptyEncountered)continue;
+      held.awaitingRefill=false;
+      if(recoveryPolicy==='next_takt'){
+        held.waitNextTakt=true;
+        productionStatus.set(lineId,{...productionFields(held),state:'blocked',reason:'WAIT_NEXT_TAKT'});
+        record('PRODUCTION_RECOVERY_WAIT_NEXT_TAKT',{...productionFields(held),recoveryPolicy,
+          retainedBufferPallet:true,evidence:'explicit next_takt: retain buffer-stopped ID until next configured production opportunity'});
+        restartLineClocks(lineId);
+      }else if(recoveryPolicy===null){
+        setProductionBlocked(held,'RECOVERY_POLICY_UNSET');
+        record('PRODUCTION_RECOVERY_UNRESOLVED',{...productionFields(held),recoveryPolicy:null,
+          evidence:'unresolved: recovery policy not selected'});
+      }
+      if(lines.get(lineId).length>=scenario.lineCapacity)blockLineBuffer(held);
+    }
     for(const [lineId,attempts] of blockedProduction){
       if(scenario.lineMagazineMap[lineId]!==magazineId||!attempts.length)continue;
       if(recoveryPolicy==='immediate_retry'){
@@ -951,8 +1046,12 @@ export function simulate(rawScenario) {
     }
   } else if(scenario.productStreams){
     required(warehousePolicy,'product streams require warehouse policy');
-    for(const event of generateProductionEvents(scenario.productStreams,durationMs,lineIds))
-      schedule(event.timeMs,coupledProduction?'PRODUCTION_DUE':'PALLET_EXITED',event);
+    const generated=generateProductionEvents(scenario.productStreams,durationMs,lineIds);
+    for(const stream of scenario.productStreams.filter(s=>s.enabled)){
+      const id=[stream.sourceLineId,stream.productType,stream.loadType].join('-');
+      addProductionClock(id,generated.filter(e=>e.lineId===stream.sourceLineId&&
+        e.productType===stream.productType&&e.loadType===stream.loadType),minute(stream.intervalMin));
+    }
   } else {
     required(Array.isArray(scenario.lineIntervalsMin) && scenario.lineIntervalsMin.length===8,
       'eight independent lineIntervalsMin required');
@@ -968,13 +1067,16 @@ export function simulate(rawScenario) {
       if (!interval) return;
       const step=minute(interval), start=step+minute(offsets[i]);
       required(step>0,'line interval is below millisecond precision');
+      const events=[];
       for (let t=start,k=1;t<=durationMs;t+=step,k++) {
-        schedule(t,coupledProduction?'PRODUCTION_DUE':'PALLET_EXITED',{timeMs:t,lineId:'L'+(i+1),
+        events.push({timeMs:t,lineId:'L'+(i+1),
           palletId:'SIM-L'+(i+1)+'-'+k,
           destinationLocationId:destinations[n++%destinations.length],inputKind:'synthetic-interval'});
       }
+      addProductionClock('L'+(i+1),events,step);
     });
   }
+  scheduleProductionClocks(productionClocks.values());
   for (const x of scenario.magazineUses ?? []) {
     required(magazines.has(x.magazineId) && Number.isInteger(x.timeMs) && x.timeMs>=0,
       'invalid magazine-use event');
@@ -1030,56 +1132,93 @@ export function simulate(rawScenario) {
     const loadPriority=e=>e.type==='SEGMENT_REQUEST'?Number(!agfs.find(a=>a.id===e.agfId)?.carriedPalletId):0;
     queue.sort((a,b)=>a.timeMs-b.timeMs || operatorPhase(a)-operatorPhase(b) ||
       loadPriority(a)-loadPriority(b)||a.order-b.order);
-    const e=queue.shift();
+    let e=queue.shift();
     if (e.timeMs>durationMs) break;
     if(e.movementGeneration!==undefined&&agfs.find(a=>a.id===e.agfId)?.movementGeneration!==e.movementGeneration)continue;
+    const productionClock=e.productionClockId&&!e.retry?productionClocks.get(e.productionClockId):null;
+    if(productionClock&&(productionClock.paused||productionClock.generation!==e.productionGeneration))continue;
     advanceWrapperWait(e.timeMs);
     batteryLedger?.advance(now,e.timeMs,tasks);
     now=e.timeMs;
     if (e.type === 'PRODUCTION_DUE'||e.type==='PALLET_EXITED') {
+      if(e.retry)retryScheduled.delete(e.lineId);
+      const held=bufferProduction.get(e.lineId);
+      // A stopped line has one pending production, not an unbounded queue of
+      // new planned pallets. Explicit external arrivals are opportunities only.
+      if(held&&!e.fromBuffer){
+        if(e.retry){
+          // This was already retained by the explicit empty-supply policy before
+          // buffer stopping. Preserve it; only new stopped-line arrivals are suppressed.
+          if(!blockedProduction.has(e.lineId))blockedProduction.set(e.lineId,[]);
+          blockedProduction.get(e.lineId).unshift({...e});continue;
+        }
+        if(!held.waitNextTakt)continue;
+        if(lines.get(e.lineId).length>=scenario.lineCapacity){blockLineBuffer(held);continue;}
+        if(coupledProduction&&magazines.get(scenario.lineMagazineMap[e.lineId]).quantity===0)continue;
+        held.waitNextTakt=false;
+        e={...held,type:e.type,timeMs:now,retry:true,fromBuffer:true,
+          recoveryEvidence:'explicit next_takt: resumed retained buffer pallet at next configured production opportunity'};
+      }else if(productionClock)productionClock.index++;
       const l=lines.get(e.lineId);
       required(l && !pallets.has(e.palletId),'unknown line or duplicate pallet');
       required(warehousePolicy||slots.has(e.destinationLocationId),'destination unknown');
       const attributes={sourceLineId:e.sourceLineId??e.lineId,productType:e.productType??'normal',loadType:e.loadType??'full'};
       validateProduct(attributes,lineIds);
+      const m=coupledProduction?magazines.get(scenario.lineMagazineMap[e.lineId]):null;
+      record('PRODUCTION_DUE',{lineId:e.lineId,plannedPalletId:e.palletId,
+        ...(l.length<scenario.lineCapacity&&(!m||m.quantity>0)&&!(recoveryPolicy===null&&blockedProduction.has(e.lineId))?{palletId:e.palletId}:{}),
+        ...(m?{magazineId:m.id}:{}),inputKind:e.inputKind,...attributes,
+        palletStatus:'planned-input',retry:e.retry===true,originalDueAt:e.originalDueAt??now,
+        ...(e.fromBuffer?{blockedSinceMs:e.bufferBlockedSinceMs,recoveryEvidence:e.recoveryEvidence}:{}),
+          ...(e.retry?{evidence:e.fromBuffer?
+            e.recoveryEvidence??'user-confirmed buffer release: one retained pallet, no added production delay':
+            'explicit immediate_retry model: retained input order, capacity-constrained'}:{})});
+      if(l.length>=scenario.lineCapacity){
+        blockLineBuffer(e);
+        wakeDrops();wakePickups();issue02();issue03();chargeIdleAgfs();dispatch();settleWaiting();scheduleBlockedRetries();
+        continue;
+      }
       if(e.type==='PRODUCTION_DUE'){
-        if(e.retry)retryScheduled.delete(e.lineId);
-        const m=magazines.get(scenario.lineMagazineMap[e.lineId]);
-        record('PRODUCTION_DUE',{lineId:e.lineId,palletId:e.palletId,magazineId:m.id,inputKind:e.inputKind,
-          palletStatus:'planned-input',retry:e.retry===true,originalDueAt:e.originalDueAt??now,
-          ...(e.retry?{evidence:'explicit immediate_retry model: retained input order, capacity-constrained'}:{})});
         if(m.quantity===0||(recoveryPolicy===null&&blockedProduction.has(e.lineId))){
           const reason=m.quantity===0?'EMPTY_PALLET':'RECOVERY_POLICY_UNSET';
-          productionStatus.set(e.lineId,{state:'blocked',reason,magazineId:m.id});
-          if(!blockedProduction.has(e.lineId))blockedProduction.set(e.lineId,[]);
-          blockedProduction.get(e.lineId)[e.retry?'unshift':'push']({...e});
+          setProductionBlocked({...e,blockedSinceMs:e.blockedSinceMs??now},reason);
+          if(e.fromBuffer){
+            const pendingBuffer=bufferProduction.get(e.lineId);
+            pendingBuffer.emptyEncountered=true;pendingBuffer.awaitingRefill=true;
+          }else{
+            if(!blockedProduction.has(e.lineId))blockedProduction.set(e.lineId,[]);
+            blockedProduction.get(e.lineId)[e.retry?'unshift':'push']({...e,blockedSinceMs:now});
+          }
           record(reason==='EMPTY_PALLET'?'PRODUCTION_BLOCKED_EMPTY_PALLET':'PRODUCTION_BLOCKED_RECOVERY_POLICY',
-            {lineId:e.lineId,magazineId:m.id,plannedPalletId:e.palletId,quantity:m.quantity,reason,
+            {...productionFields(e),quantity:m.quantity,reason,
               recoveryPolicy,evidence:recoveryPolicy===null?'unresolved: recovery policy not selected':'explicit scenario recovery policy'});
           wakeDrops();wakePickups();issue02();issue03();chargeIdleAgfs();dispatch();settleWaiting();scheduleBlockedRetries();
           continue;
         }
-        if(e.retry&&l.length>=scenario.lineCapacity){
-          if(!blockedProduction.has(e.lineId))blockedProduction.set(e.lineId,[]);
-          blockedProduction.get(e.lineId).unshift({...e});
-          scheduleBlockedRetries();continue;
-        }
-        required(l.length<scenario.lineCapacity,'line buffer overflow at '+e.lineId+' / '+now);
         const quantityBefore=m.quantity;m.quantity--;
         productionStatus.set(e.lineId,{state:'ready',reason:null});
         record('EMPTY_PALLET_DISCHARGED',{magazineId:m.id,lineId:e.lineId,palletId:e.palletId,
           quantityBefore,quantityAfter:m.quantity,quantity:m.quantity,...attributes});
         flagRefillNeeded(m);
-      }else required(l.length<scenario.lineCapacity,'line buffer overflow at '+e.lineId+' / '+now);
+      }
       pallets.set(e.palletId,{palletId:e.palletId,lineId:e.lineId,...attributes,
         destinationLocationId:warehousePolicy?null:e.destinationLocationId,
         stage:coupledProduction?'palletized':'line',inputKind:e.inputKind});
       if(e.type==='PRODUCTION_DUE')record('PALLETIZED',{lineId:e.lineId,palletId:e.palletId,
         magazineId:scenario.lineMagazineMap[e.lineId],inputKind:e.inputKind,
         processingTimeStatus:'unresolved: no added processing delay'});
-      l.push(e.palletId);pallets.get(e.palletId).stage='line';
+      const quantityBefore=l.length;l.push(e.palletId);pallets.get(e.palletId).stage='line';
       stats.created++;
-      record('PALLET_EXITED',{lineId:e.lineId,palletId:e.palletId,inputKind:e.inputKind});
+      record('PALLET_EXITED',{lineId:e.lineId,palletId:e.palletId,inputKind:e.inputKind,
+        quantityBefore,quantityAfter:l.length,capacity:scenario.lineCapacity,lineCapacity:scenario.lineCapacity});
+      productionStatus.set(e.lineId,{state:'ready',reason:null});
+      if(e.fromBuffer){
+        bufferProduction.delete(e.lineId);
+        record('PRODUCTION_RESUMED_FROM_BUFFER',{...productionFields(e),palletId:e.palletId,
+          quantityBefore,quantityAfter:l.length,waitMs:now-e.bufferBlockedSinceMs,
+          reason:'BUFFER_SPACE_AVAILABLE',...(e.recoveryEvidence?{evidence:e.recoveryEvidence}:{})});
+        restartLineClocks(e.lineId);
+      }
       request('01',{palletId:e.palletId,originArea:'PZ',destinationArea:'PZ',
         originId:e.lineId,destinationId:'WRAP-INPUT'});
     } else if (e.type === 'MANUAL_REQUEST') {
@@ -1162,14 +1301,16 @@ export function simulate(rawScenario) {
       schedule(now+a.handling.forkInsertedMs,pickup?'PICKUP':'DROPOFF',{taskId:a.taskId});wakeTraffic();
     } else if (e.type === 'PICKUP') {
       const t=tasks.get(e.taskId), a=agfs.find(a=>a.id===t?.agfId);
+      let linePickup=null;
       required(t?.status==='moving_empty' && a?.taskId===t.id && ['moving_empty','picking_fork_inserted'].includes(a.status),
         'pickup without assignment');
       if(graphMode)required(a.currentNodeId===resolveInterfaceNode(topology,t.originId),
         'pickup before individual interface arrival');
       if (t.kind==='01') {
-        const l=lines.get(pallets.get(t.palletId).lineId);
+        const lineId=pallets.get(t.palletId).lineId,l=lines.get(lineId),quantityBefore=l.length;
         required(l.includes(t.palletId),'01 pallet missing at line');
         l.splice(l.indexOf(t.palletId),1);
+        linePickup={lineId,quantityBefore,quantityAfter:l.length,capacity:scenario.lineCapacity,lineCapacity:scenario.lineCapacity};
       } else if (t.kind==='02') {
         required(wrapper.output.includes(t.palletId) && pallets.get(t.palletId).stage==='queued_02',
           '02 pickup before exit readiness');
@@ -1193,7 +1334,8 @@ export function simulate(rawScenario) {
       if(graphMode)clearHandling(a);
       t.status='moving_loaded';t.pickupAt=now;
       a.status='moving_loaded';a.area=t.originArea;a.carriedPalletId=t.palletId??('EMPTY-STACK-'+t.id);
-      record('TASK_PICKED',{taskId:t.id,kind:t.kind,agfId:a.id,palletId:t.palletId??null});
+      record('TASK_PICKED',{taskId:t.id,kind:t.kind,agfId:a.id,palletId:t.palletId??null,...linePickup});
+      if(linePickup)releaseLineBuffer(linePickup.lineId,linePickup.quantityBefore,linePickup.quantityAfter);
       if(graphMode&&['01','04'].includes(t.kind))beginWrapperDelivery(t,a);
       else if(graphMode)beginRoute(t,a,'loaded',t.loadedRoute,'DROPOFF',minute(times.dropoffMin));
       else schedule(now+minute(times.loadedMin+times.dropoffMin),'DROPOFF',{taskId:t.id});

@@ -51,7 +51,10 @@ Object.assign(eventNames,{PRODUCTION_DUE:'生産タイミング到来',EMPTY_PAL
   ALIGNER_REFILLED:'整列機手動補充',ALIGNER_REFILL_OPERATED:'整列機補充操作',
   PRODUCTION_RECOVERY_WAIT_NEXT_TAKT:'補充済み・次タクト待ち',PRODUCTION_RETRY_WAITING_BUFFER:'再生産・系列バッファ空き待ち',
   PICKUP_PERMISSION_GRANTED:'荷受け許可・再開'});
-Object.assign(reasons,{EMPTY_PALLET:'空パレット待ち',RECOVERY_POLICY_UNSET:'再開方式未設定・生産保留',LINE_BUFFER_FULL:'系列バッファ空き待ち'});
+Object.assign(reasons,{EMPTY_PALLET:'空パレット待ち',RECOVERY_POLICY_UNSET:'再開方式未設定・生産保留',
+  LINE_BUFFER_FULL:'系列バッファ空き待ち',WAIT_NEXT_TAKT:'補充済み・次タクト待ち',BUFFER_SPACE_AVAILABLE:'バッファ空き'});
+Object.assign(eventNames,{LINE_BUFFER_BLOCKED:'系列バッファ満杯・生産停止',
+  LINE_BUFFER_RELEASED:'系列バッファ空き発生',PRODUCTION_RESUMED_FROM_BUFFER:'系列バッファ待ち生産再開'});
 Object.assign(reasons,{TURN_RATE_UNRESOLVED:'旋回角速度が未設定・停止保留',HANDLING_PHASES_UNRESOLVED:'荷役姿勢・フォーク挿入後の時間が未設定',
   AVOIDANCE_TIE_UNRESOLVED:'回避側の同率判断が未確定',AVOIDANCE_ROUTE_UNRESOLVED:'明示された退避経路なし',
   NO_AVOIDANCE_CANDIDATE:'移動可能かつ明示退避経路のあるAGFなし',HANDLING_POSITIONING:'設備前の姿勢移行完了待ち',
