@@ -14,6 +14,7 @@ export const evidenceLabel=evidence=>({
   'supplier-assumption-user-relayed':'供給元の想定・ユーザー共有',
   'theoretical-pallet-discharge-100pct':'設備能力100%の理論タクト',
   'explicit-scenario-setting':'この実行の明示条件',
+  'simulation-default-task-priorities':'シミュレーション初期設定（変更可能）',
   'user-requested-example-default':'ユーザー指定の初期行割当・既存例と同じ値',
   'user-confirmed-fixed-magazine-mapping':'ユーザー確認済み・固定対応',
   'user-confirmed-initial-logical-direction-policy':'確認済みのシミュレーション初期通行方針'
@@ -42,6 +43,14 @@ export function customerConditionRows(run){
   add('warehouse.capacity','基本条件','倉庫の理論容量',(s.warehouse??[]).reduce((n,slot)=>n+(slot.capacity??1),0),'PL');
   add('warehouse.initialStock','基本条件','初期製品在庫',(s.warehouse??[]).reduce((n,slot)=>n+(slot.palletIds?.length??0),0),'PL');
   add('mode','基本条件','AGF選定方式',selectionLabel(s.mode));
+  if(s.taskPriorities===undefined){
+    add('taskPriorities.policy','搬送タスク優先度','自動搬送の割当順','旧シナリオ互換（要求順・legacy FIFO）','','','legacy-model');
+  }else{
+    const source=s.evidence?.taskPriorities??'explicit-scenario-setting';
+    add('taskPriorities.wrapperOutput','搬送タスク優先度','優先度',s.taskPriorities?.wrapperOutput,'','包装機出口',source);
+    for(let i=1;i<=5;i++)add('taskPriorities.magazines.M'+i,'搬送タスク優先度','優先度',s.taskPriorities?.magazines?.['M'+i],'','M'+i,source);
+    for(let i=1;i<=8;i++)add('taskPriorities.lines.L'+i,'搬送タスク優先度','優先度',s.taskPriorities?.lines?.['L'+i],'','L'+i,source);
+  }
   const graph=s.motionModel==='synthetic_graph';
   if(graph&&s.operationalTopology?.metricLayoutProfile){
     const profile=s.operationalTopology.metricLayoutProfile;

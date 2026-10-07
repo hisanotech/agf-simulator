@@ -6,6 +6,7 @@ import {directionHeading,turnAngle,cardinalHeading,HEADING_DEGREES,validateMotio
 import {chooseAvoidance,findExplicitAvoidancePlan,findExplicitOvertakingPlan} from './interference-control.mjs';
 import {validateWarehousePolicy,validateProduct,validateStoredPallets,chooseWarehouseLocation,canUseUpper} from './warehouse-policy.mjs';
 import {generateProductionEvents} from './production-streams.mjs';
+import {validateTaskPriorities,resolveTaskPriority,orderPendingTasks} from './task-priority.mjs';
 import {NORMAL_WAITING_PLACES,NORMAL_WAITING_PRIORITY} from '../map/warehouse-layout.mjs';
 
 const minute = value => Math.round(value * 60_000);
@@ -31,6 +32,8 @@ const saveRoute=path=>{
  */
 export function simulate(rawScenario) {
   const scenario = clone(rawScenario);
+  const taskPriorities=scenario.taskPriorities;
+  validateTaskPriorities(taskPriorities);
   const durationMs = minute(scenario.durationMin);
   required(Number.isInteger(durationMs) && durationMs > 0, 'durationMin must be positive');
   const times = scenario.times ?? {};
@@ -316,8 +319,12 @@ export function simulate(rawScenario) {
       ...(p?{sourceLineId:p.sourceLineId??p.lineId??null,productType:p.productType??null,loadType:p.loadType??null}:{}),
       ...(['02','05'].includes(kind)?{storageResult:location?'reserved':'pending'}:{}),
       ...(location?{storageLocationId:location.id,blockId:location.blockId,row:location.row,column:location.column,tier:location.tier}:{}),...fields};
+    // record() uses history.length as its stable sequence. Save it before the
+    // first task snapshot, without inferring order from a pending-array index.
+    Object.assign(t,{requestSequence:history.length,...resolveTaskPriority(t,taskPriorities)});
     tasks.set(t.id,t); pending.push(t.id);
-    record('TASK_REQUESTED',{taskId:t.id,kind,palletId:t.palletId ?? null});
+    record('TASK_REQUESTED',{taskId:t.id,kind,palletId:t.palletId ?? null,requestSequence:t.requestSequence,
+      ...('taskPriority' in t?{prioritySourceId:t.prioritySourceId,taskPriority:t.taskPriority}:{})});
     return t;
   };
   const holdMotion=(agf,reason,fields={})=>{
@@ -895,7 +902,7 @@ export function simulate(rawScenario) {
     stages:[...(selection?.stages??[]),{stage:'task_precondition',reason,eligibleAgfIds:[]}]
   });
   const dispatch = () => {
-    for (const id of pending) {
+    for (const id of orderPendingTasks(pending,tasks,taskPriorities)) {
       const t=tasks.get(id);
       if (t.status !== 'queued') continue;
       // An explicit synthetic vehicle-admission limit leaves a vehicle for
@@ -980,6 +987,8 @@ export function simulate(rawScenario) {
       selected.status='moving_empty'; selected.taskId=t.id;
       if(graphMode&&['01','04'].includes(t.kind))wrapperInboundReservations.add(t.id);
       record('TASK_ASSIGNED',{taskId:t.id,kind:t.kind,agfId:selected.id,palletId:t.palletId ?? null,
+        requestSequence:t.requestSequence,
+        ...('taskPriority' in t?{prioritySourceId:t.prioritySourceId,taskPriority:t.taskPriority}:{}),
         dispatchSelection});
       if(graphMode)beginRoute(t,selected,'empty',routePair.empty,'PICKUP',minute(times.pickupMin));
       else schedule(now+minute(times.emptyMin+times.pickupMin),'PICKUP',{taskId:t.id});
@@ -1071,7 +1080,9 @@ export function simulate(rawScenario) {
     }
   };
   const chargeIdleAgfs=()=>{
-    if(!postTaskPolicy)return;
+    // Explicit priority-enabled Runs give charging the first next-action slot
+    // in both motion models. Unconfigured legacy Runs retain their behavior.
+    if(!postTaskPolicy&&taskPriorities===undefined)return;
     for(const a of [...agfs].sort(byId))if(!a.blocked&&['idle','dispatch_pending'].includes(a.status)&&
       a.batteryPct<=battery.chargeStartPct)requestCharge(a);
   };

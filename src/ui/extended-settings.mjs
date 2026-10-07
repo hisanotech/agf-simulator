@@ -2,6 +2,7 @@ import {WAREHOUSE_BLOCKS,NORMAL_WAITING_PRIORITY} from '../map/warehouse-layout.
 import {syntheticWarehousePolicy} from '../../examples/synthetic-warehouse-policy.mjs';
 import {escapeHtml as esc,locationName} from './format.mjs';
 import {CONFIRMED_LINE_MAGAZINE_MAP,alignerRefillPolicyDescription} from './scenario.mjs';
+import {validateTaskPriorities} from '../core/task-priority.mjs';
 
 const rowIds=WAREHOUSE_BLOCKS.flatMap(b=>Array.from({length:b.rows},(_,i)=>`${b.id}-R${String(i+1).padStart(2,'0')}`));
 const label=(type,load)=>(type==='normal'?'普通銘柄':'特注銘柄')+'・'+(load==='full'?'満載':'端数');
@@ -16,6 +17,7 @@ export function populateExtendedSettings(s){
   document.getElementById('line-fields').parentElement.hidden=!!s.productStreams;
   populateSupplySettings(s);
   populateMotionSettings(s);
+  populateTaskPrioritySettings(s);
   if(!s.warehousePolicy)return;
   document.getElementById('product-stream-fields').innerHTML=s.productStreams.map((stream,i)=>`<tr>
     <td>${esc(stream.sourceLineId)}</td><td>${label(stream.productType,stream.loadType)}</td>
@@ -32,7 +34,7 @@ export function populateExtendedSettings(s){
     `<div><h3>${i+1}. ${esc(locationName(id))}</h3><span class="muted">全AGF共通・空きかつ未予約</span></div>`).join('');
 }
 
-/** Move existing controls into four disclosure groups; no field values are replaced. */
+/** Keep existing controls grouped, with automatic-task priorities in their own category. */
 export function organizeSettings(){
   const form=document.getElementById('settings-form'),grid=form.querySelector('.settings-grid');
   const section=id=>document.getElementById(id).closest('section');
@@ -42,7 +44,8 @@ export function organizeSettings(){
     ['基本設定','時間・設備・容量',[section('duration'),section('time-fields')]],
     ['搬出設定','8系列・4種別・発生頻度',[section('line-fields'),extended[0]]],
     ['倉庫設定','行割当・入庫順位',[extended[1]]],
-    ['AGF・充電設定','初期状態・電池・停止旋回・倉庫待機',[section('agf-fields'),section('battery-fields'),section('motion-settings'),extended[2]]]
+    ['AGF・充電設定','初期状態・電池・停止旋回・倉庫待機',[section('agf-fields'),section('battery-fields'),section('motion-settings'),extended[2]]],
+    ['搬送タスク優先度','包装機出口・マガジン・系列',[section('task-priority-fields')]]
   ];
   for(const [index,[name,description,sections]] of groups.entries()){
     const details=document.createElement('details');details.className='panel settings-category';details.open=index===0;
@@ -57,6 +60,7 @@ export function organizeSettings(){
 export function readExtendedSettings(s){
   readSupplySettings(s);
   readMotionSettings(s);
+  readTaskPrioritySettings(s);
   if(!s.warehousePolicy)return;
   const get=selector=>document.querySelector(selector);
   s.lineIntervalsMin=Array(8).fill(0);
@@ -140,6 +144,7 @@ function readMotionSettings(s){
 export function loadSyntheticSettingsExample(s){
   readSupplySettings(s);
   readMotionSettings(s);
+  readTaskPrioritySettings(s);
   // Replace the row-allocation example only; preserve edited production streams.
   s.productStreams=s.productStreams.map((stream,i)=>({...stream,
     enabled:document.querySelector(`[data-stream-enabled="${i}"]`).checked,
@@ -185,4 +190,58 @@ function readSupplySettings(s){
     Object.values(s.lineMagazineMap).every(Boolean)?'explicit-scenario-setting':'unconfigured';
   s.evidence.magazineEmptyRecoveryPolicy=s.magazineEmptyRecoveryPolicy?'explicit-scenario-setting':'unresolved';
   s.evidence.inventory=s.magazines.every(m=>m.quantity===10)&&s.aligners.every(a=>a.quantity===10)?'user-confirmed-neutral-start':'explicit-scenario-initial-inventory';
+}
+
+const taskPriorityGroups=[
+  ['包装機出口',[['wrapperOutput','包装機出口 · 搬送02']]],
+  ['パレットマガジン',Array.from({length:5},(_,i)=>['magazines.M'+(i+1),'M'+(i+1)+' · 搬送03'])],
+  ['系列',Array.from({length:8},(_,i)=>['lines.L'+(i+1),'GW'+roman[i]+' / L'+(i+1)+' · 搬送01'])]
+];
+const taskPriorityFields=taskPriorityGroups.flatMap(([,fields])=>fields);
+const priorityValue=(priorities,path)=>path.split('.').reduce((value,key)=>value?.[key],priorities);
+
+/** Symbols and timing remain untouched; these are editable simulation queue settings. */
+export function renderTaskPrioritySettings(s){
+  if(s.taskPriorities===undefined)return '';
+  return `<p class="notice">数値が小さいほど優先。1～99の整数で指定し、同じ値も使用できます。同値では要求時刻・処理順で決めます。変更は実行後の新Runに反映します。</p>
+    <p class="muted">初期値はシミュレーション設定です。搬送01～03の未割当タスクが対象で、実行中の搬送を中断しません。04・05の既存順序は維持します。</p>
+    <div class="task-priority-groups">${taskPriorityGroups.map(([name,fields])=>`<fieldset><legend>${name}</legend><div class="fields">${fields.map(([path,label])=>
+      `<label>${label}<input type="number" min="1" max="99" step="1" required data-task-priority="${path}" aria-label="${label} 優先度" value="${esc(priorityValue(s.taskPriorities,path)??'')}"></label>`).join('')}</div></fieldset>`).join('')}</div>`;
+}
+
+/** Empty controls cannot become zero, nor silently recover an omitted setting. */
+export function taskPrioritiesFromSettings(previous,values){
+  if(previous===undefined)return undefined;
+  const invalid=taskPriorityFields.filter(([path])=>{
+    const raw=values[path],value=Number(raw);
+    return raw==null||String(raw).trim()===''||!Number.isInteger(value)||value<1||value>99;
+  });
+  if(invalid.length){
+    const error=new Error('TASK_PRIORITY_CONFIG: 搬送タスク優先度はすべて1～99の整数で入力してください。');
+    error.settingsFieldSelectors=invalid.map(([path])=>`[data-task-priority="${path}"]`);
+    throw error;
+  }
+  const known=new Set(taskPriorityFields.map(([path])=>path));
+  if(Object.keys(values).some(path=>!known.has(path)))throw new Error('TASK_PRIORITY_CONFIG: 搬送タスク優先度に不明な設備があります。');
+  const result={wrapperOutput:Number(values.wrapperOutput),magazines:{},lines:{}};
+  for(const group of ['magazines','lines'])for(const [path] of taskPriorityFields.filter(([path])=>path.startsWith(group+'.')))
+    result[group][path.split('.')[1]]=Number(values[path]);
+  validateTaskPriorities(result);
+  return result;
+}
+
+function populateTaskPrioritySettings(s){
+  const root=document.getElementById('task-priority-fields');if(!root)return;
+  const hidden=s.taskPriorities===undefined;
+  root.closest('section').hidden=hidden;
+  const category=root.closest('details');if(category)category.hidden=hidden;
+  root.innerHTML=renderTaskPrioritySettings(s);
+}
+function readTaskPrioritySettings(s){
+  if(s.taskPriorities===undefined)return;
+  const values=Object.fromEntries([...document.querySelectorAll('[data-task-priority]')].map(input=>[input.dataset.taskPriority,input.value]));
+  const previous=s.taskPriorities,next=taskPrioritiesFromSettings(previous,values);
+  const unchanged=taskPriorityFields.every(([path])=>priorityValue(previous,path)===priorityValue(next,path));
+  s.taskPriorities=next;
+  s.evidence.taskPriorities=unchanged?s.evidence.taskPriorities??'explicit-scenario-setting':'explicit-scenario-setting';
 }

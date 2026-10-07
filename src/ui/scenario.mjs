@@ -3,6 +3,7 @@ import syntheticTopology from '../../examples/synthetic-operational-topology.jso
 import {defaultProductStreams,THEORETICAL_LINE_INTERVALS_MIN} from '../core/production-streams.mjs';
 import {syntheticWarehousePolicy} from '../../examples/synthetic-warehouse-policy.mjs';
 import {convertTopologyToMetric} from '../map/metric-layout.mjs';
+import {DEFAULT_TASK_PRIORITIES} from '../core/task-priority.mjs';
 
 // User-confirmed fixed supply correspondence. This does not define CAD positions.
 export const CONFIRMED_LINE_MAGAZINE_MAP=Object.freeze({
@@ -13,6 +14,8 @@ export const CONFIRMED_LINE_MAGAZINE_MAP=Object.freeze({
 export function createDemoScenario(preset='standard',{metricProfile=null}={}) {
   if(preset==='standard'||preset==='extended'){
     const s=createLegacyScenario('physical');s.preset=preset;
+    s.taskPriorities=structuredClone(DEFAULT_TASK_PRIORITIES);
+    s.evidence.taskPriorities='simulation-default-task-priorities';
     s.wrapper={...s.wrapper,inputCapacity:1,outputCapacity:1,conveyorCapacity:5};
     s.lineIntervalsMin=[...THEORETICAL_LINE_INTERVALS_MIN];
     s.lineStartOffsetsMin=productionOffsets();

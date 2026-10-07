@@ -3,7 +3,7 @@ import {warehouseRowOwner} from '../core/warehouse-policy.mjs';
 
 const lineNames=['GWI','GWII','GWIII','GWIV','GWV','GWVI','GWVII','GWVIII'];
 const variants=[['normal','full','普通満載'],['normal','partial','普通端数'],['special','full','特注満載'],['special','partial','特注端数']];
-const categories={RUN:'Run情報・根拠区分',EQUIPMENT:'設備の初期状態',AGF:'AGF選定・初期配置・待機',
+const categories={RUN:'Run情報・根拠区分',EQUIPMENT:'設備の初期状態',AGF:'AGF選定・初期配置・待機',TASK_PRIORITY:'搬送タスク優先度',
   PRODUCTION:'8系列の生産条件',WRAPPER:'包装機',TIMING:'時間設定',GRAPH:'走行モデル',GRAPH_EDGE:'区間距離・接続',
   GRAPH_SPEED:'区間ごとの速度',GRAPH_NODE:'個別停止点・荷役姿勢占有',AVOIDANCE_PLAN:'明示された合成退避経路',
   CHARGING:'充電器・充電場所',BATTERY:'バッテリー・充電条件',MAGAZINE:'空パレットマガジン',
@@ -12,6 +12,7 @@ const categories={RUN:'Run情報・根拠区分',EQUIPMENT:'設備の初期状�
 const evidenceNames={'user-confirmed':'ユーザー確認済み','user-confirmed-initial-placement':'ユーザー確認済みの初期配置',
   'user-confirmed-shared-priority':'ユーザー確認済みの共通待機順位','synthetic':'合成値','synthetic-assumption':'合成モデルの仮定',
   'scenario-assumption':'Scenarioの設定・仮定','explicit-scenario-setting':'明示設定',
+  'simulation-default-task-priorities':'シミュレーション初期設定（変更可能）',
   'provisional-derived':'暫定値・カタログ値から導出（停止旋回の実測値ではありません）','provisional-simulation':'暫定シミュレーション値',
   'supplier-assumption-user-relayed':'供給元の想定（ユーザー共有）','legacy-ready-derived-model':'旧readyからのモデル換算',
   'implementation-default':'旧モデルの既定値','unresolved':'未確定','unconfigured':'未設定','saved-run':'保存済みRun',
@@ -78,6 +79,14 @@ export function buildRunConditions(run,{runId=run.runId??null,executedAt=run.exe
     'idle && !blocked && batteryPct > reservePct','user-confirmed');
   add('AGF','selection','tieBreak','AGF ID ascending','deterministic-model-tie-break');
   add('AGF','selection','fallback',s.fallback??'wait',s.fallback===undefined?'implementation-default':evidence('fallback'));
+  if(s.taskPriorities===undefined){
+    add('TASK_PRIORITY','dispatch','policy','legacy_fifo','legacy-model','自動搬送の割当順');
+  }else{
+    const source=evidence('taskPriorities','explicit-scenario-setting');
+    add('TASK_PRIORITY','WRAPPER-OUTPUT','priority',s.taskPriorities?.wrapperOutput,source,'包装機出口の優先度');
+    for(let i=1;i<=5;i++)add('TASK_PRIORITY','M'+i,'priority',s.taskPriorities?.magazines?.['M'+i],source,'優先度');
+    for(let i=1;i<=8;i++)add('TASK_PRIORITY','L'+i,'priority',s.taskPriorities?.lines?.['L'+i],source,'優先度');
+  }
   const waiting=s.postTaskPolicy?.waitingPriority;
   if(waiting?.length)waiting.forEach((id,i)=>add('AGF','waitingPriority',String(i+1),id,s.postTaskPolicy.evidence,'共通待機順位 '+(i+1)));
   else add('AGF','waitingPriority','',null,'unconfigured','通常待機場所の優先順位');
@@ -178,6 +187,7 @@ const displayValue=(value,row)=>{
   if(value==='UNASSIGNED')return '未割当';
   if(/^L[1-8]$/.test(String(value)))return lineNames[Number(value.slice(1))-1]+' ('+value+')';
   if(value==='SPECIAL')return 'SPECIAL（特注）';
+  if(value==='legacy_fifo')return '旧シナリオ互換（要求順・legacy FIFO）';
   if(value==='immediate_retry')return '補充直後に再試行（immediate_retry）';
   if(value==='next_takt')return '次タクトから再開（next_takt）';
   if(value==='all_empty_auto')return '全5台が0枚になった時に全機10枚へ自動装填（all_empty_auto）';

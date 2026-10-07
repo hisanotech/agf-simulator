@@ -13,7 +13,7 @@ export const conditionCsvFilename=runId=>String(runId??'run')+'-conditions.csv';
 
 /** A complete reproducible scenario is retained in the first event row. */
 export function eventCsv(run,runId) {
-  const columns=['runId','mode','timeMs','sequence','type','kind','taskId','palletId','agfId','originId','destinationId',
+  const columns=['runId','mode','timeMs','sequence','type','kind','taskId','prioritySourceId','taskPriority','requestSequence','palletId','agfId','originId','destinationId',
     'status','lineId','magazineId','locationId','reason','inputKind','edgeId','laneId','fromNodeId','toNodeId','nodeId','movement','heading','modelDurationMs',
     'headingDeg','fromHeadingDeg','targetHeadingDeg','angleDeg','startedAt','completedAt','turnDurationMs','turnRateDegPerSec','turnRateEvidence',
     'phase','phaseDurationMs','handlingEvidence','turningConsumesBattery','turningBatteryEvidence','motionControlJson',

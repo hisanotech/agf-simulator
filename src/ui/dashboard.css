@@ -49,6 +49,7 @@ dialog{background:#1e293b;border:1px solid #4b627c;border-radius:14px;color:#f8f
 .settings-category>summary small{display:inline-block;color:#94a3b8;font-weight:400;margin-left:12px}
 .settings-category>.settings-grid{margin-top:20px}.settings-category .panel{background:#192638}
 .settings-category .panel.section{margin-top:0}.settings-category .table-scroll{max-height:480px}
+.task-priority-groups{display:grid;gap:18px;margin-top:16px}.task-priority-groups fieldset{margin:0;min-width:0;border:1px solid #3b4a61;border-radius:8px;padding:14px}.task-priority-groups legend{padding:0 6px;color:#e2e8f0;font-size:13px;font-weight:600}
 @media(max-width:900px){.map-canvas{overflow:auto}#map{min-width:1050px}.map-stamp{display:none}.slot-counts{flex-wrap:wrap;gap:12px}}
 @media(max-width:480px){.fleet-panel>#agf-list{grid-template-columns:1fr}.agf-details{grid-template-columns:80px minmax(0,1fr)}.agf-card-head{flex-wrap:nowrap}}
 /* Supply settings and manual operations retain the current dashboard layout. */

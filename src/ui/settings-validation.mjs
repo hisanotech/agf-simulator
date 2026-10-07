@@ -14,8 +14,13 @@ export function nativeFieldMessage(field){
 
 export function describeSettingsError(error){
   const message=error.message??String(error);
-  const result={message:message.replace(/^(WAREHOUSE_CONFIG|PRODUCTION_CONFIG|MOTION_CONFIG):\s*/,''),selectors:[],section:null,owner:null};
+  const result={message:message.replace(/^(WAREHOUSE_CONFIG|PRODUCTION_CONFIG|MOTION_CONFIG|TASK_PRIORITY_CONFIG):\s*/,''),selectors:[],section:null,owner:null};
   if(error.settingsFieldSelectors?.length)return {...result,selectors:error.settingsFieldSelectors};
+  if(/TASK_PRIORITY_CONFIG|taskPriorities/.test(message)){
+    const path=message.match(/taskPriorities\.(wrapperOutput|magazines\.M[1-5]|lines\.L[1-8])\b/)?.[1];
+    return {...result,section:'#task-priority-fields',selectors:path?[`[data-task-priority="${path}"]`]:[],
+      message:'搬送タスク優先度を確認してください。包装機出口・マガジン5台・系列8本のすべてに1～99の整数が必要です。'};
+  }
   if(/lineMagazineMap/.test(message))return {...result,section:'#supply-settings',kind:'mapping',
     message:'GWI～GWVIIIの全8系列に、使用するマガジンを指定してください。'};
   if(/magazineEmptyRecoveryPolicy/.test(message))return {...result,selectors:['#magazine-recovery-policy'],message:'空パレット0枚停止後の再開方式を確認してください。'};

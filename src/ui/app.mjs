@@ -98,6 +98,7 @@ function friendlyError(error) {
   if(/lineMagazineMap/.test(message))return 'GWI〜GWVIIIの全8系列に、存在するマガジンが必要です。基準Run・追加仕様は確認済みの固定対応です。検証シナリオでは不足している対応を確認してください。';
   if(/magazineEmptyRecoveryPolicy/.test(message))return '空パレット0枚停止後の再開方式を確認してください。未設定のままでは補充後も生産を保留します。';
   if(/MOTION_CONFIG/.test(message))return '停止旋回・荷役姿勢の設定を確認してください。旋回角速度は正のdeg/s、4相の時間は0以上の分で明示します。未確定値は補完しません。';
+  if(/TASK_PRIORITY_CONFIG|taskPriorities/.test(message))return '搬送タスク優先度を確認してください。包装機出口・マガジン5台・系列8本のすべてに1～99の整数を指定します。同じ値は使用できます。';
   if(/waiting return target|normal waiting place|shared normal waiting priority/.test(message))return '共通の帰還先はHP1 → HP2 → 柱前東 → 柱前西です。4か所すべてへの合成経路が接続されている必要があります。AGF別の固定割当は使用できません。';
   if(/initial parking|initial HP capacity/.test(message))return '初期停止位置が重複しています。HP1・HP2・充電場所1・充電場所2へ4台を重複なく配置してください。';
   if(/duplicate|already reserved|reserved temporary/.test(message))return '二重予約です。同じパレットの既存予約を確認してください。';
@@ -112,7 +113,7 @@ function friendlyError(error) {
   return message;
 }
 function showError(error,{settings=false}={}){$('error').textContent=friendlyError(error);$('error').hidden=false;
-  if(settings||/WAREHOUSE_CONFIG|PRODUCTION_CONFIG/.test(error.message??'')){
+  if(settings||/WAREHOUSE_CONFIG|PRODUCTION_CONFIG|TASK_PRIORITY_CONFIG/.test(error.message??'')){
     showView('settings');applySettingsError($('settings-form'),error);
   }
 }
