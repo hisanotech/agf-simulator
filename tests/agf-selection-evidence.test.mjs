@@ -42,7 +42,10 @@ test('explicit cross-area fallback and area-independent low battery selection re
   const agfs=[vehicle('AGF1','PZ',70),vehicle('AGF2','PZ',60)];
   assert.equal(decide(agfs).selection.basis,'cross_area_fallback');
   assert.equal(decide(agfs).agf.id,'AGF2');
-  assert.deepEqual(decide(agfs,'area_first','wait'),{agf:null,selection:null});
+  const waiting=decide(agfs,'area_first','wait');
+  assert.equal(waiting.agf,null);assert.equal(waiting.selection.selectedAgfId,null);
+  assert.deepEqual(waiting.selection.candidates,[]);
+  assert.ok(waiting.selection.evaluations.every(e=>!e.eligible&&e.exclusionReason==='AREA_FALLBACK_DISABLED'));
   const all=decide([...agfs,vehicle('AGF3','WH',90)],'low_battery_first');
   assert.equal(all.selection.basis,'all_areas');assert.equal(all.agf.id,'AGF2');
 });
@@ -69,6 +72,9 @@ test('graph assignment records only the final route-feasible candidates and sele
   assert.equal(assigned.dispatchSelection.basis,'cross_area_fallback');
   assert.equal(assigned.dispatchSelection.eligibleAgfIds.includes(input.agfs[0].id),false);
   assert.deepEqual(assigned.dispatchSelection.candidates.map(a=>a.agfId),input.agfs.slice(1).map(a=>a.id));
+  assert.equal(assigned.dispatchSelection.evaluations.length,4);
+  const excluded=assigned.dispatchSelection.evaluations.find(e=>e.agfId===input.agfs[0].id);
+  assert.equal(excluded.eligible,false);assert.equal(excluded.exclusionReason,'PICKUP_ROUTE_UNREACHABLE');
 });
 
 test('developer event CSV preserves saved selection evidence as a separate object',()=>{

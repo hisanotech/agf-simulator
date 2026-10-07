@@ -1,4 +1,4 @@
-import {clock,escapeHtml as esc,reasons} from './format.mjs';
+import {clock,escapeHtml as esc,reasons,states} from './format.mjs';
 
 export const TRANSPORT_HISTORY_COLUMNS=Object.freeze(['発生時刻','履歴区分','搬送No.','搬送パターン','パレットID','系列','AGF','発生場所','状態・内容','理由','詳細']);
 const dash='－';
@@ -54,11 +54,77 @@ const warehouseSlot=/^(WB[1-3]|EB[12])-R(\d+)-C(\d+)-T([12])$/;
 const hasNumber=value=>Number.isFinite(value);
 const quantityChange=event=>hasNumber(event.quantityBefore)&&hasNumber(event.quantityAfter)?`${event.quantityBefore}→${event.quantityAfter} PL`:null;
 const selectionArea=area=>({PZ:'パレタイズエリア',WH:'製品倉庫'})[area]??'エリア未記録';
+const savedStatusLabel=status=>states[String(status??'').toLowerCase()]??
+  ({error:'異常',comm_error:'通信異常',manual:'有人モード',picking:'荷受け中',dropping:'荷下ろし中'})[String(status??'').toLowerCase()]??'状態未記録';
+const threshold=value=>hasNumber(value)?Number(value.toFixed(1))+'%':'未記録';
+const dispatchWaitCause=(selection,event)=>{
+  const reason=selection.taskExclusionReason??event.reason;
+  if(reason==='NO_AREA_AGF')return `目的地の${selectionArea(selection.destinationArea)}に候補なし`;
+  return reasons[reason]??(reason==='ALIGNER_PERMISSION'?'整列機の荷受け許可待ち':
+    /[ぁ-んァ-ヶ一-龯]/.test(reason??'')?reason:'搬送条件の確認待ち');
+};
+const hasEvaluations=selection=>Array.isArray(selection?.evaluations);
+
+function completeDispatchReason(event){
+  const selection=event.dispatchSelection,candidates=selection.candidates??[];
+  if(event.type==='TASK_WAITING'||!selection.selectedAgfId){
+    const cause=dispatchWaitCause(selection,event);
+    if(selection.taskExclusionReason){
+      const notEvaluated=selection.evaluations.length>0&&selection.evaluations.every(e=>e.evaluationStatus==='not_evaluated');
+      return cause+'。'+(notEvaluated?'AGF判定は未実施':'AGF選定を保留');
+    }
+    return `${cause}（候補${candidates.length}台）`;
+  }
+  if(!candidates.length)return '選定理由未記録';
+  const count=candidates.length,id=selection.selectedAgfId;
+  let chosen=count===1?`候補1台の${id}を選定`:`候補${count}台の最低残量${id}を選定`;
+  if(count>1&&selection.tieBreak==='agf_id'){
+    const batteries=candidates.map(candidate=>candidate.batteryPct).filter(hasNumber),minimum=Math.min(...batteries);
+    const tied=candidates.filter(candidate=>candidate.batteryPct===minimum).length;
+    chosen=tied>1?`候補${count}台のうち最低残量が同じ${tied}台から${id}を選定`:chosen;
+    chosen+='（'+(selection.tieBreakEvidence==='synthetic-model-tiebreak'?
+      'AGF ID順・再現性のための仮定':'同残量の選定根拠未記録')+'）';
+  }
+  if(selection.basis==='destination_area')return `目的地の${selectionArea(selection.destinationArea)}優先。${chosen}`;
+  if(selection.basis==='cross_area_fallback')return `${selectionArea(selection.destinationArea)}に候補なし。他エリアの${chosen}（このRunの設定）`;
+  if(selection.basis==='all_areas')return 'エリア優先なし。'+chosen;
+  return '選定理由未記録';
+}
+
+function exclusionLabel(evaluation,selection){
+  return ({STATUS_NOT_AVAILABLE:'割当不可',BLOCKED:'利用不可',BATTERY_INVALID:'残量不正',
+    BATTERY_RESERVE:`選定下限${threshold(selection.reservePct)}以下`,
+    BATTERY_CHARGE_START:`充電開始${threshold(selection.chargeStartPct)}以下`,
+    AREA_NOT_PRIORITIZED:'目的地エリア外（優先対象外）',AREA_FALLBACK_DISABLED:'他エリア選定なし',
+    PICKUP_ROUTE_UNREACHABLE:'荷受け点への経路に到達不可',LOADED_ROUTE_UNREACHABLE:'荷下ろし先への経路に到達不可'})[evaluation.exclusionReason]??'判定理由未記録';
+}
+const savedVehicleSummary=(vehicle,{status=false,reason=null}={})=>`${vehicle.agfId}（${[
+  selectionArea(vehicle.area),hasNumber(vehicle.batteryPct)?vehicle.batteryPct.toFixed(1)+'%':'残量未記録',
+  status?savedStatusLabel(vehicle.status):null,reason].filter(Boolean).join('・')}）`;
+
+function completeDispatchDetail(selection,event){
+  const evaluations=selection.evaluations,byId=new Map(evaluations.map(e=>[e.agfId,e]));
+  const candidates=(selection.candidates??[]).map(candidate=>savedVehicleSummary({...byId.get(candidate.agfId),...candidate},{status:true}));
+  const excluded=evaluations.filter(e=>!e.eligible&&e.exclusionReason!=='TASK_PRECONDITION')
+    .map(e=>savedVehicleSummary(e,{status:true,reason:exclusionLabel(e,selection)}));
+  const held=evaluations.filter(e=>e.exclusionReason==='TASK_PRECONDITION');
+  const unevaluated=held.filter(e=>e.evaluationStatus==='not_evaluated').map(e=>savedVehicleSummary(e,{status:true}));
+  const evaluated=held.filter(e=>e.evaluationStatus!=='not_evaluated').map(e=>savedVehicleSummary(e,{status:true}));
+  return [selection.selectedAgfId?'選定 '+savedVehicleSummary({agfId:selection.selectedAgfId,area:selection.selectedArea,
+    batteryPct:selection.selectedBatteryPct}):'選定なし',
+    '候補 '+(candidates.join('、')||'なし'),excluded.length?'対象外 '+excluded.join('、'):held.length?null:'対象外 なし',
+    unevaluated.length?'未評価 '+unevaluated.join('、'):null,evaluated.length?'選定保留 '+evaluated.join('、'):null,
+    selection.taskExclusionReason?'タスク条件 '+dispatchWaitCause(selection,event):null,
+    hasNumber(selection.reservePct)?`選定下限${threshold(selection.reservePct)}超`:null,
+    hasNumber(selection.chargeStartPct)?`充電開始${threshold(selection.chargeStartPct)}以下は対象外`:null]
+    .filter(Boolean).join('\n');
+}
 
 // Project the saved decision only: current settings and replay batteries cannot
 // establish why a vehicle was selected at an earlier assignment event.
 function dispatchSelectionReason(event){
   const selection=event.dispatchSelection;
+  if(hasEvaluations(selection))return completeDispatchReason(event);
   if(!selection?.candidates?.length)return '選定理由未記録';
   const single=selection.candidates.length===1;
   let reason;
@@ -91,6 +157,7 @@ export function transportHistoryLocation(id,topology,scenario){
 }
 const reasonText=(event)=>{
   if(event.type==='TASK_ASSIGNED')return dispatchSelectionReason(event);
+  if(event.type==='TASK_WAITING'&&hasEvaluations(event.dispatchSelection))return completeDispatchReason(event);
   if(event.automatic===true&&['ALIGNER_REFILL_OPERATED','ALIGNER_REFILLED'].includes(event.type))return '整列機5台がすべて0枚';
   const reason=event.reason??({LINE_BUFFER_BLOCKED:'LINE_BUFFER_FULL',PRODUCTION_RETRY_WAITING_BUFFER:'LINE_BUFFER_FULL',
     PRODUCTION_BLOCKED_EMPTY_PALLET:'EMPTY_PALLET',PRODUCTION_BLOCKED_RECOVERY_POLICY:'RECOVERY_POLICY_UNSET',
@@ -141,11 +208,17 @@ function details(event,{task,agf,scenario,chargeStarts}){
     return [hasNumber(waitMs)?`停止${(waitMs/60000).toFixed(1)}分`:null,change].filter(Boolean).join(' / ')||dash;
   }
   if(type==='TASK_PICKED'&&change)return 'バッファ '+change;
+  if(['TASK_ASSIGNED','TASK_WAITING'].includes(type)&&hasEvaluations(event.dispatchSelection))
+    return completeDispatchDetail(event.dispatchSelection,event);
+  if(type==='TASK_WAITING'&&event.dispatchSelection)return [
+    event.dispatchSelection.taskExclusionReason?'タスク条件 '+dispatchWaitCause(event.dispatchSelection,event):null,
+    '全台評価未記録',hasNumber(event.waitMs)?`待ち${(event.waitMs/60000).toFixed(1)}分`:null].filter(Boolean).join(' / ');
   if(type==='TASK_ASSIGNED'){
     const selection=event.dispatchSelection,battery=selection?.selectedBatteryPct??event.batteryPct??agf?.batteryPct;
     const candidates=selection?.candidates?.map(candidate=>`${candidate.agfId}（${selectionArea(candidate.area)}${hasNumber(candidate.batteryPct)?`・残量${candidate.batteryPct.toFixed(1)}%`:''}）`).join('、');
     return [event.agfId??task?.agfId,hasNumber(battery)?`残量${battery.toFixed(1)}%`:null,
-      candidates?'選定時候補：'+candidates:null,hasNumber(selection?.reservePct)?`選定条件：残量${selection.reservePct.toFixed(1)}%超`:null]
+      candidates?'選定時候補：'+candidates:null,hasNumber(selection?.reservePct)?`選定条件：残量${selection.reservePct.toFixed(1)}%超`:null,
+      selection?'全台評価未記録':null]
       .filter(Boolean).join(' / ')||dash;
   }
   if(type==='STORE_COMPLETED'){
@@ -177,7 +250,8 @@ export function buildTransportHistoryRows(run,{timeMs=Infinity,agfId='',taskId='
     const definition=businessEvents[event.type];if(!definition)continue;
     const saved=run.snapshots?.[index],task=saved?.tasks?.find(task=>task.id===event.taskId)??finalTasks.get(event.taskId);
     const preTask=productionTypes.has(event.type),eventTaskId=preTask?null:event.taskId;
-    const assigned=preTask?null:event.agfId??(event.type==='TASK_REQUESTED'?null:task?.agfId);
+    const assigned=preTask?null:event.type==='TASK_WAITING'&&hasEvaluations(event.dispatchSelection)?
+      event.dispatchSelection.selectedAgfId:event.agfId??(event.type==='TASK_REQUESTED'?null:task?.agfId);
     const agf=saved?.agfs?.find(agf=>agf.id===assigned);
     const palletId=event.palletId??event.plannedPalletId??task?.palletId??null;
     const pallet=saved?.pallets?.find(pallet=>pallet.palletId===palletId);
@@ -203,4 +277,4 @@ export function buildTransportHistoryRows(run,{timeMs=Infinity,agfId='',taskId='
   return rows;
 }
 export const transportHistoryCells=row=>[clock(row.timeMs),row.category,row.taskId,row.kind,row.palletId,row.lineId,row.agfId,row.location,row.content,row.reason,row.detail];
-export const renderTransportHistoryRows=rows=>rows.map(row=>`<tr>${transportHistoryCells(row).map((value,index)=>`<td${[0,2,3,4].includes(index)?' class="mono"':index===9?' class="reason"':''}>${esc(value)}</td>`).join('')}</tr>`).join('');
+export const renderTransportHistoryRows=rows=>rows.map(row=>`<tr>${transportHistoryCells(row).map((value,index)=>`<td${[0,2,3,4].includes(index)?' class="mono"':index===9?' class="reason"':index===10&&['TASK_ASSIGNED','TASK_WAITING'].includes(row.type)?' class="dispatch-detail"':''}>${esc(value)}</td>`).join('')}</tr>`).join('');

@@ -61,4 +61,5 @@ dialog{background:#1e293b;border:1px solid #4b627c;border-radius:14px;color:#f8f
 .map-actions button{white-space:nowrap;flex-shrink:0}
 .transport-history table{min-width:1450px}.transport-history th,.transport-history td{font-size:12px}
 .transport-history td:nth-child(9),.transport-history td:nth-child(10),.transport-history td:nth-child(11){white-space:normal;min-width:150px;line-height:1.6}
+.transport-history td.dispatch-detail{white-space:pre-line;min-width:350px}
 .history-actions{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:14px}.history-actions .actions{flex-wrap:wrap}

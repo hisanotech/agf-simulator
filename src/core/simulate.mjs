@@ -261,11 +261,11 @@ export function simulate(rawScenario) {
     queue.push({timeMs,order:order++,type,...fields,
       ...(motionEvent?{movementGeneration:moving?.movementGeneration}:{})});
   };
-  const hold = (task, reason) => {
+  const hold = (task, reason, fields={}) => {
     if (task.waitReason !== reason) {
       task.waitReason=reason;
       if(['02','05'].includes(task.kind))task.storageResult='held';
-      record('TASK_WAITING',{taskId:task.id,kind:task.kind,palletId:task.palletId ?? null,reason});
+      record('TASK_WAITING',{taskId:task.id,kind:task.kind,palletId:task.palletId ?? null,reason,...fields});
     }
   };
   const heading=(fromNodeId,toNodeId)=>{
@@ -882,6 +882,18 @@ export function simulate(rawScenario) {
       if (a) completeDrop(t,a);
     }
   };
+  const vehicleEvaluation=a=>({agfId:a.id,area:a.area,batteryPct:a.batteryPct,status:a.status,
+    eligible:false,vehicleEligible:false,exclusionReason:null,selected:false,evaluationStatus:'not_evaluated'});
+  const evaluationOrder=(a,b)=>String(a.agfId).localeCompare(String(b.agfId),'en');
+  const taskGateSelection=(task,reason,selection=null)=>({
+    ...(selection??{mode:scenario.mode,destinationArea:task.destinationArea,reservePct:battery.reservePct,
+      fallback,basis:'task_precondition',eligibleAgfIds:[],stages:[]}),
+    selectedAgfId:null,selectedArea:null,selectedBatteryPct:null,candidates:[],tieBreak:'none',tieBreakEvidence:null,
+    taskExclusionReason:reason,chargeStartPct:postTaskPolicy?battery.chargeStartPct:null,
+    evaluations:(selection?.evaluations??agfs.map(vehicleEvaluation)).map(e=>e.eligible||!selection?
+      {...e,eligible:false,selected:false,exclusionReason:'TASK_PRECONDITION',taskExclusionReason:reason}:{...e,selected:false}).sort(evaluationOrder),
+    stages:[...(selection?.stages??[]),{stage:'task_precondition',reason,eligibleAgfIds:[]}]
+  });
   const dispatch = () => {
     for (const id of pending) {
       const t=tasks.get(id);
@@ -891,45 +903,76 @@ export function simulate(rawScenario) {
       // an extra physical input slot. Actual drops still enforce input capacity.
       if(graphMode&&['01','04'].includes(t.kind)&&
         wrapperInboundReservations.size>=scenario.wrapper.inboundAgfLimit){
-        hold(t,'WRAPPER_INBOUND_LIMIT');continue;
+        hold(t,'WRAPPER_INBOUND_LIMIT',{dispatchSelection:taskGateSelection(t,'WRAPPER_INBOUND_LIMIT')});continue;
       }
       if(warehousePolicy&&t.kind==='05'&&!t.destinationId){
         const p=pallets.get(t.palletId),choice=chooseWarehouseLocation({pallet:p,policy:warehousePolicy,slots,pallets,rowBusy});
-        if(!choice.location){hold(t,choice.reason);continue;}
+        if(!choice.location){hold(t,choice.reason,{dispatchSelection:taskGateSelection(t,choice.reason)});continue;}
         required(reserveSlot(choice.location.id,p.palletId),'05 automatic destination reservation failed');
         t.destinationId=choice.location.id;p.destinationLocationId=choice.location.id;
         Object.assign(t,{storageLocationId:choice.location.id,blockId:choice.location.blockId,row:choice.location.row,
           column:choice.location.column,tier:choice.location.tier,storageResult:'reserved'});
         record('WAREHOUSE_LOCATION_RESERVED',{taskId:t.id,palletId:p.palletId,locationId:choice.location.id});
       }
-      const available=a=>(a.status==='idle'||(postTaskPolicy&&a.status==='dispatch_pending'))&&
-        (!postTaskPolicy||a.batteryPct>battery.chargeStartPct);
-      const choose=values=>{
-        const decision=selectAgfWithReason(values.filter(available).map(a=>a.status==='dispatch_pending'?{...a,status:'idle'}:a),
-          {destinationArea:t.destinationArea},{mode:scenario.mode,reservePct:battery.reservePct,fallback});
-        return {agf:values.find(a=>a.id===decision.agf?.id)??null,selection:decision.selection};
+      const available=(a,evaluation=null)=>{
+        const statusAvailable=a.status==='idle'||(postTaskPolicy&&a.status==='dispatch_pending');
+        const batteryAvailable=!postTaskPolicy||a.batteryPct>battery.chargeStartPct;
+        if(evaluation){
+          evaluation.evaluationStatus='evaluated';
+          if(!statusAvailable)evaluation.exclusionReason='STATUS_NOT_AVAILABLE';
+          else if(!batteryAvailable)evaluation.exclusionReason=Number.isFinite(a.batteryPct)?'BATTERY_CHARGE_START':'BATTERY_INVALID';
+        }
+        return statusAvailable&&batteryAvailable;
       };
-      const {agf:a,selection:initialSelection}=choose(agfs);
-      if (!a) {hold(t,'NO_ELIGIBLE_AGF'); continue;}
+      const choose=(values,pass)=>{
+        const evaluations=values.map(vehicleEvaluation),byEvaluation=new Map(evaluations.map(e=>[e.agfId,e]));
+        const availableValues=values.filter(a=>available(a,byEvaluation.get(a.id)));
+        const availability={stage:'availability',pass,eligibleAgfIds:availableValues.map(a=>a.id).sort(),
+          excluded:evaluations.filter(e=>e.exclusionReason).map(e=>({agfId:e.agfId,exclusionReason:e.exclusionReason})).sort(evaluationOrder)};
+        const decision=selectAgfWithReason(availableValues.map(a=>a.status==='dispatch_pending'?{...a,status:'idle'}:a),
+          {destinationArea:t.destinationArea},{mode:scenario.mode,reservePct:battery.reservePct,fallback});
+        const selectorEvaluations=new Map(decision.selection.evaluations.map(e=>[e.agfId,e]));
+        return {agf:values.find(a=>a.id===decision.agf?.id)??null,selection:{...decision.selection,
+          chargeStartPct:postTaskPolicy?battery.chargeStartPct:null,
+          evaluations:evaluations.map(e=>({...e,...selectorEvaluations.get(e.agfId),status:e.status})).sort(evaluationOrder),
+          stages:[availability,...decision.selection.stages.map(stage=>({...stage,pass}))]}};
+      };
+      const {agf:a,selection:initialSelection}=choose(agfs,'initial');
+      if (!a) {hold(t,'NO_ELIGIBLE_AGF',{dispatchSelection:initialSelection}); continue;}
       if (t.kind === '03') {
         const source=aligners.get(t.alignerId);
         required(source?.quantity===10&&source.reservedTaskId===t.id,'03 source must remain loaded and reserved');
-        if(source.permission===false||source.blocked){hold(t,'ALIGNER_PERMISSION');continue;}
+        if(source.permission===false||source.blocked){hold(t,'ALIGNER_PERMISSION',
+          {dispatchSelection:taskGateSelection(t,'ALIGNER_PERMISSION',initialSelection)});continue;}
       }
       let selected=a,routePair=null,dispatchSelection=initialSelection;
       if(graphMode){
         const candidates=[];
+        const routeEvaluations=new Map(initialSelection.evaluations.map(e=>[e.agfId,{...e}]));
         for(const candidate of agfs){
           if(!available(candidate)||candidate.batteryPct<=battery.reservePct)continue;
           const empty=routeFor(candidate.currentNodeId,t.originId,'empty',t.kind);
           const originNodeId=resolveInterfaceNode(topology,t.originId);
           const loaded=originNodeId?routeFor(originNodeId,t.destinationId,'loaded',t.kind):null;
+          const evaluation=routeEvaluations.get(candidate.id);
+          evaluation.pickupRouteReachable=!!empty;evaluation.loadedRouteReachable=!!loaded;
+          if(evaluation.vehicleEligible&&(!empty||!loaded)){
+            evaluation.eligible=false;evaluation.selected=false;
+            evaluation.exclusionReason=!empty?'PICKUP_ROUTE_UNREACHABLE':'LOADED_ROUTE_UNREACHABLE';
+          }
           if(empty&&loaded)candidates.push({candidate,empty,loaded});
         }
-        const decision=choose(candidates.map(item=>item.candidate));
-        selected=decision.agf;dispatchSelection=decision.selection;
+        const decision=choose(candidates.map(item=>item.candidate),'route_qualified');
+        const finalEvaluations=new Map(decision.selection.evaluations.map(e=>[e.agfId,e]));
+        const routeStage={stage:'route',eligibleAgfIds:candidates.map(item=>item.candidate.id).sort(),
+          excluded:[...routeEvaluations.values()].filter(e=>['PICKUP_ROUTE_UNREACHABLE','LOADED_ROUTE_UNREACHABLE'].includes(e.exclusionReason))
+            .map(e=>({agfId:e.agfId,exclusionReason:e.exclusionReason})).sort(evaluationOrder)};
+        selected=decision.agf;dispatchSelection={...decision.selection,
+          evaluations:[...routeEvaluations.values()].map(e=>({...e,...finalEvaluations.get(e.agfId),
+            selected:e.agfId===selected?.id})).sort(evaluationOrder),
+          stages:[...initialSelection.stages,routeStage,...decision.selection.stages]};
         routePair=candidates.find(item=>item.candidate===selected)??null;
-        if(!selected||!routePair){hold(t,'UNREACHABLE_ROUTE');continue;}
+        if(!selected||!routePair){hold(t,'UNREACHABLE_ROUTE',{dispatchSelection});continue;}
       }
       if(postTaskPolicy)releasePlaces(selected);
       t.status='moving_empty'; t.assignedAt=now; t.agfId=selected.id; t.waitReason=null;
