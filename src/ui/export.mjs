@@ -17,13 +17,13 @@ export function eventCsv(run,runId) {
     'status','lineId','magazineId','locationId','reason','inputKind','edgeId','laneId','fromNodeId','toNodeId','nodeId','movement','heading','modelDurationMs',
     'headingDeg','fromHeadingDeg','targetHeadingDeg','angleDeg','startedAt','completedAt','turnDurationMs','turnRateDegPerSec','turnRateEvidence',
     'phase','phaseDurationMs','handlingEvidence','turningConsumesBattery','turningBatteryEvidence','motionControlJson',
-    'planId','otherAgfId','blockedAgfId','agfIds','conflictGroupId','selectionReason','selectionEvidence','routeEvidence',
+    'planId','otherAgfId','blockedAgfId','agfIds','conflictGroupId','selectionReason','selectionEvidence','dispatchSelection','routeEvidence',
     'resourceIds','temporaryReverseEdgeIds','waitingPositionEvidence','waitMs','reservationCount','inputCount',
     'conveyorQuantity','conveyorCapacity','transferTimingEvidence',
     'operation','positioningMs','forkInsertedMs','angleEvidence','turningConsumptionStatus','resources','blockers','noOvertakingGroupId','groupDirection',
     'shutterId','passable','etaStatus','target','targetId','permitted','permissionEvidence','hpId','placeId','chargePlaceId','chargerId',
     'sourceLineId','productType','loadType','storageLocationId','blockId','row','column','tier','storageResult',
-    'alignerId','quantityBefore','quantityAfter','quantity','refillBatch','refillNeeded','pickedAt','operatedAt','operationType',
+    'alignerId','quantityBefore','quantityAfter','quantity','refillBatch','refillNeeded','pickedAt','operatedAt','operationType','automatic','trigger','timingEvidence',
     'originalDueAt','blockedSinceMs','lineCapacity','capacity','retry','recoveryPolicy','policy','count','sourceSelectionEvidence','evidence','plannedPalletId','palletStatus','processingTimeStatus','targetIds',
     'timingStatus','inventoryStatus','batteryModel','batteryConsumptionBasis','batteryScope','scenarioJson'];
   const cell=csvCell;

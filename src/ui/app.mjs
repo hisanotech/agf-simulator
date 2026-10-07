@@ -1,7 +1,7 @@
 import {simulate} from '../core/simulate.mjs';
 import {projectBatteryPct,batteryModel} from '../core/battery-model.mjs';
 import {projectAgfPosition} from '../core/motion-projection.mjs';
-import {createDemoScenario,initialAgfFromSettings} from './scenario.mjs';
+import {createDemoScenario,initialAgfFromSettings,alignerRefillPolicyDescription} from './scenario.mjs';
 import {syntheticMetricLayout} from '../../examples/synthetic-metric-layout.mjs';
 import {loadLocalMetricProfile} from './metric-profile.mjs';
 import {snapshotIndexAt,replayFrameTime,analyzeRun,compareRuns,effectiveStatus,workingStatuses} from './replay-model.mjs';
@@ -246,6 +246,7 @@ function renderLog(){
   $('log').innerHTML=renderTransportHistoryRows(shown)||'<tr><td class="empty-cell" colspan="11">この時刻・条件に該当する搬送履歴はありません。</td></tr>';
 }
 function renderTasks(){if(!result&&!preview)return;const snap=snapshot();
+  $('aligner-refill-policy').textContent=alignerRefillPolicyDescription((result??preview).scenario);
   $('task-time').textContent=clock(timeMs)+' 時点';
   $('task-counts').innerHTML=['01','02','03','04','05'].map(kind=>{const own=snap.tasks.filter(t=>t.kind===kind),done=own.filter(t=>t.status==='completed').length;
     return `<div class="task-kind-card"><span class="kind">TRANSPORT ${kind}</span>${taskNames[kind]}<b>${own.length}</b><small>完了 ${done} / 未完了 ${own.length-done}</small></div>`;}).join('');

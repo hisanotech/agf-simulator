@@ -1,4 +1,4 @@
-import { selectAgf } from './select-agf.mjs';
+import { selectAgfWithReason } from './select-agf.mjs';
 import { batteryModel, validateBatteryModel, createBatteryLedger } from './battery-model.mjs';
 import {validateOperationalTopology,findOperationalPath,resolveInterfaceNode,splitSyntheticDisplayTurns} from '../map/operational-topology.mjs';
 import {createTrafficController} from './traffic-controller.mjs';
@@ -148,6 +148,10 @@ export function simulate(rawScenario) {
     return [a.id,{...a,quantity,get ready(){return this.quantity>=10;},reservedTaskId:null}];
   }));
   required(aligners.size===alignerCfg.length,'duplicate aligner ID');
+  const alignerRefillPolicy=scenario.alignerRefillPolicy===undefined?'manual':scenario.alignerRefillPolicy;
+  required(['manual','all_empty_auto'].includes(alignerRefillPolicy),'invalid alignerRefillPolicy');
+  required(alignerRefillPolicy!=='all_empty_auto'||aligners.size===5,
+    'all_empty_auto alignerRefillPolicy requires five aligners');
   const coupledProduction=scenario.productionModel==='empty_pallet_supply';
   required(scenario.productionModel===undefined||['empty_pallet_supply','legacy_external_pallets'].includes(scenario.productionModel),
     'PRODUCTION_CONFIG: unknown productionModel');
@@ -560,6 +564,28 @@ export function simulate(rawScenario) {
     required(edge,'unknown explicit interference group');
     tryAvoidance(pair[0],[pair[1].id],edge,'INTERFERENCE');return true;
   };
+  const refillAligners=({alignerId=null,operationType,automatic=false})=>{
+    const targets=operationType==='all'?[...aligners.values()].sort(byId):[aligners.get(alignerId)];
+    const metadata=automatic?{automatic:true,policy:alignerRefillPolicy,trigger:'all_empty',
+      evidence:scenario.evidence?.alignerRefillPolicy??'explicit-scenario-setting',
+      timingEvidence:scenario.evidence?.alignerRefillTiming??'provisional-same-timestamp-event'}:{};
+    // All targets are checked before changing any quantity. Reloading does not
+    // alter pickup permissions, equipment blocks, or another task's reservation.
+    required(targets.every(a=>a&&(a.quantity===10||a.quantity===0&&!a.reservedTaskId)),
+      'aligner refill requires an empty unreserved aligner');
+    record('ALIGNER_REFILL_OPERATED',{alignerId,operationType,operatedAt:now,targetIds:targets.map(a=>a.id),...metadata});
+    for(const a of targets){
+      if(a.quantity===10)continue;
+      const quantityBefore=a.quantity;a.quantity=10;
+      record('ALIGNER_REFILLED',{alignerId:a.id,operationType,quantityBefore,quantityAfter:10,operatedAt:now,...metadata});
+    }
+  };
+  const refillAllEmptyAligners=()=>{
+    if(alignerRefillPolicy!=='all_empty_auto'||![...aligners.values()].every(a=>a.quantity===0))return;
+    // User-confirmed all-empty trigger. Same-timestamp loading is a provisional
+    // event-model assumption, not a measured reloading or processing duration.
+    refillAligners({operationType:'all',automatic:true});
+  };
   const issue03=()=>{
     // ID ordering is a deterministic model tie-break, not a facility priority.
     for(const m of [...magazines.values()].sort(byId)){
@@ -879,18 +905,18 @@ export function simulate(rawScenario) {
       const available=a=>(a.status==='idle'||(postTaskPolicy&&a.status==='dispatch_pending'))&&
         (!postTaskPolicy||a.batteryPct>battery.chargeStartPct);
       const choose=values=>{
-        const chosen=selectAgf(values.filter(available).map(a=>a.status==='dispatch_pending'?{...a,status:'idle'}:a),
+        const decision=selectAgfWithReason(values.filter(available).map(a=>a.status==='dispatch_pending'?{...a,status:'idle'}:a),
           {destinationArea:t.destinationArea},{mode:scenario.mode,reservePct:battery.reservePct,fallback});
-        return values.find(a=>a.id===chosen?.id)??null;
+        return {agf:values.find(a=>a.id===decision.agf?.id)??null,selection:decision.selection};
       };
-      const a=choose(agfs);
+      const {agf:a,selection:initialSelection}=choose(agfs);
       if (!a) {hold(t,'NO_ELIGIBLE_AGF'); continue;}
       if (t.kind === '03') {
         const source=aligners.get(t.alignerId);
         required(source?.quantity===10&&source.reservedTaskId===t.id,'03 source must remain loaded and reserved');
         if(source.permission===false||source.blocked){hold(t,'ALIGNER_PERMISSION');continue;}
       }
-      let selected=a,routePair=null;
+      let selected=a,routePair=null,dispatchSelection=initialSelection;
       if(graphMode){
         const candidates=[];
         for(const candidate of agfs){
@@ -900,7 +926,8 @@ export function simulate(rawScenario) {
           const loaded=originNodeId?routeFor(originNodeId,t.destinationId,'loaded',t.kind):null;
           if(empty&&loaded)candidates.push({candidate,empty,loaded});
         }
-        selected=choose(candidates.map(item=>item.candidate));
+        const decision=choose(candidates.map(item=>item.candidate));
+        selected=decision.agf;dispatchSelection=decision.selection;
         routePair=candidates.find(item=>item.candidate===selected)??null;
         if(!selected||!routePair){hold(t,'UNREACHABLE_ROUTE');continue;}
       }
@@ -909,7 +936,8 @@ export function simulate(rawScenario) {
       t.emptyRoute=graphMode?saveRoute(routePair.empty):null;t.loadedRoute=graphMode?saveRoute(routePair.loaded):null;
       selected.status='moving_empty'; selected.taskId=t.id;
       if(graphMode&&['01','04'].includes(t.kind))wrapperInboundReservations.add(t.id);
-      record('TASK_ASSIGNED',{taskId:t.id,kind:t.kind,agfId:selected.id,palletId:t.palletId ?? null});
+      record('TASK_ASSIGNED',{taskId:t.id,kind:t.kind,agfId:selected.id,palletId:t.palletId ?? null,
+        dispatchSelection});
       if(graphMode)beginRoute(t,selected,'empty',routePair.empty,'PICKUP',minute(times.pickupMin));
       else schedule(now+minute(times.emptyMin+times.pickupMin),'PICKUP',{taskId:t.id});
     }
@@ -1112,6 +1140,7 @@ export function simulate(rawScenario) {
     productionModel:coupledProduction?'empty_pallet_supply':'legacy_external_pallets',
     mapStatus:graphMode?'synthetic-operational':'conceptual-only',
     timingStatus:graphMode?'synthetic-graph-assumption':'scenario-assumption'});
+  refillAllEmptyAligners();
   chargeIdleAgfs();
   const operatorPhase=e=>e.type==='ALIGNER_REFILL_OPERATED'?2:e.type==='SEGMENT_REQUEST'?1:0;
   const advanceWrapperWait=endMs=>{
@@ -1246,15 +1275,7 @@ export function simulate(rawScenario) {
       a.quantity=10; record('ALIGNER_READY',{alignerId:a.id,quantityBefore:0,quantityAfter:10,
         evidence:'legacy/test-only explicit aligner supply input'});
     } else if(e.type==='ALIGNER_REFILL_OPERATED'){
-      const targets=e.operationType==='all'?[...aligners.values()].sort(byId):[aligners.get(e.alignerId)];
-      record('ALIGNER_REFILL_OPERATED',{alignerId:e.alignerId??null,operationType:e.operationType,
-        operatedAt:now,targetIds:targets.map(a=>a.id)});
-      for(const a of targets){
-        if(a.quantity===10)continue;
-        required(a.quantity===0&&!a.reservedTaskId,'aligner refill requires an empty unreserved aligner');
-        const quantityBefore=a.quantity;a.quantity=10;
-        record('ALIGNER_REFILLED',{alignerId:a.id,operationType:e.operationType,quantityBefore,quantityAfter:10,operatedAt:now});
-      }
+      refillAligners({alignerId:e.alignerId??null,operationType:e.operationType});
     } else if(e.type==='INTERFERENCE_DETECTED'){
       record('INTERFERENCE_DETECTED',{agfIds:[...e.agfIds],conflictGroupId:e.conflictGroupId,evidence:e.evidence});
       if(!evaluateInterference(e)){
@@ -1542,6 +1563,7 @@ export function simulate(rawScenario) {
       if (!postTaskPolicy&&chargeQueue.length) startCharge(chargeQueue.shift());
     } else throw new Error('unsupported event '+e.type);
     for(let i=pendingInterferences.length-1;i>=0;i--)if(evaluateInterference(pendingInterferences[i]))pendingInterferences.splice(i,1);
+    refillAllEmptyAligners();
     wakeDrops(); wakePickups(); issue02(); issue03(); chargeIdleAgfs(); dispatch(); settleWaiting(); scheduleBlockedRetries();wakeAvoidance();
     if(!['SEGMENT_REQUEST','HANDLING_REQUEST'].includes(e.type))wakeWrapperInputs();
   }

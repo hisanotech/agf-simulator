@@ -1,7 +1,7 @@
 import {WAREHOUSE_BLOCKS,NORMAL_WAITING_PRIORITY} from '../map/warehouse-layout.mjs';
 import {syntheticWarehousePolicy} from '../../examples/synthetic-warehouse-policy.mjs';
 import {escapeHtml as esc,locationName} from './format.mjs';
-import {CONFIRMED_LINE_MAGAZINE_MAP} from './scenario.mjs';
+import {CONFIRMED_LINE_MAGAZINE_MAP,alignerRefillPolicyDescription} from './scenario.mjs';
 
 const rowIds=WAREHOUSE_BLOCKS.flatMap(b=>Array.from({length:b.rows},(_,i)=>`${b.id}-R${String(i+1).padStart(2,'0')}`));
 const label=(type,load)=>(type==='normal'?'普通銘柄':'特注銘柄')+'・'+(load==='full'?'満載':'端数');
@@ -153,6 +153,7 @@ const roman=['I','II','III','IV','V','VI','VII','VIII'];
 export function renderSupplySettings(s){
   const fixed=s.lineMagazineMapPolicy==='fixed',mapping=fixed?CONFIRMED_LINE_MAGAZINE_MAP:s.lineMagazineMap;
   return `<h3>空パレット供給・整列機初期装填</h3>
+    <p class="notice">${esc(alignerRefillPolicyDescription(s))}</p>
     <p class="notice">${fixed?'8系列と5マガジンはユーザー確認済みの固定対応です。この画面では変更できません。':'全系列の対応を明示するまでRunは開始できません。ここでの変更はこの検証シナリオだけに反映します。'}空時の再開方式は自動選択しません。</p>
     <div class="fields supply-mapping">${Array.from({length:8},(_,i)=>{const id='L'+(i+1);return `<label>GW${roman[i]} / ${id} 使用マガジン<select data-line-magazine="${id}" aria-label="${id} 使用マガジン"${fixed?' disabled':''}><option value="">未設定</option>${s.magazines.map(m=>`<option value="${esc(m.id)}" ${mapping?.[id]===m.id?'selected':''}>${esc(locationName(m.id))}（${esc(m.id)}）</option>`).join('')}</select></label>`;}).join('')}</div>
     <label>マガジン0枚停止後の再開方式<select id="magazine-recovery-policy"><option value="">未設定 · 補充後も生産保留</option><option value="immediate_retry">保留生産を補充直後に再試行</option><option value="next_takt">次のタクトから生産</option></select></label>

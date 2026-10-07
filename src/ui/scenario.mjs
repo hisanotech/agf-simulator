@@ -44,6 +44,11 @@ export function createDemoScenario(preset='standard',{metricProfile=null}={}) {
     s.warehouse.forEach(slot=>{slot.palletIds=[];slot.permission=true;});
     s.magazines.forEach(m=>{m.quantity=10;});
     s.aligners=s.aligners.map(a=>({id:a.id,quantity:10}));
+    // User-confirmed operating rule. Instant event ordering is an explicit
+    // provisional model assumption, never a measured reloading duration.
+    s.alignerRefillPolicy='all_empty_auto';
+    s.evidence.alignerRefillPolicy='user-confirmed-all-empty-auto';
+    s.evidence.alignerRefillTiming='provisional-same-timestamp-event';
     s.temporaryPallets=[];
     s.alignerRefillEvents=[];
     return withMetricLayout(s,metricProfile);
@@ -72,7 +77,7 @@ export function createLegacyScenario(preset='standard') {
       a.blockId.localeCompare(b.blockId,'en')).map(slot=>slot.id);
   return {
     preset,durationMin:180,mode:'area_first',fallback:'any',lineCapacity:2,
-    productionModel:'legacy_external_pallets',
+    productionModel:'legacy_external_pallets',alignerRefillPolicy:'manual',
     // Explicit regression assumption; not the unknown real machine angular rate.
     // Preserve legacy indivisible handling durations rather than guessing a split.
     motionControl:{turnRateDegPerSec:45,turnRateEvidence:'synthetic-assumption',turningConsumesBattery:true,turningBatteryEvidence:'synthetic-assumption',avoidanceTieBreakPolicy:null},
@@ -99,6 +104,13 @@ export function createLegacyScenario(preset='standard') {
     ...(preset==='physical'?{motionModel:'synthetic_graph',operationalTopology:structuredClone(syntheticTopology),
       shutterEvents:[]}:{})
   };
+}
+
+/** Japanese copy for the policy actually stored on a Run or preview. */
+export function alignerRefillPolicyDescription(scenario){
+  return scenario.alignerRefillPolicy==='all_empty_auto'?
+    '全5台が0枚になった時に全機10枚へ自動装填します。装填はモデル上の同一時刻イベントとして扱います（実測の所要時間は未確定）。個別・全機の手動補充も利用できます。':
+    'このRunの整列機は手動補充です。個別補充は対象機を、全機補充は全機を10枚に戻します。';
 }
 
 // Stagger only the first release as an explicit synthetic phase, independently of

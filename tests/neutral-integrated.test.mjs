@@ -45,7 +45,8 @@ function flowAssertions(run){
   }
   for(const initial of run.scenario.aligners){
     const picked=run.events.filter(e=>e.type==='ALIGNER_STACK_PICKED'&&e.alignerId===initial.id).length;
-    assert.equal(run.final.aligners[initial.id].quantity,initial.quantity-picked*10);
+    const supplied=sum(run.events.filter(e=>e.type==='ALIGNER_REFILLED'&&e.alignerId===initial.id).map(e=>e.quantityAfter-e.quantityBefore));
+    assert.equal(run.final.aligners[initial.id].quantity,initial.quantity-picked*10+supplied);
   }
   for(const event of run.events.filter(e=>e.type==='TASK_REQUESTED'&&e.kind==='03')){
     const task=run.snapshots[event.sequence].tasks.find(t=>t.id===event.taskId);
@@ -90,7 +91,7 @@ for(const mode of ['area_first','low_battery_first']){
 }
 
 test('neutral 3-hour supply boundary with all aligners empty records blocked production without a 03 task',()=>{
-  const scenario=configuredNeutralScenario();scenario.aligners.forEach(a=>a.quantity=0);
+  const scenario=configuredNeutralScenario();scenario.alignerRefillPolicy='manual';scenario.aligners.forEach(a=>a.quantity=0);
   const run=simulate(scenario),blocked=run.events.filter(e=>e.type==='PRODUCTION_BLOCKED_EMPTY_PALLET');
   assert.ok(blocked.length>0);assert.equal(run.final.tasks.filter(t=>t.kind==='03').length,0);
   assert.equal(run.events.filter(e=>e.type==='ALIGNER_RESERVED').length,0);

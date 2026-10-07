@@ -9,6 +9,8 @@ export const evidenceLabel=evidence=>({
   'private-dxf-proportions-provisional':'非公開図面の相対寸法に基づく暫定モデル・実測距離未確認',
   'unresolved':'未確定','unconfigured':'未設定','user-confirmed':'確認済み',
   'user-confirmed-neutral-start':'確認済みの初期条件',
+  'user-confirmed-all-empty-auto':'ユーザー確認済み・全機が空の時に自動装填',
+  'provisional-same-timestamp-event':'同一時刻の暫定モデル・実測装填時間ではありません',
   'supplier-assumption-user-relayed':'供給元の想定・ユーザー共有',
   'theoretical-pallet-discharge-100pct':'設備能力100%の理論タクト',
   'explicit-scenario-setting':'この実行の明示条件',
@@ -95,6 +97,12 @@ export function customerConditionRows(run){
   add('battery.turning','バッテリー・充電条件','旋回中の電池消費',control.turningConsumesBattery,'','',control.turningBatteryEvidence);
   for(const m of s.magazines??[])add('magazine.'+m.id,'設備初期状態','空パレット',m.quantity,'枚',customerLocationName(m.id),s.evidence?.inventory);
   for(const a of s.aligners??[])add('aligner.'+a.id,'設備初期状態','装填枚数',a.quantity??(a.ready?10:0),'枚',customerLocationName(a.id),s.evidence?.inventory);
+  const autoRefill=s.alignerRefillPolicy==='all_empty_auto';
+  add('aligner.refillPolicy','空パレット補充条件','整列機の装填ルール',
+    autoRefill?'全5台が0枚になった時に全機10枚へ自動装填':'手動補充','','',
+    s.alignerRefillPolicy===undefined?'legacy-model':s.evidence?.alignerRefillPolicy??'explicit-scenario-setting');
+  if(autoRefill)add('aligner.refillTiming','空パレット補充条件','自動装填時間の扱い',
+    '装填時間未確定・モデル上は同一時刻','','',s.evidence?.alignerRefillTiming??'provisional-same-timestamp-event');
   const traffic=s.operationalTopology?.trafficPolicy;
   const direction=value=>({west_to_east:'西→東',east_to_west:'東→西',north_to_south:'上→下',south_to_north:'下→上',both:'双方向'})[value]??'未設定';
   if(traffic){

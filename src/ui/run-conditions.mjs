@@ -7,7 +7,7 @@ const categories={RUN:'Run情報・根拠区分',EQUIPMENT:'設備の初期状�
   PRODUCTION:'8系列の生産条件',WRAPPER:'包装機',TIMING:'時間設定',GRAPH:'走行モデル',GRAPH_EDGE:'区間距離・接続',
   GRAPH_SPEED:'区間ごとの速度',GRAPH_NODE:'個別停止点・荷役姿勢占有',AVOIDANCE_PLAN:'明示された合成退避経路',
   CHARGING:'充電器・充電場所',BATTERY:'バッテリー・充電条件',MAGAZINE:'空パレットマガジン',
-  ALIGNER:'整列機の初期状態',WAREHOUSE:'倉庫の系列割当',MOTION_CONTROL:'停止旋回・荷役姿勢',
+  ALIGNER:'整列機の初期状態・装填ルール',WAREHOUSE:'倉庫の系列割当',MOTION_CONTROL:'停止旋回・荷役姿勢',
   INPUTS:'手動操作・入力イベント',REPRODUCIBILITY:'再現用Scenario'};
 const evidenceNames={'user-confirmed':'ユーザー確認済み','user-confirmed-initial-placement':'ユーザー確認済みの初期配置',
   'user-confirmed-shared-priority':'ユーザー確認済みの共通待機順位','synthetic':'合成値','synthetic-assumption':'合成モデルの仮定',
@@ -18,6 +18,8 @@ const evidenceNames={'user-confirmed':'ユーザー確認済み','user-confirmed
   'deterministic-model-tie-break':'再現性のためのモデル上の同率処理',
   'synthetic-model-tiebreak':'合成モデル限定の同率処理',
   'user-confirmed-neutral-start':'ユーザー確認済みのニュートラル初期状態',
+  'user-confirmed-all-empty-auto':'ユーザー確認済み（全機が空になった時に一括自動装填）',
+  'provisional-same-timestamp-event':'暫定モデルの同一時刻イベント（実測装填時間ではありません）',
   'user-confirmed-driving-and-handling':'ユーザー確認済み（走行・荷役）',
   'theoretical-pallet-discharge-100pct':'設備能力100%の理論タクト','synthetic-phases':'初回ずらしの合成仮定',
   'synthetic-intervals':'合成の搬出間隔','unreviewed':'未レビュー','legacy-model':'旧モデルの再現用',
@@ -29,6 +31,7 @@ const labels={id:'Run ID',executedAt:'実行日時',durationMin:'実行時間（
   inputCapacity:'投入容量（PL）',outputCapacity:'出口容量（PL）',inboundAgfLimit:'投入側へ割当可能なAGF上限（台）',
   conveyorCapacity:'内部コンベア保持容量（PL・処理中を含む）',
   initialQuantity:'初期枚数',capacity:'設定上限（枚）',trigger:'補充必要となる残数（枚）',refillBatch:'補充量（枚）',
+  alignerRefillPolicy:'整列機の装填ルール',alignerRefillTiming:'自動装填の時間の扱い',
   magazineEmptyRecoveryPolicy:'0枚停止後の再開方式',intervalMin:'搬出間隔（分）',offsetMin:'初回ずらし（分）',magazineId:'使用マガジン',
   destinationAreaPriority:'目的地エリア優先',batteryOrder:'バッテリー選定順',eligibility:'選定対象の条件',tieBreak:'同率時の処理',
   fallback:'目的地エリアに候補がない場合',consumptionModel:'消費モデル',activeReferenceMin:'基準稼働時間（分）',
@@ -131,6 +134,10 @@ export function buildRunConditions(run,{runId=run.runId??null,executedAt=run.exe
     add('MAGAZINE',m.id,'initialQuantity',m.quantity,evidence('inventory'));
     for(const key of ['capacity','trigger','refillBatch','permission'])add('MAGAZINE',m.id,key,m[key],evidence(key==='capacity'?'magazineCapacity':'structure'));
   }
+  add('ALIGNER','settings','alignerRefillPolicy',s.alignerRefillPolicy??'manual',
+    s.alignerRefillPolicy===undefined?'implementation-default':evidence('alignerRefillPolicy','explicit-scenario-setting'));
+  if(s.alignerRefillPolicy==='all_empty_auto')add('ALIGNER','settings','alignerRefillTiming','same_timestamp_event',
+    evidence('alignerRefillTiming','provisional-same-timestamp-event'));
   for(const a of s.aligners??[]){
     const legacy=a.quantity===undefined&&typeof a.ready==='boolean';
     add('ALIGNER',a.id,'initialQuantity',legacy?(a.ready?10:0):a.quantity,legacy?'legacy-ready-derived-model':evidence('inventory'));
@@ -173,6 +180,9 @@ const displayValue=(value,row)=>{
   if(value==='SPECIAL')return 'SPECIAL（特注）';
   if(value==='immediate_retry')return '補充直後に再試行（immediate_retry）';
   if(value==='next_takt')return '次タクトから再開（next_takt）';
+  if(value==='all_empty_auto')return '全5台が0枚になった時に全機10枚へ自動装填（all_empty_auto）';
+  if(value==='same_timestamp_event')return 'モデル上の同一時刻イベント・実測所要時間は未確定';
+  if(row.subkey==='alignerRefillPolicy'&&value==='manual')return '手動補充（manual）';
   if(value==='area_first')return 'エリア優先あり（area_first）';
   if(value==='low_battery_first')return 'エリア優先なし（low_battery_first）';
   if(value==='any')return '他エリアから選定（明示設定）';
