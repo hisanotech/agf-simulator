@@ -29,11 +29,13 @@ test('three-hour buffer recovery preserves one planned pallet through production
   assert.deepEqual(run.events,simulate(scenario).events);
 });
 
-test('history CSV uses exactly the same eleven Japanese cells as the displayed saved Run',()=>{
+test('history CSV uses exactly the same fourteen Japanese cells as the displayed saved Run',()=>{
   const run=simulate(bufferHistoryScenario({durationMin:60})),rows=buildTransportHistoryRows(run);
   const csv=transportHistoryCsv(run),records=csv.slice(1).split('\r\n');
   assert.ok(csv.startsWith('\ufeff'));assert.equal(records[0],TRANSPORT_HISTORY_COLUMNS.join(','));
-  assert.equal(TRANSPORT_HISTORY_COLUMNS.length,11);assert.equal(records.length,rows.length+1);
+  assert.equal(TRANSPORT_HISTORY_COLUMNS.length,14);assert.equal(records.length,rows.length+1);
+  assert.equal(TRANSPORT_HISTORY_COLUMNS.includes('理由'),false);
+  assert.ok(rows.every(row=>transportHistoryCells(row).length===14));
   const escape=value=>{const s=String(value??'');return /[",\r\n]/.test(s)?'"'+s.replaceAll('"','""')+'"':s;};
   assert.deepEqual(records.slice(1),rows.map(row=>transportHistoryCells(row).map(escape).join(',')));
   assert.equal(rows.some(row=>['SEGMENT_ENTERED','SEGMENT_EXITED','ROUTE_PLANNED'].includes(row.type)),false);

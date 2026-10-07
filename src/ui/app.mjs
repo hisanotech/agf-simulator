@@ -11,7 +11,7 @@ import {initCadPanel} from './cad-panel.mjs';
 import {populateExtendedSettings,readExtendedSettings,loadSyntheticSettingsExample,organizeSettings} from './extended-settings.mjs';
 import {eventCsv,conditionCsv,conditionCsvFilename} from './export.mjs';
 import {customerConditionsCsv,transportResultsCsv,agfResultsCsv,transportHistoryCsv,customerCsvFilename} from './customer-export.mjs';
-import {buildTransportHistoryRows,renderTransportHistoryRows} from './transport-history.mjs';
+import {TRANSPORT_HISTORY_COLUMNS,buildTransportHistoryRows,renderTransportHistoryRows} from './transport-history.mjs';
 import {appendRunInput,createInitialPreview} from './run-input.mjs';
 import {warehouseOwnerLegend} from './warehouse-colors.mjs';
 import {nativeInvalidFields,applySettingsError,clearSettingsErrors} from './settings-validation.mjs';
@@ -233,7 +233,7 @@ function renderSnapshot(){const run=result??preview;if(!run)return;const snap=sn
   renderLog();renderTasks();if($('warehouse-dialog').open)renderWarehouse();
 }
 function renderLog(){
-  if(!result){$('log-count').textContent='未実行';$('log').innerHTML='<tr><td colspan="11" class="empty-cell">初期状態のプレビューです。設定を反映して実行すると搬送履歴を表示します。</td></tr>';
+  if(!result){$('log-count').textContent='未実行';$('log').innerHTML=`<tr><td colspan="${TRANSPORT_HISTORY_COLUMNS.length}" class="empty-cell">初期状態のプレビューです。設定を反映して実行すると搬送履歴を表示します。</td></tr>`;
     $('history-page').textContent='';$('history-prev').disabled=true;$('history-next').disabled=true;return;}
   const agfFilter=$('log-agf').value,query=$('log-task').value.trim().toUpperCase();
   const rows=transportHistory.filter(row=>row.timeMs<=timeMs&&(!agfFilter||row.agfId===agfFilter)&&
@@ -243,7 +243,7 @@ function renderLog(){
   $('log-count').textContent=rows.length+'件';
   $('history-page').textContent=rows.length?`${start+1}～${start+shown.length}件 / 全${rows.length}件`:'0件';
   $('history-prev').disabled=page===0;$('history-next').disabled=page===lastPage;
-  $('log').innerHTML=renderTransportHistoryRows(shown)||'<tr><td class="empty-cell" colspan="11">この時刻・条件に該当する搬送履歴はありません。</td></tr>';
+  $('log').innerHTML=renderTransportHistoryRows(shown)||`<tr><td class="empty-cell" colspan="${TRANSPORT_HISTORY_COLUMNS.length}">この時刻・条件に該当する搬送履歴はありません。</td></tr>`;
 }
 function renderTasks(){if(!result&&!preview)return;const snap=snapshot();
   $('aligner-refill-policy').textContent=alignerRefillPolicyDescription((result??preview).scenario);

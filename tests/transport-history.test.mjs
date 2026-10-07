@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {buildTransportHistoryRows,transportHistoryCells,TRANSPORT_HISTORY_COLUMNS,renderTransportHistoryRows} from '../src/ui/transport-history.mjs';
 import {transportHistoryCsv,customerCsvFilename} from '../src/ui/customer-export.mjs';
 
-const headers=['発生時刻','履歴区分','搬送No.','搬送パターン','パレットID','系列','AGF','発生場所','状態・内容','理由','詳細'];
+const headers=['発生時刻','履歴区分','搬送No.','搬送パターン','パレットID','系列','AGF','AGF1状態','AGF2状態','AGF3状態','AGF4状態','発生場所','状態・内容','詳細'];
 function fixture(){
   const task={id:'TASK-012',kind:'01',palletId:'SIM-L2-4',sourceLineId:'L2',originId:'L2',destinationId:'WRAP-INPUT',agfId:'AGF2'};
   const events=[
@@ -21,7 +21,7 @@ function fixture(){
   return {runId:'SYNTHETIC-HISTORY',scenario:{durationMin:40,lineCapacity:3,battery:{chargeTargetPct:80}},events,
     snapshots:events.map(()=>({tasks:[task,queued],agfs:[{id:'AGF2',batteryPct:72.3}],pallets:[{palletId:'SIM-L2-5',sourceLineId:'L2'}]})),final:{tasks:[task,queued]}};
 }
-test('transport history has exactly eleven Japanese business columns shared with customer CSV',()=>{
+test('transport history has exactly fourteen Japanese business columns shared with customer CSV',()=>{
   const run=fixture(),rows=buildTransportHistoryRows(run),csv=transportHistoryCsv(run);
   assert.deepEqual(TRANSPORT_HISTORY_COLUMNS,headers);
   assert.ok(csv.startsWith('\ufeff'));
@@ -34,10 +34,12 @@ test('buffer stop release resume and transport follow the same planned pallet wi
   run.events=pairs.map(pair=>pair.event);run.snapshots=pairs.map(pair=>pair.snapshot);
   const rows=buildTransportHistoryRows(run),stopped=rows.find(row=>row.type==='LINE_BUFFER_BLOCKED');
   assert.deepEqual(rows.map(row=>row.sequence),[3,5,6,7,8,10]);
-  assert.deepEqual(transportHistoryCells(stopped),['00:20:00','生産停止','－','－','SIM-L2-5','L2','－','系列2','系列バッファ満杯・生産停止','系列バッファ空き待ち','3/3 PL']);
+  assert.deepEqual(transportHistoryCells(stopped),['00:20:00','生産停止','－','－','SIM-L2-5','L2','－','－','－','－','－','系列2','系列バッファ満杯・生産停止','系列バッファ空き待ち / 3/3 PL']);
+  assert.equal(Object.hasOwn(stopped,'reason'),false);
   assert.equal(rows.find(row=>row.type==='TASK_PICKED').detail,'バッファ 3→2 PL');
   assert.equal(rows.find(row=>row.type==='LINE_BUFFER_RELEASED').detail,'3→2 PL');
-  assert.equal(rows.find(row=>row.type==='PRODUCTION_RESUMED_FROM_BUFFER').detail,'停止15.0分 / 2→3 PL');
+  assert.equal(rows.find(row=>row.type==='PRODUCTION_RESUMED_FROM_BUFFER').detail,'バッファ空き / 停止15.0分 / 2→3 PL');
+  assert.ok(rows.every(row=>row.agfStates.every(state=>state==='－')));
   assert.equal(rows.find(row=>row.type==='TASK_REQUESTED').palletId,stopped.palletId);
   assert.equal(rows.find(row=>row.type==='TASK_PICKED').agfId,'AGF2');
 });
@@ -48,7 +50,7 @@ test('history filters use saved task assignment and never invent a task or expos
   assert.deepEqual(buildTransportHistoryRows(run,{agfId:'AGF2'}).map(row=>row.type),['TASK_PICKED','SHUTTER_WAITING']);
   assert.deepEqual(buildTransportHistoryRows(run,{taskId:'task-012'}).map(row=>row.type),['TASK_PICKED','SHUTTER_WAITING']);
   const html=renderTransportHistoryRows(rows);
-  assert.equal((html.split('</tr>')[0].match(/<td\b/g)??[]).length,11);
+  assert.equal((html.split('</tr>')[0].match(/<td\b/g)??[]).length,14);
   assert.doesNotMatch(html,/SEGMENT_ENTERED|PRIVATE-INTERNAL-EDGE|LINE_BUFFER_BLOCKED|SHUTTER_WAITING/);
   assert.equal(JSON.stringify(run),before);
 });
@@ -61,7 +63,7 @@ test('assignment storage charging and handling rows use business locations quant
     {type:'CHARGE_ENDED',timeMs:4,sequence:4,agfId:'AGF2',batteryPct:80}];
   run.snapshots=run.events.map(()=>({tasks:run.final.tasks,agfs:[{id:'AGF2',currentNodeId:'CHARGE-PLACE1',batteryPct:72.3}]}));
   const rows=buildTransportHistoryRows(run);
-  assert.equal(rows[0].detail,'AGF2 / 残量72.3%');
+  assert.equal(rows[0].detail,'－');assert.deepEqual(rows[0].agfStates,['－','－','－','－']);
   assert.equal(rows[1].content,'搬送01 荷受け開始');
   assert.equal(rows[2].location,'製品倉庫 WB3');assert.equal(rows[2].detail,'WB3-R05-C03-1段目');
   assert.equal(rows[3].location,'充電場所1');assert.equal(rows[4].detail,'39.8% → 80.0%');
@@ -70,7 +72,7 @@ test('assignment storage charging and handling rows use business locations quant
   assert.equal(held.location,'包装機 搬出口');
   assert.equal(held.taskId,'－');assert.equal(held.agfId,'－');
 });
-test('existing monitor table is replaced in place with eleven-column transport history and a separate history CSV action',()=>{
+test('existing monitor table uses fourteen-column transport history with a separate history CSV action',()=>{
   const html=readFileSync(new URL('../index.html',import.meta.url),'utf8'),app=readFileSync(new URL('../src/ui/app.mjs',import.meta.url),'utf8');
   const table=html.match(/<section class="panel event-panel[\s\S]*?<\/section>/)?.[0];
   assert.ok(table);assert.match(table,/<h2>搬送履歴/);assert.doesNotMatch(table,/イベントログ|イベント一覧|生産イベント一覧/);
@@ -87,7 +89,7 @@ test('refilled production awaiting its explicit next takt is not displayed as an
   const [row]=buildTransportHistoryRows(run);
   assert.equal(row.category,'生産停止');
   assert.equal(row.content,'空パレット補充済み・次タクト待ち');
-  assert.equal(row.reason,'補充済み・次タクト待ち');
+  assert.equal(row.detail,'補充済み・次タクト待ち');assert.equal(Object.hasOwn(row,'reason'),false);
   assert.equal(row.taskId,'－');
   assert.equal(row.agfId,'－');
   assert.equal(row.palletId,'SIM-L2-5');

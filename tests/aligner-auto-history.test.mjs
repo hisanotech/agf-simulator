@@ -23,15 +23,16 @@ test('automatic aligner loading has Japanese causal and provisional timing expla
   assert.equal(rows.length,6);
   assert.equal(rows[0].content,'整列機全機自動装填');
   assert.equal(rows[0].location,'整列機 全機');
-  assert.match(rows[0].reason,/整列機5台がすべて0枚/);
+  assert.match(rows[0].detail,/整列機5台がすべて0枚/);
   assert.match(rows[0].detail,/全5台を各10枚へ/);
   for(const row of rows.slice(1)){
     assert.equal(row.content,'整列機自動装填');assert.match(row.detail,/0→10 枚/);
-    assert.match(row.reason,/整列機5台がすべて0枚/);
+    assert.match(row.detail,/整列機5台がすべて0枚/);
   }
   for(const row of rows){
     assert.match(row.detail,/装填時間未確定/);assert.match(row.detail,/同一時刻の暫定モデル/);
-    assert.doesNotMatch(row.content,/手動/);assert.equal(transportHistoryCells(row).length,11);
+    assert.doesNotMatch(row.content,/手動/);assert.equal(transportHistoryCells(row).length,14);
+    assert.equal(Object.hasOwn(row,'reason'),false);assert.deepEqual(row.agfStates,['－','－','－','－']);
   }
   assert.match(transportHistoryCsv(run),/整列機全機自動装填/);
   assert.match(renderTransportHistoryRows(rows),/整列機自動装填/);
@@ -44,7 +45,7 @@ test('automatic loading detailed CSV preserves automatic trigger and timing evid
   run.events=run.events.map(({automatic,trigger,policy,evidence,timingEvidence,...event})=>event);
   const rows=buildTransportHistoryRows(run);
   assert.equal(rows[0].content,'整列機補充操作');assert.equal(rows[1].content,'整列機手動補充');
-  assert.equal(rows[1].detail,'0→10 枚');assert.equal(rows[0].reason,'－');
+  assert.equal(rows[1].detail,'0→10 枚');assert.equal(rows[0].detail,'－');
 });
 
 test('ordinary result conditions and customer CSV disclose the saved automatic rule and unresolved reload duration',()=>{

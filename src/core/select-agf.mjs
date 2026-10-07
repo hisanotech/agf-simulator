@@ -11,7 +11,7 @@ export function selectAgfWithReason(agfs, task, { mode, reservePct, fallback = '
   if (!task || typeof task.destinationArea !== 'string' || !task.destinationArea)
     throw new Error('destinationArea required');
   if (!['wait', 'any'].includes(fallback)) throw new Error('Unknown fallback');
-  const evaluations=agfs.map(a=>({agfId:a.id,area:a.area,batteryPct:a.batteryPct,status:a.status,
+  const evaluations=agfs.map(a=>({agfId:a.id,area:a.area,batteryPct:a.batteryPct,status:a.status,blocked:!!a.blocked,
     eligible:false,vehicleEligible:false,exclusionReason:null,selected:false,evaluationStatus:'evaluated'}));
   // Save each actual short-circuit rejection beside the existing predicates.
   const eligible = agfs.filter((a,index) => {

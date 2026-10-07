@@ -3,174 +3,180 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {buildTransportHistoryRows,transportHistoryCells,renderTransportHistoryRows,TRANSPORT_HISTORY_COLUMNS} from '../src/ui/transport-history.mjs';
 import {transportHistoryCsv} from '../src/ui/customer-export.mjs';
+import {eventCsv} from '../src/ui/export.mjs';
 
-// All saved dispatch decisions below are synthetic, never site observations.
-const evaluation=(agfId,area,batteryPct,extra={})=>({agfId,area,batteryPct,status:'idle',eligible:false,selected:false,
-  exclusionReason:null,evaluationStatus:'evaluated',...extra});
+// All dispatch decisions below are synthetic, never site observations.
+const dashes=['－','－','－','－'];
+const evaluation=(agfId,area,batteryPct,extra={})=>({agfId,area,batteryPct,status:'idle',blocked:false,
+  eligible:false,selected:false,exclusionReason:null,evaluationStatus:'evaluated',...extra});
 function decision(overrides={}){
   return {mode:'area_first',destinationArea:'WH',selectedAgfId:'AGF2',selectedArea:'WH',selectedBatteryPct:48.2,
     reservePct:40,chargeStartPct:40,fallback:'wait',basis:'destination_area',tieBreak:'none',tieBreakEvidence:null,
     candidates:[{agfId:'AGF2',area:'WH',batteryPct:48.2},{agfId:'AGF3',area:'WH',batteryPct:70}],
-    evaluations:[evaluation('AGF1','PZ',60,{status:'moving_empty',exclusionReason:'STATUS_NOT_AVAILABLE'}),
-      evaluation('AGF2','WH',48.2,{eligible:true,selected:true}),evaluation('AGF3','WH',70,{eligible:true}),
-      evaluation('AGF4','PZ',45,{exclusionReason:'AREA_NOT_PRIORITIZED'})],...overrides};
+    evaluations:[evaluation('AGF1','PZ',76.2,{status:'moving_empty',exclusionReason:'STATUS_NOT_AVAILABLE'}),
+      evaluation('AGF2','WH',48.2,{eligible:true,selected:true}),evaluation('AGF3','WH',71.5,{eligible:true}),
+      evaluation('AGF4','WH',39.8,{status:'charging',exclusionReason:'STATUS_NOT_AVAILABLE'})],...overrides};
 }
 function fixture(selection=decision(),type='TASK_ASSIGNED',reason){
-  const task={id:'TASK-SYNTHETIC-EXPLANATION',kind:'02',palletId:'SIM-L2-1',sourceLineId:'L2',
+  const task={id:'TASK-SYNTHETIC-STATE',kind:'02',palletId:'SIM-L2-1',sourceLineId:'L2',
     originId:'WRAP-OUTPUT',destinationId:'SYNTHETIC-STORAGE',destinationArea:'WH'};
   const event={type,timeMs:60000,sequence:0,taskId:task.id,kind:task.kind,palletId:task.palletId};
-  if(type==='TASK_ASSIGNED')event.agfId='AGF2';
-  if(reason)event.reason=reason;
-  if(selection)event.dispatchSelection=selection;
-  return {runId:'SYNTHETIC-DISPATCH-EXPLANATION',scenario:{mode:'area_first',battery:{reservePct:40,chargeStartPct:40}},
-    events:[event],snapshots:[{tasks:[task],agfs:[{id:'AGF2',area:'PZ',batteryPct:9,status:'charging'}]}],final:{tasks:[task]}};
+  if(type==='TASK_ASSIGNED')event.agfId='AGF2';if(reason)event.reason=reason;if(selection)event.dispatchSelection=selection;
+  return {runId:'SYNTHETIC-DISPATCH-STATE',scenario:{mode:'area_first',battery:{reservePct:40,chargeStartPct:40}},events:[event],
+    snapshots:[{tasks:[task],agfs:[{id:'AGF2',area:'PZ',batteryPct:9,status:'charging'}]}],final:{tasks:[task]}};
 }
 const firstRow=(selection,type,reason)=>buildTransportHistoryRows(fixture(selection,type,reason))[0];
 
-test('saved assignment explains all four AGFs and the final comparison pool with short multiline Japanese copy',()=>{
+test('assignment shows all four saved Japanese states side by side and selected AGF in the existing AGF column',()=>{
   const row=firstRow(decision());
-  assert.match(row.reason,/製品倉庫.*優先/);
-  assert.match(row.reason,/候補2台/);
-  assert.match(row.reason,/最低残量.*AGF2.*選定/);
-  assert.match(row.detail,/^選定 AGF2（製品倉庫・48\.2%）\n/);
-  const lines=row.detail.split('\n');
-  assert.match(lines.find(line=>line.startsWith('候補 ')),/AGF2.*48\.2%.*待機.*AGF3.*70\.0%/);
-  assert.doesNotMatch(lines.find(line=>line.startsWith('候補 ')),/AGF1|AGF4/);
-  assert.match(lines.find(line=>line.startsWith('対象外 ')),/AGF1.*60\.0%.*空走.*AGF4.*45\.0%.*目的地エリア外/);
-  assert.match(row.detail,/選定下限40%超/);
-  assert.doesNotMatch(row.reason+' '+row.detail,/STATUS_NOT_AVAILABLE|AREA_NOT_PRIORITIZED|moving_empty|idle|PZ|WH/);
+  assert.equal(row.agfId,'AGF2');assert.deepEqual(row.agfStates,['搬送中 / パレタイズエリア / 76.2%',
+    '待機 / 製品倉庫 / 48.2%','待機 / 製品倉庫 / 71.5%','充電中 / 製品倉庫 / 39.8%']);
+  assert.equal(row.detail,'－');assert.equal(Object.hasOwn(row,'reason'),false);
+  assert.doesNotMatch(transportHistoryCells(row).join(' '),/候補|対象外|選定下限|最低残量|STATUS_NOT_AVAILABLE|moving_empty|idle/);
+  const reordered=decision();reordered.evaluations.reverse();
+  assert.deepEqual(firstRow(reordered).agfStates,row.agfStates);
+  const selectionOnly=fixture();delete selectionOnly.events[0].agfId;
+  selectionOnly.final.tasks[0].agfId='AGF4';
+  assert.equal(buildTransportHistoryRows(selectionOnly)[0].agfId,'AGF2');
 });
 
-test('a single final candidate is identified without claiming a lowest-battery comparison',()=>{
+test('a single candidate uses the same concise state presentation without additional comparison text',()=>{
   const row=firstRow(decision({candidates:[{agfId:'AGF2',area:'WH',batteryPct:48.2}],evaluations:decision().evaluations.map(e=>
     e.agfId==='AGF3'?{...e,eligible:false,exclusionReason:'BLOCKED'}:e)}));
-  assert.match(row.reason,/候補1台.*AGF2.*選定/);
-  assert.doesNotMatch(row.reason,/最低残量|同残量|ID順/);
+  assert.equal(row.agfId,'AGF2');assert.equal(row.agfStates[2],'利用不可 / 製品倉庫 / 71.5%');
+  assert.equal(row.detail,'－');assert.doesNotMatch(transportHistoryCells(row).join(' '),/最低残量|候補1台|ID順/);
 });
 
-test('same minimum battery reports only the tied minimum count and requires saved ID tie-break evidence',()=>{
-  const candidates=[{agfId:'AGF2',area:'WH',batteryPct:48.2},{agfId:'AGF3',area:'WH',batteryPct:48.2},
-    {agfId:'AGF4',area:'WH',batteryPct:70}];
-  const selection=decision({candidates,tieBreak:'agf_id',tieBreakEvidence:'synthetic-model-tiebreak'});
-  assert.match(firstRow(selection).reason,/候補3台.*最低残量が同じ2台.*AGF2/);
-  assert.match(firstRow(selection).reason,/AGF ID順.*再現性のための仮定/);
-  const missingEvidence=firstRow({...selection,tieBreakEvidence:null});
-  assert.match(missingEvidence.reason,/同残量の選定根拠未記録/);
-  assert.doesNotMatch(missingEvidence.reason,/ID順|再現性のための仮定/);
-  const rounded=firstRow(decision({candidates:[{agfId:'AGF2',area:'WH',batteryPct:48.21},
-    {agfId:'AGF3',area:'WH',batteryPct:48.22}],selectedBatteryPct:48.21}));
-  assert.doesNotMatch(rounded.reason,/同じ|同残量|ID順/);
+test('equal-battery tie metadata remains internal and cannot change saved status presentation',()=>{
+  const selection=decision({tieBreak:'agf_id',tieBreakEvidence:'synthetic-model-tiebreak'});
+  const row=firstRow(selection),withoutEvidence=firstRow({...selection,tieBreakEvidence:null});
+  assert.deepEqual(withoutEvidence.agfStates,row.agfStates);assert.equal(row.detail,'－');
+  assert.doesNotMatch(transportHistoryCells(row).join(' '),/ID順|同残量|再現性|synthetic-model-tiebreak|agf_id/);
+  assert.equal(selection.tieBreakEvidence,'synthetic-model-tiebreak');
 });
 
-test('cross-area fallback records missing destination candidates and the saved Run option',()=>{
-  const row=firstRow(decision({basis:'cross_area_fallback',fallback:'any',selectedArea:'PZ',
-    candidates:[{agfId:'AGF2',area:'PZ',batteryPct:48.2}]}));
-  assert.match(row.reason,/製品倉庫に候補なし/);
-  assert.match(row.reason,/他エリア.*候補1台.*AGF2/);
-  assert.match(row.reason,/このRunの設定/);
+test('cross-area fallback status cells use saved vehicle areas and do not substitute the destination',()=>{
+  const selection=decision({basis:'cross_area_fallback',fallback:'any',selectedArea:'PZ',evaluations:decision().evaluations.map(e=>
+    e.agfId==='AGF2'?{...e,area:'PZ'}:e)});
+  const row=firstRow(selection);assert.equal(row.agfStates[1],'待機 / パレタイズエリア / 48.2%');
+  assert.equal(row.agfId,'AGF2');assert.equal(row.detail,'－');
 });
 
-test('all-area mode identifies its final comparison count without destination priority',()=>{
+test('all-area mode preserves every saved vehicle state without an area-priority explanation',()=>{
   const row=firstRow(decision({mode:'low_battery_first',basis:'all_areas'}));
-  assert.match(row.reason,/エリア優先なし.*候補2台.*AGF2/);
-  assert.doesNotMatch(row.reason,/目的地.*優先|他エリア/);
+  assert.deepEqual(row.agfStates,firstRow(decision()).agfStates);assert.equal(row.detail,'－');
 });
 
-test('every saved exclusion is translated and preserves the state, area, and battery used in the decision',async t=>{
+test('every recorded exclusion yields a concise Japanese state with area and saved battery',async t=>{
   const cases=[
     ['STATUS_NOT_AVAILABLE','charging',39,'充電中'],['STATUS_NOT_AVAILABLE','waiting_traffic',65,'交通待ち'],
-    ['STATUS_NOT_AVAILABLE','moving_to_wait',65,'倉庫待機場所へ復帰'],['STATUS_NOT_AVAILABLE','positioning_for_pickup',65,'荷受け姿勢'],
-    ['BLOCKED','idle',65,'利用不可'],['BATTERY_INVALID','idle',null,'残量不正'],
-    ['BATTERY_RESERVE','idle',40,'選定下限40%以下'],['BATTERY_CHARGE_START','idle',39.5,'充電開始40%以下'],
-    ['AREA_NOT_PRIORITIZED','idle',65,'目的地エリア外'],['AREA_FALLBACK_DISABLED','idle',65,'他エリア選定なし'],
-    ['PICKUP_ROUTE_UNREACHABLE','idle',65,'荷受け点への経路に到達不可'],
-    ['LOADED_ROUTE_UNREACHABLE','idle',65,'荷下ろし先への経路に到達不可'],
-    ['UNKNOWN_INTERNAL_REASON','unknown_internal_status',65,'判定理由未記録']
+    ['STATUS_NOT_AVAILABLE','moving_to_wait',65,'待機場所へ移動中'],
+    ['STATUS_NOT_AVAILABLE','positioning_for_pickup',65,'荷受け姿勢へ移行'],
+    ['BLOCKED','idle',65,'利用不可'],['BATTERY_INVALID','idle',null,'利用不可（残量不明）'],
+    ['BATTERY_RESERVE','idle',40,'待機（残量不足）'],['BATTERY_CHARGE_START','idle',39.5,'待機（残量不足）'],
+    ['AREA_NOT_PRIORITIZED','idle',65,'待機'],['AREA_FALLBACK_DISABLED','idle',65,'待機'],
+    ['PICKUP_ROUTE_UNREACHABLE','idle',65,'利用不可（経路なし）'],
+    ['LOADED_ROUTE_UNREACHABLE','idle',65,'利用不可（経路なし）'],
+    ['UNKNOWN_INTERNAL_REASON','unknown_internal_status',65,'状態未記録']
   ];
   for(const [exclusionReason,status,batteryPct,label] of cases){
     await t.test(exclusionReason+' '+status,()=>{
       const row=firstRow(decision({evaluations:[evaluation('AGF1','WH',batteryPct,{status,exclusionReason})]}));
-      assert.ok(row.detail.includes(label));
-      assert.match(row.detail,/AGF1（製品倉庫/);
-      if(Number.isFinite(batteryPct))assert.ok(row.detail.includes(batteryPct.toFixed(1)+'%'));
-      assert.doesNotMatch(row.detail,new RegExp(exclusionReason+'|'+status));
+      assert.ok(row.agfStates[0].startsWith(label+' / 製品倉庫 / '));
+      if(Number.isFinite(batteryPct))assert.ok(row.agfStates[0].endsWith(batteryPct.toFixed(1)+'%'));
+      else assert.ok(row.agfStates[0].endsWith('残量未記録'));
+      assert.deepEqual(row.agfStates.slice(1),dashes.slice(1));
+      assert.doesNotMatch(row.agfStates.join(' '),new RegExp(exclusionReason+'|'+status));
     });
   }
 });
 
-test('waiting dispatch lists all vehicle exclusions and has no selected vehicle',()=>{
+test('saved blocked true overrides idle even when an earlier filter records a different exclusion code',()=>{
+  const row=firstRow(decision({evaluations:[evaluation('AGF1','WH',39,{blocked:true,exclusionReason:'BATTERY_CHARGE_START'})]}));
+  assert.equal(row.agfStates[0],'利用不可 / 製品倉庫 / 39.0%');assert.deepEqual(row.agfStates.slice(1),dashes.slice(1));
+});
+
+test('HP and dispatch-pending statuses simplify to idle while moving statuses remain distinct',()=>{
+  const selection=decision({evaluations:[evaluation('AGF1','WH',70,{status:'hp_wait'}),evaluation('AGF2','WH',65,{status:'dispatch_pending'}),
+    evaluation('AGF3','PZ',60,{status:'moving_loaded'}),evaluation('AGF4','WH',55,{status:'moving_to_wait'})]});
+  assert.deepEqual(firstRow(selection).agfStates,['待機 / 製品倉庫 / 70.0%','待機 / 製品倉庫 / 65.0%',
+    '搬送中 / パレタイズエリア / 60.0%','待機場所へ移動中 / 製品倉庫 / 55.0%']);
+});
+
+test('evaluated waiting decisions display all four saved states and no selected AGF',()=>{
   const evaluations=[evaluation('AGF1','WH',38,{exclusionReason:'BATTERY_CHARGE_START'}),
     evaluation('AGF2','WH',55,{status:'charging',exclusionReason:'STATUS_NOT_AVAILABLE'}),
     evaluation('AGF3','PZ',60,{exclusionReason:'AREA_FALLBACK_DISABLED'}),
     evaluation('AGF4','WH',60,{exclusionReason:'PICKUP_ROUTE_UNREACHABLE'})];
   const row=firstRow(decision({selectedAgfId:null,selectedArea:null,selectedBatteryPct:null,candidates:[],evaluations}),
     'TASK_WAITING','NO_ELIGIBLE_AGF');
-  assert.match(row.reason,/実行可能AGF待ち.*候補0台/);
-  assert.match(row.detail,/^選定なし\n候補 なし\n対象外 /);
-  for(const e of evaluations)assert.ok(row.detail.includes(e.agfId));
-  assert.doesNotMatch(row.detail,/選定 AGF|選定理由未記録/);
-  const areaWait=firstRow(decision({selectedAgfId:null,candidates:[],evaluations}), 'TASK_WAITING','NO_AREA_AGF');
-  assert.match(areaWait.reason,/製品倉庫に候補なし/);
+  assert.equal(row.agfId,'－');assert.deepEqual(row.agfStates,['待機（残量不足） / 製品倉庫 / 38.0%',
+    '充電中 / 製品倉庫 / 55.0%','待機 / パレタイズエリア / 60.0%','利用不可（経路なし） / 製品倉庫 / 60.0%']);
+  assert.equal(row.detail,'実行可能AGF待ち');assert.doesNotMatch(row.detail,/候補|対象外|選定下限|選定なし/);
 });
 
-test('task preconditions distinguish vehicles not evaluated from vehicles evaluated before the task was held',()=>{
+test('waiting preconditions expose states only for vehicles whose selection evaluation actually ran',()=>{
   const gate=evaluationStatus=>decision({selectedAgfId:null,selectedArea:null,selectedBatteryPct:null,candidates:[],
     taskExclusionReason:'ALIGNER_PERMISSION',evaluations:decision().evaluations.map(e=>({...e,eligible:false,selected:false,
       exclusionReason:'TASK_PRECONDITION',evaluationStatus}))});
   const notEvaluated=firstRow(gate('not_evaluated'),'TASK_WAITING','ALIGNER_PERMISSION');
-  assert.match(notEvaluated.reason,/整列機の荷受け許可待ち.*AGF判定は未実施/);
-  assert.match(notEvaluated.detail,/\n未評価 .*AGF1.*AGF2.*AGF3.*AGF4/);
-  assert.doesNotMatch(notEvaluated.detail,/対象外 |搬送中のため|選定下限40%以下/);
+  assert.deepEqual(notEvaluated.agfStates,dashes);assert.equal(notEvaluated.detail,'整列機の荷受け許可待ち');
   const evaluated=firstRow(gate('evaluated'),'TASK_WAITING','ALIGNER_PERMISSION');
-  assert.match(evaluated.reason,/整列機の荷受け許可待ち.*AGF選定を保留/);
-  assert.match(evaluated.detail,/\n選定保留 .*AGF1.*AGF2.*AGF3.*AGF4/);
-  assert.doesNotMatch(evaluated.reason+' '+evaluated.detail,/未評価|未実施/);
+  assert.deepEqual(evaluated.agfStates,firstRow(decision()).agfStates);
+  const partial=gate('evaluated');partial.evaluations[1].evaluationStatus='not_evaluated';
+  assert.equal(firstRow(partial,'TASK_WAITING','ALIGNER_PERMISSION').agfStates[1],'－');
+  assert.doesNotMatch(evaluated.detail+' '+notEvaluated.detail,/未評価|未実施|選定保留|候補|対象外/);
 });
 
-test('saved decisions remain authoritative when settings and replay snapshots are altered or absent',()=>{
-  const run=fixture(),before=JSON.stringify(run),original=buildTransportHistoryRows(run)[0];
-  assert.equal(JSON.stringify(run),before);
+test('saved decision states remain authoritative when settings and replay snapshots are altered or absent',()=>{
+  const run=fixture(),before=JSON.stringify(run),original=buildTransportHistoryRows(run)[0];assert.equal(JSON.stringify(run),before);
   run.scenario.mode='low_battery_first';run.scenario.battery.reservePct=99;run.scenario.battery.chargeStartPct=95;
-  run.snapshots[0].agfs[0]={id:'AGF2',area:'PZ',batteryPct:1,status:'moving_loaded'};
-  run.final.tasks[0].destinationArea='PZ';
-  const changed=buildTransportHistoryRows(run)[0];
-  assert.equal(changed.reason,original.reason);assert.equal(changed.detail,original.detail);
-  delete run.snapshots;
-  assert.equal(buildTransportHistoryRows(run)[0].detail,original.detail);
+  run.snapshots[0].agfs[0]={id:'AGF2',area:'PZ',batteryPct:1,status:'moving_loaded'};run.final.tasks[0].destinationArea='PZ';
+  run.final.agfs=[{id:'AGF2',area:'PZ',batteryPct:100,status:'charging'}];
+  assert.deepEqual(buildTransportHistoryRows(run)[0].agfStates,original.agfStates);
+  delete run.snapshots;assert.deepEqual(buildTransportHistoryRows(run)[0].agfStates,original.agfStates);
 });
 
 test('unassigned waiting records never borrow a later AGF assignment from the final task',()=>{
   const run=fixture(decision({selectedAgfId:null,selectedArea:null,selectedBatteryPct:null,candidates:[],
     evaluations:decision().evaluations.map(e=>({...e,eligible:false,selected:false,exclusionReason:'BLOCKED'}))}),
-    'TASK_WAITING','NO_ELIGIBLE_AGF');
-  run.final.tasks[0].agfId='AGF4';delete run.snapshots;
-  const [row]=buildTransportHistoryRows(run);
-  assert.equal(row.agfId,'－');
-  assert.match(row.detail,/^選定なし/);
+    'TASK_WAITING','NO_ELIGIBLE_AGF');run.final.tasks[0].agfId='AGF4';delete run.snapshots;
+  const [row]=buildTransportHistoryRows(run);assert.equal(row.agfId,'－');assert.ok(row.agfStates.every(state=>state.startsWith('利用不可 / ')));
   assert.equal(buildTransportHistoryRows(run,{agfId:'AGF4'}).length,0);
 });
 
-test('legacy decisions explicitly disclose missing all-vehicle evaluation without inventing snapshot eligibility',()=>{
+test('legacy missing evaluations keep four dashes without inventing states from candidates or snapshots',()=>{
   const selection=decision();delete selection.evaluations;
-  const row=firstRow(selection);
-  assert.match(row.detail,/全台評価未記録/);
-  assert.match(row.detail,/残量48\.2%/);
-  assert.doesNotMatch(row.detail,/残量9\.0%|充電中|対象外/);
-  const absent=firstRow(null);
-  assert.equal(absent.reason,'選定理由未記録');
+  for(const saved of [selection,null,decision({evaluations:[]}),decision({evaluations:[evaluation('AGF99','WH',100)]})]){
+    const row=firstRow(saved);assert.deepEqual(row.agfStates,dashes);assert.equal(row.detail,'－');assert.equal(row.agfId,'AGF2');
+  }
   const waiting=firstRow({...selection,selectedAgfId:null,candidates:[]},'TASK_WAITING','NO_ELIGIBLE_AGF');
-  assert.match(waiting.detail,/全台評価未記録/);
+  assert.deepEqual(waiting.agfStates,dashes);assert.equal(waiting.detail,'実行可能AGF待ち');
 });
 
-test('multiline detail is escaped once and shared unchanged by eleven UI and CSV cells',()=>{
+test('non-assignment business events do not project saved decision states into the new columns',()=>{
+  for(const type of ['TASK_REQUESTED','TASK_PICKED','TASK_DROPPED','TASK_COMPLETED','CHARGE_STARTED','PALLET_EXITED']){
+    const row=firstRow(decision(),type);assert.deepEqual(row.agfStates,dashes,type);
+  }
+});
+
+test('fourteen UI and CSV cells share the same data and escape customer content exactly once',()=>{
   const run=fixture(),rows=buildTransportHistoryRows(run),cells=transportHistoryCells(rows[0]),csv=transportHistoryCsv(run);
-  assert.equal(TRANSPORT_HISTORY_COLUMNS.length,11);assert.equal(cells.length,11);
+  assert.equal(TRANSPORT_HISTORY_COLUMNS.length,14);assert.equal(cells.length,14);assert.equal(TRANSPORT_HISTORY_COLUMNS.includes('理由'),false);
   const quote=value=>/[",\r\n]/.test(String(value))?'"'+String(value).replaceAll('"','""')+'"':String(value);
   assert.equal(csv,'\ufeff'+[TRANSPORT_HISTORY_COLUMNS.map(quote).join(','),cells.map(quote).join(',')].join('\r\n'));
-  const html=renderTransportHistoryRows(rows);
-  assert.equal((html.match(/<td\b/g)??[]).length,11);
-  assert.match(html,/<td class="dispatch-detail">選定 AGF2/);
-  assert.ok(html.includes(rows[0].detail));
+  const html=renderTransportHistoryRows(rows);assert.equal((html.match(/<td\b/g)??[]).length,14);
+  for(const state of rows[0].agfStates)assert.ok(html.includes(state));
+  const injected={...rows[0],detail:'<script>"x" & danger</script>'},escaped=renderTransportHistoryRows([injected]);
+  assert.match(escaped,/&lt;script&gt;&quot;x&quot; &amp; danger&lt;\/script&gt;/);assert.doesNotMatch(escaped,/<script>/);
   const css=readFileSync(new URL('../src/ui/dashboard.css',import.meta.url),'utf8');
-  assert.match(css,/\.transport-history\s+td\.dispatch-detail\s*\{[^}]*white-space:\s*pre-line/);
+  assert.match(css,/\.transport-history\s+td\.agf-state\s*\{[^}]*white-space:\s*normal/);
+});
+
+test('internal waiting reasons and saved evaluations survive customer simplification and developer export',()=>{
+  const run=fixture(decision({selectedAgfId:null,candidates:[]}), 'TASK_WAITING','NO_ELIGIBLE_AGF'),before=JSON.stringify(run);
+  const customer=transportHistoryCsv(run);assert.equal(JSON.stringify(run),before);
+  assert.doesNotMatch(customer,/NO_ELIGIBLE_AGF|STATUS_NOT_AVAILABLE|AREA_NOT_PRIORITIZED/);
+  assert.equal(run.events[0].reason,'NO_ELIGIBLE_AGF');assert.equal(run.events[0].dispatchSelection.evaluations.length,4);
+  assert.match(eventCsv(run,run.runId),/NO_ELIGIBLE_AGF/);
 });

@@ -882,7 +882,7 @@ export function simulate(rawScenario) {
       if (a) completeDrop(t,a);
     }
   };
-  const vehicleEvaluation=a=>({agfId:a.id,area:a.area,batteryPct:a.batteryPct,status:a.status,
+  const vehicleEvaluation=a=>({agfId:a.id,area:a.area,batteryPct:a.batteryPct,status:a.status,blocked:!!a.blocked,
     eligible:false,vehicleEligible:false,exclusionReason:null,selected:false,evaluationStatus:'not_evaluated'});
   const evaluationOrder=(a,b)=>String(a.agfId).localeCompare(String(b.agfId),'en');
   const taskGateSelection=(task,reason,selection=null)=>({

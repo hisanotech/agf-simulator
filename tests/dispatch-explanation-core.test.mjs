@@ -39,6 +39,20 @@ const eventOf=(run,type,reason=null)=>{
   assert.ok(event,`${type}${reason?' '+reason:''} must be recorded`);return event;
 };
 
+test('saved dispatch states retain blocked flags even when status or battery rejects a vehicle first',()=>{
+  const agfs=[vehicle('AGF1','PZ',85,{status:'moving_loaded',blocked:true}),
+    vehicle('AGF2','PZ',75,{blocked:true}),vehicle('AGF3','PZ',40,{blocked:true}),vehicle('AGF4','PZ',90)];
+  const selected=selectAgfWithReason(agfs,{destinationArea:'PZ'},options);
+  const selectorRows=evaluations(selected.selection);
+  assert.equal(selectorRows.AGF1.blocked,true);
+  assert.equal(selectorRows.AGF1.exclusionReason,'STATUS_NOT_AVAILABLE');
+  assert.equal(selectorRows.AGF4.blocked,false);
+  const run=simulate(fixedScenario({agfs})),saved=evaluations(eventOf(run,'TASK_ASSIGNED').dispatchSelection);
+  assert.deepEqual(Object.values(saved).map(row=>row.blocked),[true,true,true,false]);
+  agfs[0].blocked=false;
+  assert.equal(saved.AGF1.blocked,true);
+});
+
 test('fixed-time assignment saves all four original states and the exclusions actually applied',()=>{
   const input=fixedScenario({agfs:[vehicle('AGF1','PZ',85,{status:'moving_loaded'}),
     vehicle('AGF2','PZ',75,{status:'charging'}),vehicle('AGF3','PZ',40),vehicle('AGF4','PZ',90)]});
